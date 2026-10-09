@@ -192,7 +192,7 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
 
 export function hostAction(world: World, action: string, payload: Record<string, unknown> = {}, at = Date.now()) {
   if (action === "start") {
-    if (world.status === "live") throw new Error("The batch is already running.");
+    if (world.status === "live" || world.status === "countdown") throw new Error("The batch is already starting or running.");
     world.batch++;
     world.stocks = makeStocks(world.batch * (world.mode === "test" ? 13 : 1));
     world.news = makeNews(world.batch); world.headlines = []; world.latestNewsId = null;
