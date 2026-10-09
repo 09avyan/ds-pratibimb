@@ -17,6 +17,7 @@ export function HostConsole() {
   const [world, setWorld] = useState<HostWorld | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
   const [working, setWorking] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [category, setCategory] = useState<"major" | "minor">("major");
   const [preset, setPreset] = useState(0);
   const [headlineDelay, setHeadlineDelay] = useState(0);
@@ -26,6 +27,15 @@ export function HostConsole() {
   const requestPending = useRef(false);
   const actionPending = useRef(false);
   const generation = useRef(0);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("ds-theme");
+    if (saved === "dark" || saved === "light") setTheme(saved);
+  }, []);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem("ds-theme", theme);
+  }, [theme]);
 
   const acceptSnapshot = useCallback((data: HostWorld) => {
     setWorld(data);
@@ -73,7 +83,7 @@ export function HostConsole() {
 
   if (!authenticated) return <main className="host-login"><a href="/play" className="login-wordmark"><span>D</span> Dalaal Street</a><section className="login-card"><span className="eyebrow">PRATIBIMB / EVENT OPERATIONS</span><h1>Host access<span>.</span></h1><p>Sign in to manage the shared market, batch sessions and live audience display.</p><form onSubmit={login}><label htmlFor="hostPass">HOST PASSWORD</label><input id="hostPass" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter host password" required/><button className="host-primary" disabled={working}>{working ? "Checking…" : "Open Host Console →"}</button></form>{error && <div className="host-error">{error}</div>}<small className="login-note">Private host tools · This URL is not linked from participant screens.</small></section><div className="login-foot">DALAA<span>L</span> STREET · MARKET SIMULATION</div></main>;
 
-  return <main className="host-app"><header className="host-top"><a className="login-wordmark" href="/host"><span>D</span> Dalaal Street</a><div className="host-top-center"><i/> HOST CONSOLE <span>·</span> BATCH {String(world?.batch ?? 0).padStart(2, "0")}</div><div className="host-top-actions"><a className="host-quiet" href="/audience" target="_blank">Open audience wall ↗</a><button className="host-quiet" disabled={working} onClick={() => void logout()}>Sign out</button></div></header>
+  return <main className="host-app"><header className="host-top"><a className="login-wordmark" href="/host"><span>D</span> Dalaal Street</a><div className="host-top-center"><i/> HOST CONSOLE <span>·</span> BATCH {String(world?.batch ?? 0).padStart(2, "0")}</div><div className="host-top-actions"><a className="host-quiet" href="/audience" target="_blank">Open audience wall ↗</a><button className="theme-button host-theme" onClick={() => setTheme(current => current === "light" ? "dark" : "light")} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "◐" : "☀"}</button><button className="host-quiet" disabled={working} onClick={() => void logout()}>Sign out</button></div></header>
     <div className="host-layout"><aside className="host-nav"><span className="eyebrow">OPERATIONS</span>{([ ["overview", "Overview", "⌂"], ["market", "Market control", "⌁"], ["news", "News studio", "◉"], ["sessions", "Sessions", "▦"], ["settings", "Settings", "⚙"] ] as [Tab, string, string][]).map(([key, label, icon]) => <button key={key} onClick={() => setTab(key)} className={tab === key ? "active" : ""}><span>{icon}</span>{label}</button>)}<div className="host-nav-bottom"><span className={`server-state ${world ? "healthy" : ""}`}/><span><b>Market engine</b><small>{world ? "Connected · Supabase" : "Connecting…"}</small></span></div></aside>
       <section className="host-content"><div className="host-page-title"><div><span className="eyebrow">MARKET OPERATIONS / {tab.toUpperCase()}</span><h1>{({ overview: "The floor at a glance", market: "Market control", news: "News studio", sessions: "Participant sessions", settings: "Batch settings" })[tab]}<span>.</span></h1><p>{({ overview: "One shared market, ready when you are.", market: "Tune the conditions that shape every order and price tick.", news: "Select a market bulletin, schedule a headline or set an automatic cadence.", sessions: "Monitor connected participant devices and manage their participation.", settings: "Choose the synchronized batch duration and market update rate." })[tab]}</p></div><div className={`host-status ${world?.status === "live" && !world.controls.paused ? "live" : ""}`}><i/>{world?.controls.paused ? "PAUSED" : world?.status === "countdown" ? "OPENING BELL" : world?.status === "live" ? "MARKET LIVE" : world?.status === "closed" ? "MARKET CLOSED" : "READY"}<b>{world?.status === "countdown" ? `OPENING IN ${Math.max(0, Math.ceil((world.startedAt - Date.now()) / 1000))}s` : world?.status === "live" ? fmtTime(world.remaining) : `BATCH ${String(world?.batch ?? 1).padStart(2, "0")}`}</b></div></div>
         {(error || connectionError) && <div className="host-error wide-error" role="alert">{error || connectionError}<button onClick={() => { setError(""); setConnectionError(""); }}>×</button></div>}
