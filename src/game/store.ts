@@ -31,10 +31,13 @@ export async function mutate<T>(mode: Mode, update: (world: World) => T | Promis
     const stored = await load(mode);
     const world = stored?.state ?? freshWorld(mode);
     const version = stored?.version ?? 0;
+    const initialRevision = world.version;
     const result = await update(world);
+    // Unchanged reads need only one database round trip; never cache trade state.
+    if (stored && world.version === initialRevision) return { world, result };
     const saved = await rpc<boolean>("save_game_state", { p_secret: secret(), p_mode: mode, p_expected_version: version, p_state: world });
     if (saved) return { world, result };
-    await new Promise(resolve => setTimeout(resolve, Math.min(30, attempt * 3)));
+    await new Promise(resolve => setTimeout(resolve, Math.min(75, 10 + attempt * 5 + Math.random() * 15)));
   }
   throw new Error("Market updates are busy. Please try once more.");
 }

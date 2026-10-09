@@ -1,10 +1,10 @@
 export type Mode = "live" | "test";
 export type Candle = { time: number; open: number; high: number; low: number; close: number; volume: number };
-export type Stock = { symbol: string; name: string; sector: string; domain: string; base: number; previousClose: number; price: number; weight: number; candles: Candle[]; flow: number };
+export type Stock = { symbol: string; name: string; sector: string; domain: string; base: number; previousClose: number; price: number; weight: number; candles: Candle[]; trend?: number[]; flow: number };
 export type News = { id: string; type: "major" | "minor"; sector: string; symbols?: string[]; headline: string; direction: -1 | 1; severity: number; createdAt: number };
 export type Position = { qty: number; avg: number };
-export type Trade = { id: string; symbol: string; side: "Buy" | "Sell" | "Short" | "Auto-cover"; qty: number; price: number; time: number; realized: number; note?: string };
-export type Player = { id: string; batch: number; initialCash: number; cash: number; holdings: Record<string, Position>; shorts: Record<string, Position>; history: Trade[]; joinedAt: number; ended: boolean; paused: boolean; included: boolean };
+export type Trade = { id: string; requestId?: string; symbol: string; side: "Buy" | "Sell" | "Short" | "Auto-cover"; qty: number; price: number; time: number; realized: number; note?: string };
+export type Player = { id: string; batch: number; initialCash: number; cash: number; holdings: Record<string, Position>; shorts: Record<string, Position>; history: Trade[]; joinedAt: number; lastSeenAt?: number; ended: boolean; paused: boolean; included: boolean };
 export type Controls = { scenario: "Bullish" | "Bearish" | "Sideways" | "Volatile"; volatility: number; bots: number; tickRate: 0.5 | 1; marketBias: number; paused: boolean; majorAuto: number; minorAuto: number; newsSpacing: number; newsEnabled: boolean; activeNews: number };
 export type World = { mode: Mode; batch: number; status: "ready" | "countdown" | "live" | "closed"; duration: number; remaining: number; startedAt: number; lastTickAt: number; tick: number; controls: Controls; stocks: Stock[]; news: News[]; headlines: News[]; sessions: Record<string, Player>; latestNewsId: string | null; newsNextAt: number; error: string | null; version: number; scheduledInterventions: { at: number; sector: string; direction: number; magnitude: number }[]; scheduledNews: { at: number; index: number }[] };
-export type PublicWorld = Omit<World, "sessions" | "version"> & { player: Player | null; index: number; indexChange: number; participants: number };
+export type PublicWorld = Omit<World, "sessions" | "version"> & { player: Player | null; index: number; indexChange: number; participants: number; revision: number };

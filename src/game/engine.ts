@@ -50,8 +50,8 @@ function pushHeadline(world: World, presetIndex?: number) {
 }
 
 export function advance(world: World, now = Date.now()): World {
-  if (world.status === "countdown" && now >= world.startedAt) { world.status = "live"; world.lastTickAt = world.startedAt; }
-  if (world.mode === "test" && world.status === "closed") { world.status = "live"; world.controls.paused = false; }
+  if (world.status === "countdown" && now >= world.startedAt) { world.status = "live"; world.lastTickAt = world.startedAt; world.version++; }
+  if (world.mode === "test" && world.status === "closed") { world.status = "live"; world.controls.paused = false; world.version++; }
   if (world.mode === "live" && (world.status !== "live" || world.controls.paused)) { world.lastTickAt = now; return world; }
   const elapsed = Math.max(0, now - world.lastTickAt);
   // Reconstruct long-idle test-market time in bounded coarse steps on reconnect.
@@ -152,7 +152,7 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
     const short = player.shorts[symbol];
     const covered = Math.min(quantity, short?.qty ?? 0);
     const newLong = quantity - covered;
-    const available = player.cash + covered * px;
+    const available = player.cash;
     if (available + 1e-6 < notional) throw new Error("Not enough cash available for this buy.");
     if (covered && short) {
       realized += (short.avg - px) * covered;
@@ -247,14 +247,14 @@ export function hostAction(world: World, action: string, payload: Record<string,
 }
 
 export function newPlayer(sessionId: string, batch: number, at = Date.now(), included = true): Player {
-  return { id: sessionId, batch, initialCash: START_CASH, cash: START_CASH, holdings: {}, shorts: {}, history: [], joinedAt: at, ended: false, paused: false, included };
+  return { id: sessionId, batch, initialCash: START_CASH, cash: START_CASH, holdings: {}, shorts: {}, history: [], joinedAt: at, lastSeenAt: at, ended: false, paused: false, included };
 }
 
-export function toPublic(world: World, sessionId?: string | null): PublicWorld {
+export function toPublic(world: World, sessionId?: string | null, selectedStock = "RELIANCE"): PublicWorld {
   const { sessions, version: _version, ...rest } = world;
   const base = world.stocks.reduce((sum, s) => sum + s.weight * s.previousClose, 0);
   const value = indexValue(world);
-  return { ...rest, player: sessionId ? sessions[sessionId] ?? null : null, index: value, indexChange: base ? ((value - 10_000) / 10_000) * 100 : 0, participants: Object.values(sessions).filter(p => p.included && !p.ended).length };
+  return { ...rest, revision: world.version, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => ({ ...stock, trend: stock.candles.slice(-18).map(bar => bar.close), candles: stock.symbol === selectedStock ? stock.candles.slice(-36) : [] })), player: sessionId ? sessions[sessionId] ?? null : null, index: value, indexChange: base ? ((value - 10_000) / 10_000) * 100 : 0, participants: Object.values(sessions).filter(p => p.included && !p.ended).length };
 }
 
 export function performance(world: World, player: Player) {

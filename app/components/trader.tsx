@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Candle, Mode, Player, PublicWorld, Stock } from "@/game/types";
+import type { Mode, Player, PublicWorld, Stock } from "@/game/types";
 import { equity, performance, shortValue } from "@/game/engine";
 import { Logo } from "@/components/trader-parts";
 
@@ -17,11 +17,12 @@ const initialSession = () => {
 };
 
 function MiniChart({ stock }: { stock: Stock }) {
-  const values = stock.candles.slice(-18).map(c => c.close);
+  const values = stock.trend?.length ? stock.trend : stock.candles.slice(-18).map(c => c.close);
+  if (values.length < 2) return <svg className="mini-chart" viewBox="0 0 100 28" aria-hidden="true"><line x1="0" x2="100" y1="14" y2="14" stroke="var(--line)" /></svg>;
   const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1;
-  const points = values.map((v, i) => `${i * 4},${25 - ((v - lo) / span) * 21}`).join(" ");
+  const points = values.map((v, i) => `${i * 100 / (values.length - 1)},${25 - ((v - lo) / span) * 21}`).join(" ");
   const up = values.at(-1)! >= values[0];
-  return <svg className="mini-chart" viewBox="0 0 68 28" aria-hidden="true"><polyline points={points} fill="none" stroke={up ? "#1e9173" : "#d75a4e"} strokeWidth="1.7" vectorEffect="non-scaling-stroke" /></svg>;
+  return <svg className="mini-chart" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline points={points} fill="none" stroke={up ? "#1e9173" : "#d75a4e"} strokeWidth="1.7" vectorEffect="non-scaling-stroke" /></svg>;
 }
 
 function MainChart({ stock, kind }: { stock: Stock; kind: "Line" | "Candles" }) {
@@ -79,26 +80,42 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
   const [drawer, setDrawer] = useState(false);
   const lastNews = useRef<string | null>(null);
   const inFlight = useRef(false);
+  const submitting = useRef(false);
+  const readController = useRef<AbortController | null>(null);
+  const mutationVersion = useRef(0);
+  const failures = useRef(0);
+  const nextSyncAt = useRef(0);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
   const newsTimeout = useRef<number | null>(null);
 
   useEffect(() => { if (!audienceOnly) setSessionId(initialSession()); }, [audienceOnly]);
   const sync = useCallback(async () => {
-    if ((!audienceOnly && !sessionId) || inFlight.current) return;
+    if ((!audienceOnly && !sessionId) || inFlight.current || submitting.current || document.hidden || !navigator.onLine || Date.now() < nextSyncAt.current) return;
     inFlight.current = true;
+    const controller = new AbortController();
+    readController.current = controller;
+    const revision = mutationVersion.current;
+    const requestedStock = selectedRef.current;
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
     try {
-      const res = await fetch(`/api/game?mode=${mode}${sessionId ? `&session=${encodeURIComponent(sessionId)}` : ""}`, { cache: "no-store" });
+      const res = await fetch(`/api/game?mode=${mode}&selected=${encodeURIComponent(requestedStock)}${sessionId ? `&session=${encodeURIComponent(sessionId)}` : ""}`, { cache: "no-store", signal: controller.signal });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Market data is unavailable.");
+      if (revision !== mutationVersion.current || requestedStock !== selectedRef.current) return;
+      failures.current = 0;
       setWorld(data);
       const headline = data.latestNewsId;
       if (headline && headline !== lastNews.current) {
         lastNews.current = headline;
         if (!audienceOnly) { setBreaking(true); if (newsTimeout.current) window.clearTimeout(newsTimeout.current); newsTimeout.current = window.setTimeout(() => setBreaking(false), 30_000); }
       }
-    } catch (err) { setToast(err instanceof Error ? err.message : "Reconnecting to the market…"); }
-    finally { inFlight.current = false; }
+    } catch (err) { if (!controller.signal.aborted) { failures.current += 1; nextSyncAt.current = Date.now() + Math.min(15000, 1000 * 2 ** failures.current); if (failures.current === 1) setToast(err instanceof Error ? err.message : "Reconnecting to the market…"); } }
+    finally { clearTimeout(timeout); if (readController.current === controller) { inFlight.current = false; readController.current = null; } }
   }, [sessionId, mode, audienceOnly]);
   useEffect(() => { if (!sessionId && !audienceOnly) return; void sync(); const timer = window.setInterval(sync, world?.controls.tickRate === .5 ? 500 : 1000); return () => window.clearInterval(timer); }, [sessionId, audienceOnly, sync, world?.controls.tickRate]);
+  useEffect(() => { readController.current?.abort(); nextSyncAt.current = 0; void sync(); }, [selected, sync]);
+  useEffect(() => { const resume = () => { if (!document.hidden && navigator.onLine) { nextSyncAt.current = 0; void sync(); } else readController.current?.abort(); }; document.addEventListener("visibilitychange", resume); window.addEventListener("online", resume); window.addEventListener("offline", resume); return () => { document.removeEventListener("visibilitychange", resume); window.removeEventListener("online", resume); window.removeEventListener("offline", resume); readController.current?.abort(); }; }, [sync]);
 
   const player = world?.player ?? null;
   const stock = world?.stocks.find(s => s.symbol === selected) ?? world?.stocks[0];
@@ -120,10 +137,13 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
   useEffect(() => { if (world?.mode === "live" && world.status === "closed" && player?.ended) setView("report"); }, [world?.mode, world?.status, player?.ended]);
 
   async function send(action: string, payload: Record<string, unknown> = {}) {
-    if (!sessionId) return;
+    if (!sessionId || submitting.current) return;
+    submitting.current = true;
+    mutationVersion.current += 1;
+    readController.current?.abort();
     setBusy(true);
     try {
-      const res = await fetch("/api/game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, sessionId, action, ...payload }) });
+      const res = await fetch("/api/game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, sessionId, action, selectedStock: selectedRef.current, requestId: crypto.randomUUID(), ...payload }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Trade could not be completed.");
       setWorld(data);
@@ -131,7 +151,7 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
       else if (action === "end") setView("report");
       return data;
     } catch (err) { setToast(err instanceof Error ? err.message : "The market could not complete that action."); }
-    finally { setBusy(false); }
+    finally { submitting.current = false; nextSyncAt.current = Date.now() + 500; setBusy(false); }
   }
 
   if (audienceOnly) return <Audience world={world} />;
@@ -140,20 +160,12 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
   const activeNews = world?.headlines.find(n => n.id === world.latestNewsId);
   return <div className="terminal">
     <Header world={world} player={player} onTheme={() => setTheme(theme === "light" ? "dark" : "light")} />
-    <aside className="left-rail">
-      <div className="rail-section"><span className="rail-label">TERMINAL</span>
-        {[ ["markets", "Markets", "↗"], ["portfolio", "Portfolio", "▧"], ["news", "News desk", "◉"] ].map(([key, label, icon]) => <button key={key} onClick={() => setView(key as typeof view)} className={`rail-link ${view === key ? "active" : ""}`}><span className="rail-icon">{icon}</span>{label}{key === "news" && world?.headlines.length ? <span className="rail-count">{world.headlines.length}</span> : null}</button>)}
-      </div>
-      <div className="rail-watch"><span className="rail-label">YOUR BOOK</span>
-        {!invested.length && !shorts.length ? <p className="rail-empty">Your positions will appear here as you trade.</p> : [...invested.map(([sym, p]) => ({ sym, qty: p.qty, short: false })), ...shorts.map(([sym, p]) => ({ sym, qty: p.qty, short: true }))].map(p => {
-          const s = world?.stocks.find(x => x.symbol === p.sym); if (!s) return null;
-          return <button className="rail-position" key={`${p.sym}${p.short}`} onClick={() => { setSelected(p.sym); setView("markets"); }}><span className={`book-side ${p.short ? "short" : ""}`}/><span><b>{p.sym}</b><small>{p.short ? "SHORT" : `${p.qty} shares`}</small></span><b className="book-value">{p.qty}</b></button>;
-        })}
-      </div>
-      <div className="rail-bottom"><span className="avatar-host">DS</span><span><b>Participant</b><small>{isTest ? "AUTONOMOUS LAB" : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</small></span></div>
-    </aside>
+    <nav className="terminal-tabs" aria-label="Primary navigation">
+      {([ ["markets", "Markets"], ["portfolio", "Portfolio"], ["news", "News desk"] ] as const).map(([key, label]) => <button key={key} onClick={() => setView(key)} aria-current={view === key ? "page" : undefined} className={view === key ? "active" : ""}>{label}{key === "news" && Boolean(world?.headlines.length) && <span>{world!.headlines.length}</span>}</button>)}
+      <span className="terminal-context">{isTest ? "TEST MARKET" : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</span>
+    </nav>
 
-    <main className={`workspace ${view === "portfolio" || view === "report" || view === "news" ? "workspace-wide" : ""}`}>
+    <main className={`workspace ${view === "markets" ? "workspace-markets" : "workspace-wide"}`}>
       {isTest && <div className="autonomous-band"><span className="live-dot"/> TEST MARKET · ISOLATED SIMULATION <span>Market state advances from elapsed time, even between visits.</span></div>}
       {world?.mode === "live" && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - Date.now()) / 1000))} seconds` : world.status === "closed" ? "The batch has ended" : "The market is ready"}<span>{world.status === "countdown" ? "The shared market is starting on every device." : world.status === "closed" ? "Review your report to return to the ready state." : "The host will start the shared batch shortly."}</span></div>}
       {view === "markets" && stock && <>
@@ -163,8 +175,9 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
           <section className="watch-area">
             <div className="watch-controls"><div className="sector-scroll">{sectors.map(s => <button key={s} className={`filter-chip ${sector === s ? "active" : ""}`} onClick={() => setSector(s)}>{s}</button>)}</div><label className="search-field"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search companies" aria-label="Search stocks"/><kbd>⌘ K</kbd></label></div>
             <div className="stock-grid">{shownStocks.map(s => <button key={s.symbol} className={`stock-card ${selected === s.symbol ? "selected" : ""}`} onClick={() => { setSelected(s.symbol); setQuantity("10"); setAmount(""); }}>
-              <div className="stock-card-top"><Logo stock={s}/><div className="stock-id"><strong>{s.symbol}</strong><span>{s.name}</span></div><MiniChart stock={s}/></div>
+              <div className="stock-card-top"><Logo stock={s}/><div className="stock-id"><strong>{s.symbol}</strong><span>{s.name}</span></div></div>
               <div className="stock-card-bottom"><strong>{money(s.price)}</strong><span className={`stock-change ${changePct(s) >= 0 ? "positive" : "negative"}`}>{changePct(s) >= 0 ? "↗" : "↘"} {changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</span></div>
+              <MiniChart stock={s}/>
               <div className="stock-card-foot"><span>{s.sector}</span><span>{(player?.holdings[s.symbol]?.qty ?? 0) > 0 ? `${player!.holdings[s.symbol].qty} shares` : (player?.shorts[s.symbol]?.qty ?? 0) > 0 ? `${player!.shorts[s.symbol].qty} short` : "No position"}</span></div>
             </button>)}</div>
             {!shownStocks.length && <div className="empty-state">No companies match that search.</div>}
@@ -174,9 +187,9 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
           <aside className="trade-column">
             <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
               <div className="focus-price-row"><strong>{money(stock.price)}</strong><span className={`stock-change ${changePct(stock) >= 0 ? "positive" : "negative"}`}>{changePct(stock) >= 0 ? "+" : ""}{changePct(stock).toFixed(2)}%</span><small>SESSION</small></div>
-              <div className="chart-toolbar"><span>INTRADAY <b>·</b> 1 SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
               <MainChart stock={stock} kind={chartType}/>
-              <div className="chart-foot"><span><i/> Open <b>{money(stock.candles[0]?.open ?? stock.price)}</b></span><span>High <b>{money(Math.max(...stock.candles.slice(-36).map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(...stock.candles.slice(-36).map(c => c.low)))}</b></span></div>
+              <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.tickRate ?? 1} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
+              <div className="chart-foot"><span><i/> Open <b>{money(stock.candles[0]?.open ?? stock.price)}</b></span><span>High <b>{money(Math.max(stock.price, ...stock.candles.slice(-36).map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(stock.price, ...stock.candles.slice(-36).map(c => c.low)))}</b></span></div>
             </div>
             <div className="order-card"><div className="order-title"><div><span className="eyebrow">ORDER TICKET</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
               <div className="side-switch">{(["Buy", "Sell", "Short"] as const).map(t => <button key={t} onClick={() => setSide(t)} className={`${side === t ? `active ${t.toLowerCase()}` : ""}`} disabled={t === "Sell" && !ownedQty}>{t}</button>)}</div>
@@ -202,7 +215,7 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
       {view === "portfolio" && <section className="wide-page"><div className="section-heading"><div><div className="eyebrow">DALAA<span>L</span> STREET / ACCOUNT</div><h1>Your portfolio<span className="heading-period">.</span></h1><p>Open exposure and completed orders, updated against the shared market.</p></div></div>
         <div className="portfolio-summary"><Metric label="TOTAL EQUITY" value={money(world && player ? equity(world as never, player) : 1_000_000, 0)} note="Cash + long shares − short liabilities"/><Metric label="AVAILABLE CASH" value={money(player?.cash ?? 1_000_000, 0)} note="Includes proceeds from open shorts"/><Metric label="OPEN LONGS" value={money(totalLong, 0)} note={`${invested.length} company positions`}/><Metric label="SHORT EXPOSURE" value={money(totalShort, 0)} note="Marked to current prices"/></div>
         <div className="page-tabs"><button className={menu ? "" : "active"} onClick={() => setMenu(false)}>Holdings <span>{invested.length + shorts.length}</span></button><button className={menu ? "active" : ""} onClick={() => setMenu(true)}>History <span>{player?.history.length ?? 0}</span></button></div>
-        {!menu ? <div className="table-card">{invested.length + shorts.length === 0 ? <div className="empty-state roomy"><span>▧</span><b>No holdings yet</b><p>Choose a company from Markets to place your first order.</p><button className="outline-button" onClick={() => setView("markets")}>Browse markets</button></div> : <table><thead><tr><th>COMPANY</th><th>POSITION</th><th>AVG. PRICE</th><th>LAST PRICE</th><th>MARKET VALUE</th><th>UNREALISED P&amp;L</th></tr></thead><tbody>{[...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].map(p => {const s = world?.stocks.find(x => x.symbol === p.symbol); const mark = s?.price ?? 0; const pl = (p.short ? p.avg - mark : mark - p.avg) * p.qty;return <tr key={p.symbol} onClick={() => {setSelected(p.symbol);setView("markets");}}><td><span className="table-company"><Logo stock={s!} compact/><span><b>{s?.name}</b><small>{p.symbol} · {s?.sector}</small></span></span></td><td><span className={`position-pill ${p.short ? "short" : "long"}`}>{p.short ? "Short" : "Long"} · {p.qty}</span></td><td>{money(p.avg)}</td><td>{money(mark)}</td><td>{money(mark * p.qty, 0)}</td><td className={pl >= 0 ? "positive" : "negative"}>{pl >= 0 ? "+" : ""}{money(pl, 0)}</td></tr>;})}</tbody></table>}</div> : <div className="table-card">{!player?.history.length ? <div className="empty-state roomy"><span>↻</span><b>No trades yet</b><p>Every order and short-cover is recorded here.</p></div> : <table><thead><tr><th>TIME</th><th>COMPANY</th><th>ORDER</th><th>QUANTITY</th><th>EXECUTION</th><th>REALIZED P&amp;L</th></tr></thead><tbody>{player.history.map(t => {const s = world?.stocks.find(x => x.symbol === t.symbol);return <tr key={t.id}><td>{new Date(t.time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td><td><span className="table-company"><Logo stock={s!} compact/><span><b>{s?.name ?? t.symbol}</b><small>{t.symbol}</small></span></span></td><td><span className={`position-pill ${t.side === "Short" ? "short" : t.side === "Sell" || t.side === "Auto-cover" ? "sell" : "long"}`}>{t.side}</span></td><td>{t.qty}</td><td>{money(t.price)}</td><td className={t.realized >= 0 ? "positive" : "negative"}>{t.realized ? `${t.realized > 0 ? "+" : ""}${money(t.realized, 0)}` : "—"}</td></tr>;})}</tbody></table>}</div>}</section>}
+        {!menu ? <div className="table-card">{invested.length + shorts.length === 0 ? <div className="empty-state roomy"><span>▧</span><b>No holdings yet</b><p>Choose a company from Markets to place your first order.</p><button className="outline-button" onClick={() => setView("markets")}>Browse markets</button></div> : <table><thead><tr><th>COMPANY</th><th>POSITION</th><th>AVG. PRICE</th><th>LAST PRICE</th><th>MARKET VALUE</th><th>UNREALISED P&amp;L</th><th>ACTION</th></tr></thead><tbody>{[...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].map(p => {const s = world?.stocks.find(x => x.symbol === p.symbol); const mark = s?.price ?? 0; const pl = (p.short ? p.avg - mark : mark - p.avg) * p.qty;return <tr key={p.symbol} onClick={() => {setSelected(p.symbol);setView("markets");}}><td><span className="table-company"><Logo stock={s!} compact/><span><b>{s?.name}</b><small>{p.symbol} · {s?.sector}</small></span></span></td><td><span className={`position-pill ${p.short ? "short" : "long"}`}>{p.short ? "Short" : "Long"} · {p.qty}</span></td><td>{money(p.avg)}</td><td>{money(mark)}</td><td>{money(mark * p.qty, 0)}</td><td className={pl >= 0 ? "positive" : "negative"}>{pl >= 0 ? "+" : ""}{money(pl, 0)}</td><td><button className={`position-close ${p.short ? "cover" : "sell"}`} disabled={blocked} onClick={e => { e.stopPropagation(); void send("trade", { side: p.short ? "Buy" : "Sell", symbol: p.symbol, quantity: p.qty }); }}>{busy ? "Submitting…" : p.short ? "Cover short" : "Sell holding"}</button></td></tr>;})}</tbody></table>}</div> : <div className="table-card">{!player?.history.length ? <div className="empty-state roomy"><span>↻</span><b>No trades yet</b><p>Every order and short-cover is recorded here.</p></div> : <table><thead><tr><th>TIME</th><th>COMPANY</th><th>ORDER</th><th>QUANTITY</th><th>EXECUTION</th><th>REALIZED P&amp;L</th></tr></thead><tbody>{player.history.map(t => {const s = world?.stocks.find(x => x.symbol === t.symbol);return <tr key={t.id}><td>{new Date(t.time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td><td><span className="table-company"><Logo stock={s!} compact/><span><b>{s?.name ?? t.symbol}</b><small>{t.symbol}</small></span></span></td><td><span className={`position-pill ${t.side === "Short" ? "short" : t.side === "Sell" || t.side === "Auto-cover" ? "sell" : "long"}`}>{t.side}</span></td><td>{t.qty}</td><td>{money(t.price)}</td><td className={t.realized >= 0 ? "positive" : "negative"}>{t.realized ? `${t.realized > 0 ? "+" : ""}${money(t.realized, 0)}` : "—"}</td></tr>;})}</tbody></table>}</div>}</section>}
 
       {view === "news" && <section className="wide-page"><div className="section-heading"><div><div className="eyebrow">DALAA<span>L</span> STREET / NEWS</div><h1>Market news<span className="heading-period">.</span></h1><p>Company and sector bulletins shape the fictional market through the same price model as trading.</p></div></div><div className="news-list">{world?.headlines.map((n, i) => <article className={`news-item ${i === 0 ? "newest" : ""}`} key={n.id}><div className="news-meta"><span className={`news-tag ${n.type}`}>{n.type}</span><span>{n.sector === "ALL" ? "Market-wide" : n.sector}</span><time>{new Date(n.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><h2>{n.headline}</h2><span className={n.direction > 0 ? "positive" : "negative"}>{n.direction > 0 ? "↗" : "↘"} {n.direction > 0 ? "Positive" : "Negative"} sentiment · Severity {n.severity.toFixed(1)}</span></article>) ?? null}{!world?.headlines.length && <div className="empty-state">No bulletins yet. Headlines triggered during this batch will appear here.</div>}</div></section>}
 

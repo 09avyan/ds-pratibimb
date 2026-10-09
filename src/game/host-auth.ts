@@ -23,7 +23,7 @@ export async function clearHostSession() {
 export async function isHost() {
   const value = (await cookies()).get(COOKIE)?.value ?? "";
   const [expires, supplied] = value.split(".");
-  if (!expires || !supplied || Number(expires) < Date.now()) return false;
+  if (!process.env.HOST_PASSWORD || !/^\d+$/.test(expires ?? "") || !supplied || Number(expires) <= Date.now()) return false;
   const expected = signature(expires);
   const a = Buffer.from(supplied), b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
