@@ -7,18 +7,28 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const modeOf = (value: string | null): Mode => value === "test" ? "test" : "live";
 const validSession = (value: string) => /^[\w-]{8,80}$/.test(value) && !["__proto__", "constructor", "prototype"].includes(value);
+const readTerminal = (value: unknown): number | undefined => {
+  if (value === undefined || value === null || value === "") return undefined;
+  const terminal = Number(value);
+  if (!Number.isInteger(terminal) || terminal < 1 || terminal > 12) throw new Error("Terminal numbers must be from 01 to 12.");
+  return terminal;
+};
 const errorResponse = (error: unknown, status = 400) => NextResponse.json({ error: error instanceof Error ? error.message : "Something went wrong." }, { status, headers: { "Cache-Control": "no-store" } });
 
 export async function GET(request: NextRequest) {
   const mode = modeOf(request.nextUrl.searchParams.get("mode"));
   const sessionId = request.nextUrl.searchParams.get("session");
   const selectedStock = request.nextUrl.searchParams.get("selected") ?? "RELIANCE";
+  let terminalNumber: number | undefined;
   if (sessionId && !validSession(sessionId)) return errorResponse(new Error("Invalid device session."));
+  try { terminalNumber = readTerminal(request.nextUrl.searchParams.get("terminal")); }
+  catch (error) { return errorResponse(error); }
   try {
     const { world } = await mutate(mode, state => {
       advance(state);
-      if (sessionId && !state.sessions[sessionId]) { state.sessions[sessionId] = newPlayer(sessionId, state.batch); state.version++; }
+      if (sessionId && !state.sessions[sessionId]) { state.sessions[sessionId] = newPlayer(sessionId, state.batch, Date.now(), true, terminalNumber); state.version++; }
       const player = sessionId ? state.sessions[sessionId] : null;
+      if (player && terminalNumber && player.terminalNumber !== terminalNumber) { player.terminalNumber = terminalNumber; state.version++; }
       if (player && Date.now() - (player.lastSeenAt ?? 0) >= 10_000) { player.lastSeenAt = Date.now(); state.version++; }
     });
     return NextResponse.json(toPublic(world, sessionId, selectedStock), { headers: { "Cache-Control": "no-store, max-age=0" } });
@@ -31,13 +41,15 @@ export async function POST(request: NextRequest) {
     const mode = modeOf(body.mode);
     const sessionId = String(body.sessionId ?? "");
     const action = String(body.action ?? "");
+    const terminalNumber = readTerminal(body.terminal);
     if (!validSession(sessionId)) return errorResponse(new Error("Refresh to create a device session."));
     const requestId = typeof body.requestId === "string" && /^[\w-]{8,80}$/.test(body.requestId) ? body.requestId : undefined;
     if (action === "trade" && !["Buy", "Sell", "Short"].includes(body.side)) return errorResponse(new Error("Choose Buy, Sell or Short."));
     const { world, result } = await mutate(mode, state => {
       advance(state);
-      if (!state.sessions[sessionId]) { state.sessions[sessionId] = newPlayer(sessionId, state.batch); state.version++; }
+      if (!state.sessions[sessionId]) { state.sessions[sessionId] = newPlayer(sessionId, state.batch, Date.now(), true, terminalNumber); state.version++; }
       const player = state.sessions[sessionId];
+      if (terminalNumber && player.terminalNumber !== terminalNumber) { player.terminalNumber = terminalNumber; state.version++; }
       if (action === "trade") {
         const existing = requestId ? player.history.find(trade => trade.requestId === requestId) : null;
         if (existing) {

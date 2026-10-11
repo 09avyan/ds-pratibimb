@@ -5,14 +5,15 @@ import type { Mode, Player, PublicWorld, Stock } from "@/game/types";
 import { equity, performance, shortValue } from "@/game/engine";
 import { Logo } from "@/components/trader-parts";
 
-type Props = { mode?: Mode; audienceOnly?: boolean };
+type Props = { mode?: Mode; audienceOnly?: boolean; terminal?: number };
 type TradeSide = "Buy" | "Sell" | "Short";
 const money = (n: number, digits = 2) => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 const changePct = (s: Stock) => (s.price / s.previousClose - 1) * 100;
-const initialSession = () => {
+const initialSession = (terminal?: number) => {
   if (typeof window === "undefined") return "";
-  let saved = window.localStorage.getItem("ds-device");
-  if (!saved) { saved = crypto.randomUUID(); window.localStorage.setItem("ds-device", saved); }
+  const key = terminal ? `ds-device-${String(terminal).padStart(2, "0")}` : "ds-device";
+  let saved = window.localStorage.getItem(key);
+  if (!saved) { saved = crypto.randomUUID(); window.localStorage.setItem(key, saved); }
   return saved;
 };
 
@@ -61,7 +62,7 @@ function Header({ world, player, onTheme }: { world: PublicWorld | null; player:
 }
 function fmtTime(seconds: number) { const s = Math.max(0, Math.floor(seconds)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
 
-export function Trader({ mode = "live", audienceOnly = false }: Props) {
+export function Trader({ mode = "live", audienceOnly = false, terminal }: Props) {
   const [sessionId, setSessionId] = useState("");
   const [world, setWorld] = useState<PublicWorld | null>(null);
   const [view, setView] = useState<"markets" | "portfolio" | "report" | "news">("markets");
@@ -89,7 +90,7 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
   selectedRef.current = selected;
   const newsTimeout = useRef<number | null>(null);
 
-  useEffect(() => { if (!audienceOnly) setSessionId(initialSession()); }, [audienceOnly]);
+  useEffect(() => { if (!audienceOnly) setSessionId(initialSession(terminal)); }, [audienceOnly, terminal]);
   const sync = useCallback(async () => {
     if ((!audienceOnly && !sessionId) || inFlight.current || submitting.current || document.hidden || !navigator.onLine || Date.now() < nextSyncAt.current) return;
     inFlight.current = true;
@@ -99,7 +100,8 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
     const requestedStock = selectedRef.current;
     const timeout = window.setTimeout(() => controller.abort(), 12000);
     try {
-      const res = await fetch(`/api/game?mode=${mode}&selected=${encodeURIComponent(requestedStock)}${sessionId ? `&session=${encodeURIComponent(sessionId)}` : ""}`, { cache: "no-store", signal: controller.signal });
+      const terminalQuery = terminal ? `&terminal=${terminal}` : "";
+      const res = await fetch(`/api/game?mode=${mode}&selected=${encodeURIComponent(requestedStock)}${sessionId ? `&session=${encodeURIComponent(sessionId)}` : ""}${terminalQuery}`, { cache: "no-store", signal: controller.signal });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Market data is unavailable.");
       if (revision !== mutationVersion.current || requestedStock !== selectedRef.current) return;
@@ -112,7 +114,7 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
       }
     } catch (err) { if (!controller.signal.aborted) { failures.current += 1; nextSyncAt.current = Date.now() + Math.min(15000, 1000 * 2 ** failures.current); if (failures.current === 1) setToast(err instanceof Error ? err.message : "Reconnecting to the market…"); } }
     finally { clearTimeout(timeout); if (readController.current === controller) { inFlight.current = false; readController.current = null; } }
-  }, [sessionId, mode, audienceOnly]);
+  }, [sessionId, mode, audienceOnly, terminal]);
   useEffect(() => { if (!sessionId && !audienceOnly) return; void sync(); const timer = window.setInterval(sync, world?.controls.tickRate === .5 ? 500 : 1000); return () => window.clearInterval(timer); }, [sessionId, audienceOnly, sync, world?.controls.tickRate]);
   useEffect(() => { readController.current?.abort(); nextSyncAt.current = 0; void sync(); }, [selected, sync]);
   useEffect(() => { const resume = () => { if (!document.hidden && navigator.onLine) { nextSyncAt.current = 0; void sync(); } else readController.current?.abort(); }; document.addEventListener("visibilitychange", resume); window.addEventListener("online", resume); window.addEventListener("offline", resume); return () => { document.removeEventListener("visibilitychange", resume); window.removeEventListener("online", resume); window.removeEventListener("offline", resume); readController.current?.abort(); }; }, [sync]);
@@ -134,6 +136,7 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
   useEffect(() => { if (toast) { const t = window.setTimeout(() => setToast(""), 3600); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => () => { if (newsTimeout.current) window.clearTimeout(newsTimeout.current); }, []);
   useEffect(() => { document.documentElement.dataset.theme = theme; return () => { delete document.documentElement.dataset.theme; }; }, [theme]);
+  useEffect(() => { if (view === "portfolio") setMenu(false); }, [view]);
   useEffect(() => { if (world?.mode === "live" && world.status === "closed" && player?.ended) setView("report"); }, [world?.mode, world?.status, player?.ended]);
 
   async function send(action: string, payload: Record<string, unknown> = {}) {
@@ -143,7 +146,7 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
     readController.current?.abort();
     setBusy(true);
     try {
-      const res = await fetch("/api/game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, sessionId, action, selectedStock: selectedRef.current, requestId: crypto.randomUUID(), ...payload }) });
+      const res = await fetch("/api/game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, sessionId, terminal, action, selectedStock: selectedRef.current, requestId: crypto.randomUUID(), ...payload }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Trade could not be completed.");
       setWorld(data);
@@ -161,8 +164,8 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
   return <div className="terminal">
     <Header world={world} player={player} onTheme={() => setTheme(theme === "light" ? "dark" : "light")} />
     <nav className="terminal-tabs" aria-label="Primary navigation">
-      {([ ["markets", "Markets"], ["portfolio", "Portfolio"], ["news", "News desk"] ] as const).map(([key, label]) => <button key={key} onClick={() => setView(key)} aria-current={view === key ? "page" : undefined} className={view === key ? "active" : ""}>{label}{key === "news" && Boolean(world?.headlines.length) && <span>{world!.headlines.length}</span>}</button>)}
-      <span className="terminal-context">{isTest ? "TEST MARKET" : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</span>
+      {([ ["markets", "Markets"], ["portfolio", "Portfolio"], ["news", "News desk"] ] as const).map(([key, label]) => <button key={key} onClick={() => { if (key === "portfolio") setMenu(false); setView(key); }} aria-current={view === key ? "page" : undefined} className={view === key ? "active" : ""}>{label}{key === "news" && Boolean(world?.headlines.length) && <span>{world!.headlines.length}</span>}</button>)}
+      <span className="terminal-context">{terminal ? `TERMINAL ${String(terminal).padStart(2, "0")}` : isTest ? "TEST MARKET" : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</span>
     </nav>
 
     <main className={`workspace ${view === "markets" ? "workspace-markets" : "workspace-wide"}`}>
@@ -219,7 +222,7 @@ export function Trader({ mode = "live", audienceOnly = false }: Props) {
       {view === "news" && <section className="wide-page"><div className="section-heading"><div><div className="eyebrow">DALAA<span>L</span> STREET / NEWS</div><h1>Market news<span className="heading-period">.</span></h1><p>Company and sector bulletins shape the fictional market through the same price model as trading.</p></div></div><div className="news-list">{world?.headlines.map((n, i) => <article className={`news-item ${i === 0 ? "newest" : ""}`} key={n.id}><div className="news-meta"><span className={`news-tag ${n.type}`}>{n.type}</span><span>{n.sector === "ALL" ? "Market-wide" : n.sector}</span><time>{new Date(n.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><h2>{n.headline}</h2><span className={n.direction > 0 ? "positive" : "negative"}>{n.direction > 0 ? "↗" : "↘"} {n.direction > 0 ? "Positive" : "Negative"} sentiment · Severity {n.severity.toFixed(1)}</span></article>) ?? null}{!world?.headlines.length && <div className="empty-state">No bulletins yet. Headlines triggered during this batch will appear here.</div>}</div></section>}
 
       {view === "report" && report && <section className="results-view"><div className="results-heading"><span className="eyebrow">SESSION COMPLETE · BATCH {world?.batch}</span><h1>That’s a wrap<span>.</span></h1><p>Here’s what your decisions added up to. This is a fictional learning simulation, not investment advice.</p></div><div className="results-value"><small>FINAL PORTFOLIO VALUE</small><strong>{money(report.value, 0)}</strong><span className={report.pnl >= 0 ? "positive" : "negative"}>{report.pnl >= 0 ? "+" : ""}{money(report.pnl, 0)} · {report.returnPct >= 0 ? "+" : ""}{report.returnPct.toFixed(2)}%</span></div><div className="portfolio-summary report-metrics"><Metric label="AVAILABLE CASH" value={money(report.cash, 0)}/><Metric label="COMPLETED TRADES" value={String(report.tradeCount)}/><Metric label="WIN / LOSS" value={`${report.winners} / ${report.losers}`}/><Metric label="DIVERSIFICATION" value={`${report.sectors} sectors`}/></div>
-        <div className="report-panels"><div className="report-panel"><span className="eyebrow">YOUR LEARNING NOTES</span>{report.lessons.map((l, i) => <p key={i}><i>{String(i + 1).padStart(2, "0")}</i>{l}</p>)}</div><div className="report-panel"><span className="eyebrow">EARNED BADGES · {report.badges.length}</span><div className="badge-grid">{report.badges.length ? report.badges.map(b => <span className="achievement" key={b.name}><i>✳</i><b>{b.name}</b><small>{b.detail}</small></span>) : <p>Keep learning—badges appear when your actions earn them.</p>}</div></div></div><button className="execute-button report-ready" onClick={() => { const next = crypto.randomUUID(); localStorage.setItem("ds-device", next); setSessionId(next); setView("markets"); setToast("You’re ready for the next batch."); }}>Return to ready state <span>→</span></button>
+        <div className="report-panels"><div className="report-panel"><span className="eyebrow">YOUR LEARNING NOTES</span>{report.lessons.map((l, i) => <p key={i}><i>{String(i + 1).padStart(2, "0")}</i>{l}</p>)}</div><div className="report-panel"><span className="eyebrow">EARNED BADGES · {report.badges.length}</span><div className="badge-grid">{report.badges.length ? report.badges.map(b => <span className="achievement" key={b.name}><i>✳</i><b>{b.name}</b><small>{b.detail}</small></span>) : <p>Keep learning—badges appear when your actions earn them.</p>}</div></div></div><button className="execute-button report-ready" onClick={() => { const next = crypto.randomUUID(); localStorage.setItem(terminal ? `ds-device-${String(terminal).padStart(2,"0")}` : "ds-device", next); setSessionId(next); setView("markets"); setToast("You’re ready for the next batch."); }}>Return to ready state <span>→</span></button>
       </section>}
       <footer className="workspace-footer"><span>SIMULATED MARKET · FICTIONAL PRICES · NO REAL TRADES</span><span>© PULSE / DALAA<span>L</span> STREET</span></footer>
     </main>

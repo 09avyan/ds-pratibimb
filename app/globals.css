@@ -72,9 +72,9 @@
 .terminal .stock-card-foot>span{overflow:hidden;text-overflow:ellipsis}
 .company-mark{border-radius:6px;width:31px;height:31px;overflow:hidden;flex-shrink:0}
 .company-mark.logo-loaded{background:#fff;border:1px solid #e5e9e9}
-.company-mark>img{width:22px;height:22px;border-radius:0}
+.company-mark>img{inset:0;margin:auto;width:22px;height:22px;display:block;object-fit:contain;border-radius:0}
 .company-mark.compact{border-radius:5px}
-.company-mark>span{position:static;line-height:1}
+.company-mark>span{position:static;display:grid;place-items:center;line-height:1;font-size:9px;font-weight:800;letter-spacing:-.06em}
 .terminal .trade-column{position:static;min-height:0;display:block;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding-bottom:18px}
 .terminal .trade-column>div+div{margin-top:11px}
 .terminal .focus-card,.terminal .order-card,.terminal .holdings-card,.terminal .summary-metric,.terminal .table-card,.terminal .report-panel{border-radius:7px;box-shadow:none}
@@ -105,3 +105,41 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media(max-width:1200px){.terminal .topbar{gap:10px;padding:0 15px}.terminal .topbar-metrics{gap:14px}.terminal .stock-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.terminal .topbar-brand{font-size:11px}.terminal .trading-grid{grid-template-columns:minmax(0,1fr) 325px}}
 @media(max-width:900px){.terminal .topbar-brand{display:none}.terminal .topbar-metrics>div:nth-child(3){display:grid}.terminal .stock-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.terminal .workspace{padding:14px 14px 0}.terminal .trading-grid{gap:12px;grid-template-columns:minmax(0,1fr) 310px}.terminal-tabs{padding:0 15px}.terminal .market-ribbon{border:0;padding-left:0}}
 @media(max-width:760px){.terminal{height:100svh}.terminal .topbar{height:45px;min-height:45px;padding:0 12px}.terminal .topbar-brand{display:flex;font-size:10px}.terminal .topbar-metrics{display:none}.terminal .market-ribbon{padding:5px 7px;margin-left:auto}.terminal-tabs{height:39px;min-height:39px;gap:22px}.terminal-tabs>button{font-size:11px}.terminal-context{font-size:8px}.terminal .workspace-markets{overflow:auto}.terminal .trading-grid{display:block}.terminal .watch-area{overflow:visible;padding-bottom:0}.terminal .trade-column{overflow:visible;padding-bottom:24px}.terminal .holdings-card{position:static;box-shadow:none}.terminal .stock-grid{gap:8px}.terminal .stock-card{padding:8px}.terminal .stock-card.selected{padding-left:8px}.terminal .stock-card-bottom>strong{font-size:14px}.terminal .price-chart{height:180px}.terminal .end-session{bottom:8px;right:12px}.terminal .workspace-footer{min-height:22px;height:auto}.terminal .autonomous-band>span:last-child{display:none}}
+
+.results-view{max-width:1120px;margin:10px auto 36px;padding:25px;border:1px solid var(--line);border-radius:18px;background:radial-gradient(ellipse at 6% 0%,var(--secondary),var(--page) 58%)}
+.results-heading{text-align:left;padding:3px 4px 0}
+.results-heading h1{font-size:42px;letter-spacing:-1.6px;margin:9px 0 5px}
+.results-heading p{max-width:560px;line-height:1.55}
+.results-value{width:auto;min-width:350px;margin:12px 0 14px;padding:22px 25px;justify-items:start;border-radius:13px;background:linear-gradient(130deg,var(--nav),#176454);border:0;color:#fff;box-shadow:0 10px 24px rgba(16,55,68,.18)}
+.results-value small{color:rgba(255,255,255,.68)}
+.results-value strong{font-size:38px}
+.results-value span{font-size:12px}
+.report-metrics{gap:9px;margin:0}
+.report-metrics .summary-metric{border:1px solid var(--line);background:var(--card);border-radius:10px;box-shadow:none}
+.report-panels{gap:10px}
+.report-panel{border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.achievement{min-height:62px;border:1px solid color-mix(in srgb,var(--line),transparent 20%);background:var(--secondary);border-radius:9px}
+.achievement i{display:grid;width:23px;height:23px;place-items:center;border-radius:50%;background:var(--accent-soft);font-size:13px}
+.report-ready{min-height:43px;border-radius:8px}
+@media(max-width:760px){.results-view{padding:14px;border-radius:12px}.results-heading h1{font-size:32px}.results-value{min-width:0;width:100%;padding:18px}.results-value strong{font-size:30px}.report-panels{grid-template-columns:1fr}.badge-grid{grid-template-columns:1fr 1fr}}
+
+.session-actions button.inspecting{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.terminal-inspection{margin-top:15px;padding:16px;border:1px solid var(--line);border-radius:11px;background:var(--secondary)}
+.terminal-inspection-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.terminal-inspection-head h3{margin:5px 0 0;font:700 17px Georgia,serif}
+.terminal-inspection-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:13px 0}
+.terminal-inspection-metrics>div{display:grid;gap:6px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.terminal-inspection-metrics small{font-size:7px;letter-spacing:.1em;color:var(--muted);font-weight:800}
+.terminal-inspection-metrics b{font:500 14px var(--mono)}
+.terminal-inspection-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.terminal-inspection-columns>div{padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.terminal-inspection-columns>div>b{font-size:9px}
+.inspect-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font:9px var(--mono)}
+.inspect-row>span:last-child{text-align:right}
+.inspect-row small{display:block;margin-top:4px;font:8px Arial,sans-serif;color:var(--muted)}
+.inspect-empty,.inspect-note{margin:9px 0 0;font-size:8px;color:var(--muted)}
+.inspect-note{margin-top:12px}
+.report-panel{padding:20px;border-radius:12px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
+.results-view>.execute-button{min-height:45px;border-radius:8px}
+.badge-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:760px){.terminal-inspection-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.terminal-inspection-columns{grid-template-columns:1fr}.session-actions{flex-wrap:wrap}}

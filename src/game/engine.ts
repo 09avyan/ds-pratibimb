@@ -5,6 +5,7 @@ export const START_CASH = 1_000_000;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const rand = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const textSeed = (text: string) => [...text].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 7) % 1_000_003;
 const id = () => crypto.randomUUID();
 
 export function freshWorld(mode: Mode, now = Date.now(), batch = 1): World {
@@ -50,6 +51,12 @@ function pushHeadline(world: World, presetIndex?: number) {
 }
 
 export function advance(world: World, now = Date.now()): World {
+  const existingHeadlines = new Set(world.news.map(item => item.headline));
+  const missingPresets = NEWS_PRESETS.filter(item => !existingHeadlines.has(item.headline));
+  if (missingPresets.length) {
+    world.news.push(...missingPresets.map(item => ({ ...item, id: `catalog-${NEWS_PRESETS.indexOf(item)}`, createdAt: 0 })));
+    world.version++;
+  }
   if (world.status === "countdown" && now >= world.startedAt) { world.status = "live"; world.lastTickAt = world.startedAt; world.version++; }
   if (world.mode === "test" && world.status === "closed") { world.status = "live"; world.controls.paused = false; world.version++; }
   if (world.mode === "live" && (world.status !== "live" || world.controls.paused)) { world.lastTickAt = now; return world; }
@@ -73,21 +80,37 @@ export function advance(world: World, now = Date.now()): World {
     const dueNews = world.scheduledNews.filter(item => item.at <= at);
     world.scheduledNews = world.scheduledNews.filter(item => item.at > at);
     for (const event of dueNews) pushHeadline(world, event.index);
-    const vol = world.controls.volatility / 50;
+    const vol = world.controls.volatility / 46;
+    const botFleet = 80 + world.controls.bots * 2.8;
+    const botParticipation = world.controls.bots === 0 ? 0 : Math.sqrt(botFleet / 240) * (world.controls.bots / 58);
     const scenarioDrift = world.controls.scenario === "Bullish" ? .000035 : world.controls.scenario === "Bearish" ? -.000035 : 0;
     const bias = (world.controls.marketBias - 50) * .0000018;
     const activeShock = world.controls.activeNews ? world.controls.activeNews / 10000 : 0;
-    const sectorNoise = new Map<string, number>();
+    const sectorPulse = new Map<string, number>();
     for (const stock of world.stocks) {
-      if (!sectorNoise.has(stock.sector)) sectorNoise.set(stock.sector, (rand(world.tick * 13 + stock.sector.length) - .5) * .00042 * vol);
+      if (!sectorPulse.has(stock.sector)) {
+        const pulseSeed = world.tick * 13 + textSeed(stock.sector) * 97;
+        sectorPulse.set(stock.sector, rand(pulseSeed) < .19 ? (rand(pulseSeed + 1) - .5) * .0011 * vol : 0);
+      }
       const hist = stock.candles;
       const momentum = hist.length > 3 ? ((hist.at(-1)!.close - hist.at(-4)!.close) / hist.at(-4)!.close) * .055 : 0;
-      const noise = (rand(world.tick * 37 + stock.symbol.charCodeAt(0) * 7) - .5) * .00082 * vol;
+      const symbolSeed = world.tick * 37 + textSeed(stock.symbol) * 7;
+      const noise = (rand(symbolSeed) - .5) * .001 * vol;
       const meanRevert = ((stock.previousClose - stock.price) / stock.previousClose) * .009;
       const newsReaction = world.controls.activeNews ? Math.sign(activeShock) * (rand(world.tick + stock.base) - .5) * activeShock : 0;
-      const institutional = (rand(Math.floor(world.tick / 11) + stock.symbol.length * 3) - .5) * .00009 * (world.controls.bots / 50);
-      const returnRate = clamp(scenarioDrift + bias + (sectorNoise.get(stock.sector) ?? 0) + momentum + meanRevert + noise + institutional + newsReaction + stock.flow / 10000 * .02, -.0042 * vol, .0042 * vol);
-      const botVolume = Math.round((700 + rand(world.tick + stock.base) * 14_000) * (world.controls.bots / 50));
+      const sectorMove = (sectorPulse.get(stock.sector) ?? 0) * (rand(symbolSeed + 3) < .76 ? 1 : -.42);
+      // Hundreds of virtual books are represented as six independent strategy flows per name.
+      const botOrders = (
+        momentum * (.35 + rand(symbolSeed + 5) * .45) +
+        meanRevert * (.45 + rand(symbolSeed + 7) * .65) +
+        newsReaction * (.25 + rand(symbolSeed + 11) * .55) +
+        (rand(symbolSeed + 13) - .5) * .00018 +
+        (rand(symbolSeed + 17) - .5) * .00012 -
+        stock.flow / 10000 * .012
+      ) * botParticipation;
+      const institutional = (rand(Math.floor(world.tick / 11) + textSeed(stock.symbol) * 3) - .5) * .00009 * (world.controls.bots / 50);
+      const returnRate = clamp(scenarioDrift + bias + sectorMove + momentum + meanRevert + noise + botOrders + institutional + newsReaction + stock.flow / 10000 * .02, -.0048 * vol, .0048 * vol);
+      const botVolume = Math.round((300 + rand(world.tick + stock.base) * 5_800) * (botFleet / 100));
       applyMove(world, stock, returnRate, botVolume, at);
     }
     if (world.mode === "live") world.remaining = Math.max(0, world.remaining - interval / 1000);
@@ -200,7 +223,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     world.startedAt = at + 3000; world.lastTickAt = at; world.newsNextAt = world.startedAt + world.controls.newsSpacing * 1000;
     world.scheduledNews = []; world.scheduledInterventions = [];
     for (const player of Object.values(world.sessions)) if (player.included) {
-      const next = newPlayer(player.id, world.batch, at, true); world.sessions[player.id] = next;
+      const next = newPlayer(player.id, world.batch, at, true, player.terminalNumber); world.sessions[player.id] = next;
     }
   } else if (action === "pause") { world.controls.paused = true; world.lastTickAt = at; }
   else if (action === "resume") { world.controls.paused = false; world.lastTickAt = at; }
@@ -240,14 +263,14 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (payload.command === "pause") p.paused = !p.paused;
     else if (payload.command === "include") p.included = Boolean(payload.value);
     else if (payload.command === "end") { settle(world, p, at); }
-    else if (payload.command === "reset") { world.sessions[p.id] = newPlayer(p.id, world.batch, at, p.included); }
+    else if (payload.command === "reset") { world.sessions[p.id] = newPlayer(p.id, world.batch, at, p.included, p.terminalNumber); }
   }
   world.version++;
   return world;
 }
 
-export function newPlayer(sessionId: string, batch: number, at = Date.now(), included = true): Player {
-  return { id: sessionId, batch, initialCash: START_CASH, cash: START_CASH, holdings: {}, shorts: {}, history: [], joinedAt: at, lastSeenAt: at, ended: false, paused: false, included };
+export function newPlayer(sessionId: string, batch: number, at = Date.now(), included = true, terminalNumber?: number): Player {
+  return { id: sessionId, batch, terminalNumber, initialCash: START_CASH, cash: START_CASH, holdings: {}, shorts: {}, history: [], joinedAt: at, lastSeenAt: at, ended: false, paused: false, included };
 }
 
 export function toPublic(world: World, sessionId?: string | null, selectedStock = "RELIANCE"): PublicWorld {
@@ -262,14 +285,22 @@ export function performance(world: World, player: Player) {
   const winners = trades.filter(t => t.realized > 0).length, losers = trades.filter(t => t.realized < 0).length;
   const symbols = new Set([...Object.keys(player.holdings), ...Object.keys(player.shorts)]);
   const sectors = new Set([...Object.keys(player.holdings), ...Object.keys(player.shorts)].map(symbol => world.stocks.find(s => s.symbol === symbol)?.sector).filter(Boolean));
+  const symbolsTraded = new Set(trades.map(trade => trade.symbol));
+  const sectorsTraded = new Set(trades.map(trade => world.stocks.find(stock => stock.symbol === trade.symbol)?.sector).filter(Boolean));
+  const profitableSales = trades.filter(trade => trade.side === "Sell" && trade.realized > 0);
+  const manualShortCover = trades.some(trade => trade.side === "Buy" && trade.note?.includes("Covered"));
   const top = trades.filter(t => t.realized !== 0).sort((a, b) => b.realized - a.realized);
   const badgeChoices: [string, string, boolean][] = [
     ["First Move", "Placed a trade", trades.length >= 1], ["Portfolio Builder", "Held three companies", Object.keys(player.holdings).length >= 3],
     ["Diversifier", "Invested across three sectors", sectors.size >= 3], ["Active Trader", "Completed five trades", trades.length >= 5],
     ["Green Close", "Finished with a positive return", pnl > 0], ["Risk Manager", "Kept short exposure within limits", Object.keys(player.shorts).length === 0 && Object.keys(player.holdings).length > 0],
     ["Steady Hand", "Kept at least half your cash available", player.cash >= player.initialCash * .5], ["Quick Study", "Reviewed your results", player.ended],
-    ["Conviction", "Built a position above ₹1 lakh", Object.values(player.holdings).some(p => p.qty * (world.stocks.find(s => s.symbol === "RELIANCE")?.price ?? 0) >= 100_000)],
+    ["Conviction", "Built a position above ₹1 lakh", Object.entries(player.holdings).some(([symbol, p]) => p.qty * (world.stocks.find(s => s.symbol === symbol)?.price ?? 0) >= 100_000)],
     ["Early Bird", "Joined within the opening minute", player.joinedAt - world.startedAt <= 60_000], ["Careful Timing", "Closed more winning than losing trades", winners > losers && winners > 0],
+    ["Market Explorer", "Traded five different companies", symbolsTraded.size >= 5],
+    ["Sector Sampler", "Traded in four different sectors", sectorsTraded.size >= 4],
+    ["Profit Taker", "Closed a long position at a profit", profitableSales.length > 0],
+    ["Short Closer", "Bought back shares to close a short", manualShortCover],
   ];
   const badges = badgeChoices.filter(b => b[2]).map(b => ({ name: b[0], detail: b[1] }));
   return { value, cash: player.cash, pnl, returnPct: pnl / player.initialCash * 100, holdings: player.holdings, shorts: player.shorts, trades: player.history, tradeCount: trades.length, winners, losers, bestTrade: top[0] ?? null, worstTrade: top.at(-1) ?? null, badges, sectors: sectors.size, symbols: symbols.size, lessons: [sectors.size >= 3 ? "Your positions covered several sectors, reducing dependence on a single industry." : "Spreading positions across sectors can reduce the effect of one industry shock.", Object.keys(player.shorts).length ? "Short positions magnify risk; review the liability before opening another." : "You kept short-sale exposure clear through the close.", trades.length >= 5 ? "Frequent trading adds up quickly; compare each trade's expected benefit with its risk." : "A clear plan can help you decide when to enter and when to wait."] };
