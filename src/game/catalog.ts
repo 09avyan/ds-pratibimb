@@ -53,7 +53,7 @@ export const makeStocks = (seed: number): Stock[] => rows.map(([symbol, name, se
   return { symbol, name, sector, domain, base: price, previousClose: open, price: current, weight: INDEX_WEIGHTS[symbol] ?? 0, candles, flow: 0 };
 });
 
-export const NEWS_PRESETS: Omit<News, "id" | "createdAt">[] = [
+const baseNews: Omit<News, "id" | "createdAt">[] = [
   { type: "major", sector: "Energy", headline: "Energy majors rally on a sharp rise in global crude demand", direction: 1, severity: 1.7 },
   { type: "major", sector: "Technology", headline: "Global technology spending outlook improves after strong earnings", direction: 1, severity: 1.8 },
   { type: "major", sector: "Banking", headline: "Central bank signals tighter liquidity in a surprise policy note", direction: -1, severity: 1.9 },
@@ -98,6 +98,21 @@ export const NEWS_PRESETS: Omit<News, "id" | "createdAt">[] = [
   { type: "minor", sector: "Auto", headline: "Tyre and battery costs tick higher this quarter", direction: -1, severity: .53 },
   { type: "minor", sector: "Consumer", headline: "Retail footfall improves in smaller cities", direction: 1, severity: .56 },
   { type: "minor", sector: "Healthcare", headline: "Hospitals see steady growth in elective procedures", direction: 1, severity: .5 },
+];
+
+export const NEWS_PRESETS: Omit<News, "id" | "createdAt">[] = [
+  ...baseNews.map((news) => ({ ...news, scope: news.sector === "ALL" ? "economy" as const : "sector" as const })),
+  { type: "major", scope: "economy", sector: "ALL", headline: "Unexpected rate hike raises borrowing costs across the economy", direction: -1, severity: 1.8 },
+  { type: "major", scope: "economy", sector: "ALL", headline: "Inflation cools faster than expected, lifting consumer and investment outlooks", direction: 1, severity: 1.7 },
+  { type: "major", scope: "economy", sector: "ALL", headline: "Rupee weakens sharply as global yields rise, pressuring importers", direction: -1, severity: 1.6 },
+  { type: "major", scope: "economy", sector: "ALL", headline: "Government accelerates public investment, supporting demand and hiring", direction: 1, severity: 1.7 },
+  { type: "minor", scope: "economy", sector: "ALL", headline: "Manufacturing activity edges higher as new orders improve", direction: 1, severity: .65 },
+  { type: "minor", scope: "economy", sector: "ALL", headline: "Bond yields ease after a softer-than-expected inflation reading", direction: 1, severity: .58 },
+  { type: "minor", scope: "economy", sector: "ALL", headline: "Trade deficit widens as energy imports rise", direction: -1, severity: .62 },
+  { type: "major", scope: "stock", sector: "Energy", symbols: ["RELIANCE"], headline: "Reliance reports stronger refining margins as fuel demand improves", direction: 1, severity: 1.9 },
+  { type: "major", scope: "stock", sector: "Technology", symbols: ["TCS"], headline: "TCS wins a large multi-year digital transformation contract", direction: 1, severity: 1.9 },
+  { type: "major", scope: "stock", sector: "Banking", symbols: ["HDFCBANK"], headline: "HDFC Bank sees deposit growth outpace advances this quarter", direction: 1, severity: 1.8 },
+  { type: "minor", scope: "stock", sector: "Technology", symbols: ["INFY"], headline: "Infosys expands a client delivery center, adding capacity for new work", direction: 1, severity: .7 },
 ];
 
 export const makeNews = (seed: number) => NEWS_PRESETS.map((n, i) => ({ ...n, id: `${seed}-${i}`, createdAt: 0 }));
