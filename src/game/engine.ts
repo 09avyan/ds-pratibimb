@@ -1,4 +1,4 @@
-import { INDEX_WEIGHTS, makeNews, makeStocks, NEWS_PRESETS } from "./catalog";
+import { INDEX_WEIGHTS, LEGACY_NEWS_PRESETS, makeNews, makeStocks, NEWS_PRESETS } from "./catalog";
 import type { Mode, Player, PublicWorld, Trade, World } from "./types";
 
 export const START_CASH = 1_000_000;
@@ -9,13 +9,14 @@ const textSeed = (text: string) => [...text].reduce((hash, char) => (hash * 31 +
 const id = () => crypto.randomUUID();
 
 export function freshWorld(mode: Mode, now = Date.now(), batch = 1): World {
-  const stocks = makeStocks(batch * (mode === "test" ? 13 : 1));
   const test = mode === "test";
+  const stocks = makeStocks(batch);
+  const startedAt = test ? now + 3000 : 0;
   return {
-    mode, batch: test ? batch : 0, status: test ? "live" : "ready", duration: 6 * 60, remaining: 6 * 60,
-    startedAt: test ? now : 0, lastTickAt: now, tick: 0,
+    mode, batch: test ? batch : 0, status: test ? "countdown" : "ready", duration: 6 * 60, remaining: 6 * 60,
+    startedAt, lastTickAt: now, tick: 0, testRulesVersion: test ? 2 : undefined,
     controls: { scenario: "Sideways", volatility: 48, bots: 58, tickRate: 1, marketBias: 50, paused: false, majorAuto: 1, minorAuto: 2, newsSpacing: 65, newsEnabled: true, activeNews: 0 },
-    stocks, news: makeNews(test ? batch : 1), headlines: [], sessions: {}, latestNewsId: null, latestNewsIds: [], newsNextAt: now + 75_000, error: null, version: 1, scheduledInterventions: [], scheduledNews: [],
+    stocks, news: makeNews(test ? batch : 1), headlines: [], sessions: {}, hostNotes: [], latestNewsId: null, latestNewsIds: [], newsNextAt: test ? startedAt + 65_000 : now + 75_000, error: null, version: 1, scheduledInterventions: [], scheduledNews: [],
   };
 }
 
@@ -27,7 +28,7 @@ function applyMove(world: World, stock: World["stocks"][number], move: number, v
     bar.high = Math.max(bar.high, close); bar.low = Math.min(bar.low, close); bar.close = close; bar.volume += volume;
   } else {
     stock.candles.push({ time: at, open: old, high: Math.max(old, close), low: Math.min(old, close), close, volume });
-    if (stock.candles.length > 96) stock.candles.splice(0, stock.candles.length - 96);
+    if (stock.candles.length > 600) stock.candles.splice(0, stock.candles.length - 600);
   }
   stock.price = close;
   stock.flow = stock.flow * .74 + move * 10000;
@@ -39,10 +40,11 @@ function pushHeadline(world: World, presetIndex?: number) {
   const source = presets[idx % presets.length];
   const news = { ...source, id: id(), createdAt: Date.now() };
   world.latestNewsId = news.id;
+  world.latestNewsIds = [news.id];
   world.headlines.unshift(news);
   if (world.headlines.length > 80) world.headlines.pop();
   for (const stock of world.stocks) {
-    const scope = news.scope ?? (news.sector === "ALL" ? "economy" : "sector");
+    const scope = news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
     const applies = scope === "stock" ? Boolean(news.symbols?.includes(stock.symbol)) : scope === "economy" || news.sector === stock.sector;
     if (!applies) continue;
     const intensity = news.severity / 100 * news.direction * (.8 + rand(world.tick + stock.symbol.length * 71) * .4);
@@ -51,22 +53,85 @@ function pushHeadline(world: World, presetIndex?: number) {
   world.controls.activeNews = news.severity;
 }
 
+export type NewsImpactStock = { symbol: string; name: string; before: number; after: number; change: number; changePct: number };
+export type NewsImpactPreview = { headlines: { news: World["news"][number]; stocks: NewsImpactStock[] }[]; combined: NewsImpactStock[] };
+
+export function previewNewsImpact(world: World, presetIndices: number[]): NewsImpactPreview {
+  const preview: World = { ...world, stocks: structuredClone(world.stocks), controls: { ...world.controls }, headlines: [], sessions: {}, scheduledNews: [], scheduledInterventions: [] };
+  const headlines: NewsImpactPreview["headlines"] = [];
+  const startingPrices = new Map(preview.stocks.map(stock => [stock.symbol, stock.price] as const));
+  for (const index of [...new Set(presetIndices)]) {
+    if (!Number.isInteger(index) || index < 0 || index >= preview.news.length) continue;
+    const before = new Map(preview.stocks.map(stock => [stock.symbol, stock.price] as const));
+    pushHeadline(preview, index);
+    const stocks = preview.stocks.flatMap(stock => {
+      const oldPrice = before.get(stock.symbol) ?? stock.price;
+      if (stock.price === oldPrice) return [];
+      const change = stock.price - oldPrice;
+      return [{ symbol: stock.symbol, name: stock.name, before: oldPrice, after: stock.price, change, changePct: change / oldPrice * 100 }];
+    }).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
+    headlines.push({ news: preview.news[index], stocks });
+  }
+  const combined = preview.stocks.flatMap(stock => {
+    const before = startingPrices.get(stock.symbol) ?? stock.price;
+    if (stock.price === before) return [];
+    const change = stock.price - before;
+    return [{ symbol: stock.symbol, name: stock.name, before, after: stock.price, change, changePct: change / before * 100 }];
+  }).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
+  return { headlines, combined };
+}
+
 export function advance(world: World, now = Date.now()): World {
+  if (!Array.isArray(world.hostNotes)) { world.hostNotes = []; world.version++; }
+  if (typeof world.controls.activeNews !== "number") { world.controls.activeNews = 0; world.version++; }
+  if (!Array.isArray(world.latestNewsIds)) { world.latestNewsIds = world.latestNewsId ? [world.latestNewsId] : []; world.version++; }
+  for (const player of Object.values(world.sessions)) {
+    if (player.accountingVersion === 2) continue;
+    player.cash -= Object.values(player.shorts).reduce((sum, position) => sum + position.qty * position.avg, 0);
+    player.accountingVersion = 2;
+    world.version++;
+  }
+  for (const item of world.news) {
+    const presetIndex = Number(item.id.slice(item.id.lastIndexOf("-") + 1));
+    const preset = Number.isInteger(presetIndex) ? NEWS_PRESETS[presetIndex] : undefined;
+    if (!preset) continue;
+    if (item.headline !== preset.headline || item.direction !== preset.direction || item.sector !== preset.sector || item.scope !== preset.scope || item.severity !== preset.severity || JSON.stringify(item.symbols) !== JSON.stringify(preset.symbols)) {
+      Object.assign(item, preset);
+      world.version++;
+    }
+  }
+  for (const item of world.headlines) {
+    const preset = NEWS_PRESETS.find(candidate => candidate.headline === item.headline) ?? LEGACY_NEWS_PRESETS.get(item.headline);
+    if (!preset) continue;
+    if (item.type !== preset.type || item.headline !== preset.headline || item.direction !== preset.direction || item.sector !== preset.sector || item.scope !== preset.scope || item.severity !== preset.severity || JSON.stringify(item.symbols) !== JSON.stringify(preset.symbols)) {
+      Object.assign(item, preset);
+      world.version++;
+    }
+  }
   const existingHeadlines = new Set(world.news.map(item => item.headline));
   const missingPresets = NEWS_PRESETS.filter(item => !existingHeadlines.has(item.headline));
   if (missingPresets.length) {
     world.news.push(...missingPresets.map(item => ({ ...item, id: `catalog-${NEWS_PRESETS.indexOf(item)}`, createdAt: 0 })));
     world.version++;
   }
-  if (world.status === "countdown" && now >= world.startedAt) { world.status = "live"; world.lastTickAt = world.startedAt; world.version++; }
-  if (world.mode === "test" && world.status === "closed") { world.status = "live"; world.controls.paused = false; world.version++; }
-  if (world.mode === "live" && (world.status !== "live" || world.controls.paused)) { world.lastTickAt = now; return world; }
-  const elapsed = Math.max(0, now - world.lastTickAt);
-  // Reconstruct long-idle test-market time in bounded coarse steps on reconnect.
-  // This keeps the autonomous lab moving without a permanently running server process.
-  const interval = world.mode === "test" ? Math.max(world.controls.tickRate * 1000, Math.ceil(elapsed / 1800)) : world.controls.tickRate * 1000;
+  if (world.mode === "test" && !world.testRulesVersion) {
+    world.testRulesVersion = 2;
+    if (world.status === "live" || world.status === "ready") {
+      world.status = "closed";
+      world.remaining = 0;
+      world.controls.paused = true;
+      for (const player of Object.values(world.sessions)) settle(world, player, now);
+    }
+    world.version++;
+  }
+  if (world.status === "countdown") {
+    if (now < world.startedAt) return world;
+    world.status = "live"; world.lastTickAt = world.startedAt; world.version++;
+  }
+  if (world.status !== "live" || world.controls.paused) { world.lastTickAt = now; return world; }
+  const interval = world.controls.tickRate * 1000;
   const due = Math.floor(Math.max(0, now - world.lastTickAt) / interval);
-  const steps = Math.min(due, world.mode === "test" ? 1800 : 900);
+  const steps = Math.min(due, 900);
   if (!steps) return world;
   const start = world.lastTickAt;
   for (let k = 1; k <= steps; k++) {
@@ -81,16 +146,14 @@ export function advance(world: World, now = Date.now()): World {
     const dueNews = world.scheduledNews.filter(item => item.at <= at);
     world.scheduledNews = world.scheduledNews.filter(item => item.at > at);
     if (dueNews.length) {
-      const ids: string[] = [];
-      for (const event of dueNews) { pushHeadline(world, event.index); if (world.latestNewsId) ids.push(world.latestNewsId); }
-      world.latestNewsIds = ids;
+      for (const event of dueNews) pushHeadline(world, event.index);
+      world.latestNewsIds = world.headlines.slice(0, dueNews.length).map(news => news.id);
     }
     const vol = world.controls.volatility / 25;
     const botFleet = 80 + world.controls.bots * 2.8;
     const botParticipation = world.controls.bots === 0 ? 0 : Math.sqrt(botFleet / 240) * (world.controls.bots / 58);
     const scenarioDrift = world.controls.scenario === "Bullish" ? .000035 : world.controls.scenario === "Bearish" ? -.000035 : 0;
     const bias = (world.controls.marketBias - 50) * .0000018;
-    const activeShock = world.controls.activeNews ? world.controls.activeNews / 10000 : 0;
     const sectorPulse = new Map<string, number>();
     for (const stock of world.stocks) {
       if (!sectorPulse.has(stock.sector)) {
@@ -102,7 +165,8 @@ export function advance(world: World, now = Date.now()): World {
       const symbolSeed = world.tick * 37 + textSeed(stock.symbol) * 7;
       const noise = (rand(symbolSeed) - .5) * .009 * vol;
       const meanRevert = ((stock.previousClose - stock.price) / stock.previousClose) * .009;
-      const newsReaction = world.controls.activeNews ? Math.sign(activeShock) * (rand(world.tick + stock.base) - .5) * activeShock : 0;
+      const activeShock = world.controls.activeNews ? world.controls.activeNews / 10000 : 0;
+      const newsReaction = activeShock ? (rand(world.tick + stock.base) - .5) * activeShock : 0;
       const sectorMove = (sectorPulse.get(stock.sector) ?? 0) * (rand(symbolSeed + 3) < .76 ? 1 : -.42);
       // Hundreds of virtual books are represented as six independent strategy flows per name.
       const botOrders = (
@@ -118,22 +182,22 @@ export function advance(world: World, now = Date.now()): World {
       const botVolume = Math.round((300 + rand(world.tick + stock.base) * 5_800) * (botFleet / 100));
       applyMove(world, stock, returnRate, botVolume, at);
     }
-    if (world.mode === "live") world.remaining = Math.max(0, world.remaining - interval / 1000);
-    if (world.mode === "live" && world.remaining <= 0) { endWorld(world, at); break; }
+    world.remaining = Math.max(0, world.remaining - interval / 1000);
+    if (world.remaining <= 0) { endWorld(world, at); break; }
     if (world.controls.activeNews > 0) world.controls.activeNews = Math.max(0, world.controls.activeNews - .0025);
     if (world.controls.newsEnabled && at >= world.newsNextAt) {
       const major = rand(world.tick * 2 + world.batch) < .42;
       const majorLeft = Math.max(0, world.controls.majorAuto);
       const minorLeft = Math.max(0, world.controls.minorAuto);
-      if (world.mode === "test" && !majorLeft && !minorLeft) { world.controls.majorAuto = 3; world.controls.minorAuto = 6; }
-      const refreshedMajor = Math.max(0, world.controls.majorAuto), refreshedMinor = Math.max(0, world.controls.minorAuto);
-      if ((major && refreshedMajor) || (!refreshedMinor && refreshedMajor)) {
+      if ((major && majorLeft) || (!minorLeft && majorLeft)) {
         const choice = world.news.filter(n => n.type === "major");
-        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick) * choice.length)])); world.latestNewsIds = [world.latestNewsId!];
+        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick) * choice.length)]));
+        world.latestNewsIds = [world.latestNewsId!];
         world.controls.majorAuto--;
-      } else if (refreshedMinor) {
+      } else if (minorLeft) {
         const choice = world.news.filter(n => n.type === "minor");
-        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick) * choice.length)])); world.latestNewsIds = [world.latestNewsId!];
+        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick) * choice.length)]));
+        world.latestNewsIds = [world.latestNewsId!];
         world.controls.minorAuto--;
       }
       world.newsNextAt = at + world.controls.newsSpacing * 1000;
@@ -148,7 +212,12 @@ function positionValue(world: World, holdings: Player["holdings"]) {
   return Object.entries(holdings).reduce((sum, [symbol, pos]) => sum + pos.qty * (world.stocks.find(s => s.symbol === symbol)?.price ?? 0), 0);
 }
 export const shortValue = (world: World, shorts: Player["shorts"]) => Object.entries(shorts).reduce((sum, [symbol, pos]) => sum + pos.qty * (world.stocks.find(s => s.symbol === symbol)?.price ?? 0), 0);
-export function equity(world: World, player: Player) { return player.cash + positionValue(world, player.holdings) - shortValue(world, player.shorts); }
+function shortBasis(player: Player) { return Object.values(player.shorts).reduce((sum, position) => sum + position.qty * position.avg, 0); }
+function freeCash(player: Player) { return player.accountingVersion === 2 ? player.cash : player.cash - shortBasis(player); }
+function shortUnrealizedPnl(world: World, shorts: Player["shorts"]) {
+  return Object.entries(shorts).reduce((sum, [symbol, position]) => sum + (position.avg - (world.stocks.find(stock => stock.symbol === symbol)?.price ?? position.avg)) * position.qty, 0);
+}
+export function equity(world: World, player: Player) { return freeCash(player) + positionValue(world, player.holdings) + shortUnrealizedPnl(world, player.shorts); }
 export function indexValue(world: World) { return 10_000 * Object.entries(INDEX_WEIGHTS).reduce((sum, [symbol, weight]) => { const s = world.stocks.find(x => x.symbol === symbol); return sum + weight * (s ? s.price / s.previousClose : 1); }, 0); }
 
 function endWorld(world: World, at: number) {
@@ -157,10 +226,14 @@ function endWorld(world: World, at: number) {
 }
 
 function settle(world: World, player: Player, at: number) {
+  if (player.accountingVersion !== 2) {
+    player.cash -= shortBasis(player);
+    player.accountingVersion = 2;
+  }
   for (const [symbol, p] of Object.entries(player.shorts)) {
     const price = world.stocks.find(s => s.symbol === symbol)?.price ?? p.avg;
     const realized = (p.avg - price) * p.qty;
-    player.cash -= p.qty * price;
+    player.cash += realized;
     player.history.unshift({ id: id(), symbol, side: "Auto-cover", qty: p.qty, price, time: at, realized, note: "Short settled at the session close" });
   }
   player.shorts = {};
@@ -168,9 +241,9 @@ function settle(world: World, player: Player, at: number) {
 }
 
 export function executeTrade(world: World, player: Player, action: "Buy" | "Sell" | "Short", symbol: string, quantity: number, at = Date.now()) {
-  if (world.mode === "live" && world.status !== "live") throw new Error("The host has not started the market yet.");
-  if (world.mode === "live" && (player.ended || player.paused || !player.included || world.controls.paused)) throw new Error("Trading is paused for this participant.");
   if (world.status === "closed" || player.ended) throw new Error("This market session has ended.");
+  if (world.status !== "live") throw new Error("The market is not open yet.");
+  if (player.paused || !player.included || world.controls.paused) throw new Error("Trading is paused for this participant.");
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100_000) throw new Error("Enter a whole-share quantity between 1 and 100,000.");
   const stock = world.stocks.find(s => s.symbol === symbol);
   if (!stock) throw new Error("That company is no longer available.");
@@ -180,10 +253,12 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
     const short = player.shorts[symbol];
     const covered = Math.min(quantity, short?.qty ?? 0);
     const newLong = quantity - covered;
-    const available = player.cash;
-    if (available + 1e-6 < notional) throw new Error("Not enough cash available for this buy.");
+    const coverRealized = covered && short ? (short.avg - px) * covered : 0;
+    const requiredCash = newLong * px - coverRealized;
+    const available = freeCash(player);
+    if (newLong && available + 1e-6 < requiredCash) throw new Error("Not enough cash available for this buy and short cover.");
     if (covered && short) {
-      realized += (short.avg - px) * covered;
+      realized += coverRealized;
       short.qty -= covered;
       if (!short.qty) delete player.shorts[symbol];
       note = newLong ? `Covered ${covered} short shares, then bought ${newLong} long shares.` : `Covered ${covered} short shares.`;
@@ -192,7 +267,7 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
       const old = player.holdings[symbol] ?? { qty: 0, avg: 0 };
       player.holdings[symbol] = { qty: old.qty + newLong, avg: (old.qty * old.avg + newLong * px) / (old.qty + newLong) };
     }
-    player.cash -= notional;
+    player.cash = available - newLong * px + coverRealized;
   } else if (action === "Sell") {
     const holding = player.holdings[symbol];
     if (!holding || holding.qty < quantity) throw new Error("You can only sell shares you currently hold.");
@@ -206,7 +281,6 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
     if (totalShort + notional > player.initialCash * .3 + 1e-6) throw new Error("Short exposure is limited to 30% of your starting cash.");
     const old = player.shorts[symbol] ?? { qty: 0, avg: 0 };
     player.shorts[symbol] = { qty: old.qty + quantity, avg: (old.qty * old.avg + quantity * px) / (old.qty + quantity) };
-    player.cash += notional;
   }
   const trade: Trade = { id: id(), symbol, side: action, qty: quantity, price: px, time: at, realized, note };
   player.history.unshift(trade);
@@ -222,9 +296,10 @@ export function hostAction(world: World, action: string, payload: Record<string,
   if (action === "start") {
     if (world.status === "live" || world.status === "countdown") throw new Error("The batch is already starting or running.");
     world.batch++;
-    world.stocks = makeStocks(world.batch * (world.mode === "test" ? 13 : 1));
-    world.news = makeNews(world.batch); world.headlines = []; world.latestNewsId = null;
-    world.status = "countdown"; world.controls.paused = false; world.remaining = world.duration; world.latestNewsIds = [];
+    world.stocks = makeStocks(world.batch);
+    world.news = makeNews(world.batch); world.headlines = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0;
+    world.status = "countdown"; world.controls.paused = false; world.remaining = world.duration; world.tick = 0;
+    if (world.mode === "test") { world.testRulesVersion = 2; world.controls.majorAuto = 1; world.controls.minorAuto = 2; world.controls.newsEnabled = true; }
     world.startedAt = at + 3000; world.lastTickAt = at; world.newsNextAt = world.startedAt + world.controls.newsSpacing * 1000;
     world.scheduledNews = []; world.scheduledInterventions = [];
     for (const player of Object.values(world.sessions)) if (player.included) {
@@ -233,7 +308,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
   } else if (action === "pause") { world.controls.paused = true; world.lastTickAt = at; }
   else if (action === "resume") { world.controls.paused = false; world.lastTickAt = at; }
   else if (action === "end") endWorld(world, at);
-  else if (action === "reset") { world.status = "ready"; world.controls.paused = true; world.remaining = world.duration; world.sessions = {}; world.stocks = makeStocks(world.batch + Date.now()); world.news = makeNews(world.batch); world.headlines = []; world.scheduledNews = []; world.scheduledInterventions = []; world.latestNewsId = null; world.latestNewsIds = []; world.lastTickAt = at; }
+  else if (action === "reset") { world.status = "ready"; world.controls.paused = true; world.remaining = world.duration; world.sessions = {}; world.stocks = makeStocks(world.batch + Date.now()); world.news = makeNews(world.batch); world.headlines = []; world.scheduledNews = []; world.scheduledInterventions = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0; world.lastTickAt = at; }
   else if (action === "scenario") world.controls.scenario = payload.value as World["controls"]["scenario"];
   else if (action === "controls") {
     const c = world.controls;
@@ -246,20 +321,15 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (typeof payload.minorAuto === "number") c.minorAuto = clamp(payload.minorAuto, 0, 20);
     if (typeof payload.newsSpacing === "number") c.newsSpacing = clamp(payload.newsSpacing, 15, 300);
     if (typeof payload.duration === "number" && world.status !== "live") { world.duration = clamp(payload.duration, 60, 2700); world.remaining = world.duration; }
-  } else if (action === "headlines") {
-    const indices = Array.isArray(payload.indices) ? [...new Set(payload.indices.map(Number).filter(index => Number.isInteger(index) && index >= 0 && index < world.news.length))] : [];
-    if (!indices.length) throw new Error("Choose at least one news preset.");
-    const delay = clamp(Number(payload.delay) || 0, 0, 300);
-    if (delay) for (const index of indices) world.scheduledNews.push({ at: at + delay * 1000, index });
-    else { for (const index of indices) pushHeadline(world, index); world.latestNewsIds = world.headlines.slice(0, indices.length).map(item => item.id); world.latestNewsId = world.latestNewsIds[0] ?? null; }
   } else if (action === "headline") {
-    const idx = Number(payload.index);
+    const indices = Array.isArray(payload.indices) ? [...new Set(payload.indices.map(Number))] : [Number(payload.index)];
     const delay = clamp(Number(payload.delay) || 0, 0, 300);
-    if (idx >= 0 && idx < world.news.length) {
-      if (delay) world.scheduledNews.push({ at: at + delay * 1000, index: idx });
-      else { pushHeadline(world, idx); world.latestNewsIds = [world.latestNewsId!]; }
+    if (!indices.length || indices.some(idx => !Number.isInteger(idx) || idx < 0 || idx >= world.news.length)) throw new Error("Choose one or more valid news presets first.");
+    if (delay) world.scheduledNews.push(...indices.map(index => ({ at: at + delay * 1000, index })));
+    else {
+      indices.forEach(index => pushHeadline(world, index));
+      world.latestNewsIds = world.headlines.slice(0, indices.length).map(news => news.id);
     }
-    else throw new Error("Choose a news preset first.");
   } else if (action === "intervene") {
     const sector = String(payload.sector ?? "ALL"), direction = payload.direction === "down" ? -1 : 1;
     const magnitude = clamp(Number(payload.magnitude) || 1, .1, 5) / 100;
@@ -269,26 +339,34 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (delay) world.scheduledInterventions.push({ at: at + delay, sector, direction, magnitude });
     else targets.forEach((s, i) => applyMove(world, s, direction * magnitude * (.8 + rand(world.tick + i) * .4), 25_000, at));
   } else if (action === "participant") {
-    const p = world.sessions[String(payload.id)];
-    if (!p) throw new Error("Participant session not found.");
-    if (payload.command === "pause") p.paused = !p.paused;
-    else if (payload.command === "include") p.included = Boolean(payload.value);
-    else if (payload.command === "end") { settle(world, p, at); }
-    else if (payload.command === "reset") { world.sessions[p.id] = newPlayer(p.id, world.batch, at, p.included, p.terminalNumber); }
+    const ids = Array.isArray(payload.ids) ? payload.ids.map(String) : [String(payload.id ?? "")];
+    const participants = ids.map(id => world.sessions[id]).filter((p): p is Player => Boolean(p));
+    if (!participants.length) throw new Error("Participant session not found.");
+    if (payload.command === "pause") participants.forEach(p => { p.paused = typeof payload.value === "boolean" ? payload.value : !p.paused; });
+    else if (payload.command === "include") participants.forEach(p => { p.included = Boolean(payload.value); });
+    else if (payload.command === "end") participants.forEach(p => settle(world, p, at));
+    else if (payload.command === "reset") participants.forEach(p => { world.sessions[p.id] = newPlayer(p.id, world.batch, at, p.included, p.terminalNumber); });
   }
   world.version++;
   return world;
 }
 
 export function newPlayer(sessionId: string, batch: number, at = Date.now(), included = true, terminalNumber?: number): Player {
-  return { id: sessionId, batch, terminalNumber, initialCash: START_CASH, cash: START_CASH, holdings: {}, shorts: {}, history: [], joinedAt: at, lastSeenAt: at, ended: false, paused: false, included };
+  return { id: sessionId, batch, terminalNumber, initialCash: START_CASH, cash: START_CASH, accountingVersion: 2, holdings: {}, shorts: {}, history: [], joinedAt: at, lastSeenAt: at, ended: false, paused: false, included };
 }
 
-export function toPublic(world: World, sessionId?: string | null, selectedStock = "RELIANCE"): PublicWorld {
-  const { sessions, version: _version, ...rest } = world;
+export function toPublic(world: World, sessionId?: string | null, selectedStock = "RELIANCE", options: { includeCandles?: boolean; candlesSince?: number } = {}): PublicWorld {
+  const { sessions, hostNotes: _hostNotes, version: _version, testRulesVersion: _testRulesVersion, ...rest } = world;
+  const { activeNews: _activeNews, ...publicControls } = world.controls;
   const base = world.stocks.reduce((sum, s) => sum + s.weight * s.previousClose, 0);
   const value = indexValue(world);
-  return { ...rest, revision: world.version, news: [], headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => ({ ...stock, trend: stock.candles.slice(-18).map(bar => bar.close), candles: stock.symbol === selectedStock ? stock.candles.slice(-36) : [] })), player: sessionId ? sessions[sessionId] ?? null : null, index: value, indexChange: base ? ((value - 10_000) / 10_000) * 100 : 0, participants: Object.values(sessions).filter(p => p.included && !p.ended).length };
+  return { ...rest, controls: publicControls, headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), revision: world.version, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => {
+    const fullCandles = stock.candles.slice(-600);
+    const since = options.candlesSince;
+    const canSendDelta = typeof since === "number" && Number.isFinite(since) && fullCandles.length > 0 && since >= fullCandles[0].time && since <= fullCandles.at(-1)!.time;
+    const candles = options.includeCandles === false ? [] : canSendDelta ? fullCandles.filter(bar => bar.time >= since) : fullCandles;
+    return { ...stock, trend: stock.candles.slice(-18).map(bar => bar.close), candles: stock.symbol === selectedStock ? candles : [] };
+  }), player: sessionId ? sessions[sessionId] ?? null : null, index: value, indexChange: base ? ((value - 10_000) / 10_000) * 100 : 0, participants: Object.values(sessions).filter(p => p.included && !p.ended).length };
 }
 
 export function performance(world: World, player: Player) {

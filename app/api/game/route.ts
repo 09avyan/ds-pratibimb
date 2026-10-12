@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { advance, executeTrade, newPlayer, toPublic } from "@/game/engine";
+import { advance, executeTrade, hostAction, newPlayer, toPublic } from "@/game/engine";
 import { mutate } from "@/game/store";
 import type { Mode } from "@/game/types";
 
@@ -17,8 +17,15 @@ const errorResponse = (error: unknown, status = 400) => NextResponse.json({ erro
 
 export async function GET(request: NextRequest) {
   const mode = modeOf(request.nextUrl.searchParams.get("mode"));
+  const localPreview = request.nextUrl.searchParams.get("preview") === "1";
+  if (localPreview && (mode !== "test" || process.env.NODE_ENV !== "development")) return NextResponse.json({ error: "Local preview is unavailable." }, { status: 404, headers: { "Cache-Control": "no-store" } });
   const sessionId = request.nextUrl.searchParams.get("session");
   const selectedStock = request.nextUrl.searchParams.get("selected") ?? "RELIANCE";
+  const includeCandles = request.nextUrl.searchParams.get("chart") !== "0";
+  const candlesSinceValue = request.nextUrl.searchParams.get("candlesSince");
+  const candlesSince = candlesSinceValue && Number.isFinite(Number(candlesSinceValue)) ? Number(candlesSinceValue) : undefined;
+  const knownRevisionValue = request.nextUrl.searchParams.get("revision");
+  const knownRevision = knownRevisionValue && Number.isSafeInteger(Number(knownRevisionValue)) ? Number(knownRevisionValue) : undefined;
   let terminalNumber: number | undefined;
   if (sessionId && !validSession(sessionId)) return errorResponse(new Error("Invalid device session."));
   try { terminalNumber = readTerminal(request.nextUrl.searchParams.get("terminal")); }
@@ -30,8 +37,9 @@ export async function GET(request: NextRequest) {
       const player = sessionId ? state.sessions[sessionId] : null;
       if (player && terminalNumber && player.terminalNumber !== terminalNumber) { player.terminalNumber = terminalNumber; state.version++; }
       if (player && Date.now() - (player.lastSeenAt ?? 0) >= 10_000) { player.lastSeenAt = Date.now(); state.version++; }
-    });
-    return NextResponse.json(toPublic(world, sessionId, selectedStock), { headers: { "Cache-Control": "no-store, max-age=0" } });
+    }, localPreview);
+    if (knownRevision === world.version) return new NextResponse(null, { status: 304, headers: { "Cache-Control": "no-store, max-age=0" } });
+    return NextResponse.json(toPublic(world, sessionId, selectedStock, { includeCandles, candlesSince }), { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) { return errorResponse(error, 503); }
 }
 
@@ -39,6 +47,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const mode = modeOf(body.mode);
+    const localPreview = body.localPreview === true;
+    if (localPreview && (mode !== "test" || process.env.NODE_ENV !== "development")) return NextResponse.json({ error: "Local preview is unavailable." }, { status: 404, headers: { "Cache-Control": "no-store" } });
     const sessionId = String(body.sessionId ?? "");
     const action = String(body.action ?? "");
     const terminalNumber = readTerminal(body.terminal);
@@ -63,14 +73,23 @@ export async function POST(request: NextRequest) {
         if (player.ended) return null;
         for (const [symbol, short] of Object.entries(player.shorts)) {
           const px = state.stocks.find(s => s.symbol === symbol)?.price ?? short.avg;
-          const realized = (short.avg - px) * short.qty; player.cash -= px * short.qty;
+          const realized = (short.avg - px) * short.qty; player.cash += realized;
           player.history.unshift({ id: crypto.randomUUID(), symbol, side: "Auto-cover", qty: short.qty, price: px, time: Date.now(), realized, note: "Short settled when you ended the session" });
         }
         player.shorts = {}; player.ended = true; state.version++; return null;
       }
+      if (action === "sandbox-start") {
+        if (mode !== "test") throw new Error("Practice rounds are only available in the isolated test market.");
+        if (state.status !== "closed" && state.status !== "ready") throw new Error("Wait for the current practice round to finish.");
+        hostAction(state, "start");
+        return null;
+      }
       if (action === "news-read") return state.latestNewsId;
       throw new Error("Choose a valid market action.");
-    });
-    return NextResponse.json({ ...toPublic(world, sessionId, String(body.selectedStock ?? body.symbol ?? "RELIANCE")), result }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+    }, localPreview);
+    const candlesSinceValue = body.candlesSince;
+    const candlesSince = typeof candlesSinceValue === "number" && Number.isFinite(candlesSinceValue) ? candlesSinceValue : undefined;
+    const includeCandles = body.includeCandles !== false;
+    return NextResponse.json({ ...toPublic(world, sessionId, String(body.selectedStock ?? body.symbol ?? "RELIANCE"), { includeCandles, candlesSince }), result }, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) { return errorResponse(error); }
 }

@@ -3,6 +3,10 @@ import { freshWorld } from "./engine";
 
 type Stored = { version: number; state: World };
 
+type LocalScope = "test" | "preview";
+const localStates = new Map<LocalScope, Stored>();
+const localQueues = new Map<LocalScope, Promise<void>>();
+
 const url = () => process.env.SUPABASE_URL;
 const key = () => process.env.SUPABASE_PUBLISHABLE_KEY;
 const secret = () => process.env.MARKET_SIGNING_SECRET;
@@ -26,7 +30,32 @@ export async function load(mode: Mode): Promise<Stored | null> {
   return rpc<Stored | null>("get_game_state", { p_secret: secret(), p_mode: mode });
 }
 
-export async function mutate<T>(mode: Mode, update: (world: World) => T | Promise<T>): Promise<{ world: World; result: T }> {
+async function mutateLocalTest<T>(update: (world: World) => T | Promise<T>, scope: LocalScope = "test"): Promise<{ world: World; result: T }> {
+  const previous = localQueues.get(scope) ?? Promise.resolve();
+  let release!: () => void;
+  localQueues.set(scope, new Promise<void>(resolve => { release = resolve; }));
+  await previous;
+  try {
+    const stored = localStates.get(scope) ?? null;
+    const world = stored?.state ?? freshWorld("test");
+    const initialRevision = world.version;
+    const result = await update(world);
+    if (!stored || world.version !== initialRevision) localStates.set(scope, { version: (stored?.version ?? 0) + 1, state: world });
+    return { world, result };
+  } finally {
+    release();
+  }
+}
+
+export async function mutate<T>(mode: Mode, update: (world: World) => T | Promise<T>, localOnly = false): Promise<{ world: World; result: T }> {
+  // Keep the isolated test market previewable with no Supabase setup during local development.
+  // UI previews request this explicitly so they never touch the configured shared store.
+  if (localOnly) {
+    if (mode !== "test" || process.env.NODE_ENV !== "development") throw new Error("Local previews are only available in development.");
+    return mutateLocalTest(update, "preview");
+  }
+  // Live mode and production always use the shared Supabase store.
+  if (mode === "test" && process.env.NODE_ENV === "development" && (!url() || !key() || !secret())) return mutateLocalTest(update);
   for (let attempt = 0; attempt < 14; attempt++) {
     const stored = await load(mode);
     const world = stored?.state ?? freshWorld(mode);
