@@ -288,7 +288,7 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
   const { sessions, version: _version, ...rest } = world;
   const base = world.stocks.reduce((sum, s) => sum + s.weight * s.previousClose, 0);
   const value = indexValue(world);
-  return { ...rest, revision: world.version, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => ({ ...stock, trend: stock.candles.slice(-18).map(bar => bar.close), candles: stock.symbol === selectedStock ? stock.candles.slice(-36) : [] })), player: sessionId ? sessions[sessionId] ?? null : null, index: value, indexChange: base ? ((value - 10_000) / 10_000) * 100 : 0, participants: Object.values(sessions).filter(p => p.included && !p.ended).length };
+  return { ...rest, revision: world.version, news: [], headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => ({ ...stock, trend: stock.candles.slice(-18).map(bar => bar.close), candles: stock.symbol === selectedStock ? stock.candles.slice(-36) : [] })), player: sessionId ? sessions[sessionId] ?? null : null, index: value, indexChange: base ? ((value - 10_000) / 10_000) * 100 : 0, participants: Object.values(sessions).filter(p => p.included && !p.ended).length };
 }
 
 export function performance(world: World, player: Player) {
