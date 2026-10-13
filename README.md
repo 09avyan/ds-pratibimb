@@ -6,7 +6,8 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 
 - Each participant gets a device session and starts with ₹10,00,000 of simulated cash.
 - Players can buy shares, sell shares they own, or open short positions. Prices move as the market simulation, news events, and participant trades update the shared market.
-- A host can start, pause, and end a timed batch; adjust market behavior; publish or schedule bulletins; and review participant sessions.
+- A host can start, pause, and end a timed batch; set the next batch to 4–15 minutes; adjust market behavior; publish or schedule bulletins; and review participant sessions.
+- Hosts can combine several stock, sector and economy bulletins in one publication. News previews show each affected stock and the approximate combined price effect; major headlines move prices sharply and affected stocks continue in the headline direction for a short time.
 - The audience wall shows the shared market without creating a participant account.
 - The game includes an isolated practice market with the same three-second countdown, six-minute rounds, trading rules, news flow, settlement, and session report as a hosted game.
 
@@ -16,9 +17,9 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 | --- | --- |
 | `/play` | Join the live market with an unnumbered device |
 | `/play/01` through `/play/12` | Join a numbered participant terminal |
-| `/v2/play` and `/v2/play/01` through `/v2/play/12` | Version A (Ticker Floor) trading screens |
-| `/v3/play` and `/v3/play/01` through `/v3/play/12` | Version B (Market Game Night) trading screens |
-| `/v4/play` and `/v4/play/01` through `/v4/play/12` | Version C (Market Studio) trading screens |
+| `/v2/play` and `/v2/play/01` through `/v2/play/12` | Neon Rush trading screens |
+| `/v3/play` and `/v3/play/01` through `/v3/play/12` | Candy Clash trading screens |
+| `/v4/play` and `/v4/play/01` through `/v4/play/12` | Game Show trading screens |
 | `/v2/audience`, `/v3/audience`, `/v4/audience` | Audience wall in the matching UI version |
 | `/host` | Host console (requires the configured host password) |
 | `/audience` | Read-only audience wall |
@@ -43,11 +44,11 @@ Open `http://localhost:3000`. Configure the environment values before using the 
 - `MARKET_SIGNING_SECRET`: a long random secret used by the server to authorize market-state RPC calls.
 - `HOST_PASSWORD`: password for `/host`.
 
-The unversioned `/play` and `/audience` routes keep the original appearance. `/v2`, `/v3`, and `/v4` select the three approved colour treatments for trading and audience screens; all versions share the same market, game rules, and host controls. The host panel is unchanged by the UI versions.
+The unversioned `/play` and `/audience` routes keep the original appearance. `/v2`, `/v3`, and `/v4` select Neon Rush, Candy Clash, and Game Show colour themes for trading and audience screens; all versions share the same market, game rules, and host controls. The host panel keeps its own consistent appearance.
 
 The practice market uses the same price and news simulation as a live round, but has its own state. It starts with a short countdown, runs for six minutes, closes positions at the end, and offers a new practice round. `/test/01` to `/test/12` use their own terminal logins. Legacy autonomous practice sessions are closed safely the first time the updated engine reads them.
 
-During local development, open `http://localhost:3000/ui-preview` to compare the three options. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
+During local development, open `http://localhost:3000/ui-preview` to compare the three themes. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
 
 ## Supabase setup
 
@@ -72,7 +73,7 @@ Keep the signing secret and host password out of source control. For Vercel, set
 - `src/game/engine.ts` — market ticks, trades, news effects, account valuation, and session settlement.
 - `src/game/store.ts` — shared Supabase market state, plus a separate in-memory store for local UI previews.
 - `src/game/types.ts` — shared market and participant types.
-- `src/ui-options.ts` and `app/ui-preview/` — the three local-only visual options.
+- `src/ui-options.ts` and `app/ui-preview/` — the versioned visual themes and their local preview pages.
 - `supabase/migrations/` — database objects required by the shared game state.
 
 The market state is stored as JSONB and shared across app instances through Supabase RPC calls. The game does not use real-time exchange prices.

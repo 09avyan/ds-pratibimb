@@ -1,5 +1,5 @@
 import { INDEX_WEIGHTS, LEGACY_NEWS_PRESETS, makeNews, makeStocks, NEWS_PRESETS } from "./catalog";
-import type { Mode, Player, PublicWorld, Trade, World } from "./types";
+import type { Mode, News, Player, PublicWorld, Trade, World } from "./types";
 
 export const START_CASH = 1_000_000;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
@@ -7,6 +7,12 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const rand = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 const textSeed = (text: string) => [...text].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 7) % 1_000_003;
 const id = () => crypto.randomUUID();
+const NEWS_IMPACT_SCALE: Record<News["type"], number> = { major: 3.8, minor: 3.5 };
+const NEWS_IMPACT_VARIATION = .1;
+export function newsImpactRange(news: Pick<News, "type" | "severity">) {
+  const expected = news.severity * NEWS_IMPACT_SCALE[news.type];
+  return { low: expected * (1 - NEWS_IMPACT_VARIATION), high: expected * (1 + NEWS_IMPACT_VARIATION) };
+}
 
 export function freshWorld(mode: Mode, now = Date.now(), batch = 1): World {
   const test = mode === "test";
@@ -34,11 +40,12 @@ function applyMove(world: World, stock: World["stocks"][number], move: number, v
   stock.flow = stock.flow * .74 + move * 10000;
 }
 
-function pushHeadline(world: World, presetIndex?: number) {
+function pushHeadline(world: World, presetIndex?: number, at = Date.now()) {
   const presets = world.news;
   const idx = presetIndex ?? Math.floor(rand(world.tick + world.batch * 991) * presets.length);
   const source = presets[idx % presets.length];
-  const news = { ...source, id: id(), createdAt: Date.now() };
+  const news = { ...source, id: id(), createdAt: at };
+  const range = newsImpactRange(news);
   world.latestNewsId = news.id;
   world.latestNewsIds = [news.id];
   world.headlines.unshift(news);
@@ -47,10 +54,13 @@ function pushHeadline(world: World, presetIndex?: number) {
     const scope = news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
     const applies = scope === "stock" ? Boolean(news.symbols?.includes(stock.symbol)) : scope === "economy" || news.sector === stock.sector;
     if (!applies) continue;
-    const intensity = news.severity / 100 * news.direction * (.8 + rand(world.tick + stock.symbol.length * 71) * .4);
-    applyMove(world, stock, intensity, 2500 + Math.floor(rand(world.tick + stock.base) * 18000), news.createdAt);
+    const impact = ((range.low + rand(world.tick + textSeed(stock.symbol) * 71) * (range.high - range.low)) / 100) * news.direction;
+    const intensity = impact;
+    const directionalDrift = Math.min(.0045, Math.max(.0011, Math.abs(impact) * .055)) * news.direction;
+    stock.newsBias = news.direction * Math.min(.0045, Math.max(Math.abs(stock.newsBias ?? 0) * .55, Math.abs(directionalDrift)));
+    applyMove(world, stock, intensity, 2500 + Math.floor(rand(world.tick + stock.base) * 18000), at);
   }
-  world.controls.activeNews = news.severity;
+  world.controls.activeNews = Math.max(world.controls.activeNews ?? 0, range.high);
 }
 
 export type NewsImpactStock = { symbol: string; name: string; before: number; after: number; change: number; changePct: number };
@@ -131,7 +141,10 @@ export function advance(world: World, now = Date.now()): World {
   if (world.status !== "live" || world.controls.paused) { world.lastTickAt = now; return world; }
   const interval = world.controls.tickRate * 1000;
   const due = Math.floor(Math.max(0, now - world.lastTickAt) / interval);
-  const steps = Math.min(due, 900);
+  // Catch up the full round after a temporary connection gap. The 2,700-second
+  // duration ceiling bounds this work to 5,400 ticks at the fastest cadence.
+  const remainingSteps = Math.ceil(Math.max(0, Math.min(world.remaining, 2700)) * 1000 / interval);
+  const steps = Math.min(due, remainingSteps, 5400);
   if (!steps) return world;
   const start = world.lastTickAt;
   for (let k = 1; k <= steps; k++) {
@@ -146,7 +159,7 @@ export function advance(world: World, now = Date.now()): World {
     const dueNews = world.scheduledNews.filter(item => item.at <= at);
     world.scheduledNews = world.scheduledNews.filter(item => item.at > at);
     if (dueNews.length) {
-      for (const event of dueNews) pushHeadline(world, event.index);
+      for (const event of dueNews) pushHeadline(world, event.index, at);
       world.latestNewsIds = world.headlines.slice(0, dueNews.length).map(news => news.id);
     }
     const vol = world.controls.volatility / 25;
@@ -165,22 +178,24 @@ export function advance(world: World, now = Date.now()): World {
       const symbolSeed = world.tick * 37 + textSeed(stock.symbol) * 7;
       const noise = (rand(symbolSeed) - .5) * .009 * vol;
       const meanRevert = ((stock.previousClose - stock.price) / stock.previousClose) * .009;
-      const activeShock = world.controls.activeNews ? world.controls.activeNews / 10000 : 0;
-      const newsReaction = activeShock ? (rand(world.tick + stock.base) - .5) * activeShock : 0;
+      const newsTrend = stock.newsBias ?? 0;
       const sectorMove = (sectorPulse.get(stock.sector) ?? 0) * (rand(symbolSeed + 3) < .76 ? 1 : -.42);
       // Hundreds of virtual books are represented as six independent strategy flows per name.
       const botOrders = (
         momentum * (.35 + rand(symbolSeed + 5) * .45) +
         meanRevert * (.45 + rand(symbolSeed + 7) * .65) +
-        newsReaction * (.25 + rand(symbolSeed + 11) * .55) +
         (rand(symbolSeed + 13) - .5) * .00018 +
         (rand(symbolSeed + 17) - .5) * .00012 -
         stock.flow / 10000 * .012
       ) * botParticipation;
       const institutional = (rand(Math.floor(world.tick / 11) + textSeed(stock.symbol) * 3) - .5) * .00009 * (world.controls.bots / 50);
-      const returnRate = clamp(scenarioDrift + bias + sectorMove + momentum + meanRevert + noise + botOrders + institutional + newsReaction + stock.flow / 10000 * .02, -.009 * vol, .009 * vol);
+      const returnRate = clamp(scenarioDrift + bias + sectorMove + momentum + meanRevert + noise + botOrders + institutional + stock.flow / 10000 * .02 + newsTrend, -.009 * vol, .009 * vol);
       const botVolume = Math.round((300 + rand(world.tick + stock.base) * 5_800) * (botFleet / 100));
       applyMove(world, stock, returnRate, botVolume, at);
+      if (stock.newsBias) {
+        stock.newsBias *= .94;
+        if (Math.abs(stock.newsBias) < .00008) stock.newsBias = 0;
+      }
     }
     world.remaining = Math.max(0, world.remaining - interval / 1000);
     if (world.remaining <= 0) { endWorld(world, at); break; }
@@ -191,12 +206,12 @@ export function advance(world: World, now = Date.now()): World {
       const minorLeft = Math.max(0, world.controls.minorAuto);
       if ((major && majorLeft) || (!minorLeft && majorLeft)) {
         const choice = world.news.filter(n => n.type === "major");
-        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick) * choice.length)]));
+        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick) * choice.length)]), at);
         world.latestNewsIds = [world.latestNewsId!];
         world.controls.majorAuto--;
       } else if (minorLeft) {
         const choice = world.news.filter(n => n.type === "minor");
-        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick) * choice.length)]));
+        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick) * choice.length)]), at);
         world.latestNewsIds = [world.latestNewsId!];
         world.controls.minorAuto--;
       }
@@ -327,7 +342,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (!indices.length || indices.some(idx => !Number.isInteger(idx) || idx < 0 || idx >= world.news.length)) throw new Error("Choose one or more valid news presets first.");
     if (delay) world.scheduledNews.push(...indices.map(index => ({ at: at + delay * 1000, index })));
     else {
-      indices.forEach(index => pushHeadline(world, index));
+      indices.forEach(index => pushHeadline(world, index, at));
       world.latestNewsIds = world.headlines.slice(0, indices.length).map(news => news.id);
     }
   } else if (action === "intervene") {
@@ -361,11 +376,12 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
   const base = world.stocks.reduce((sum, s) => sum + s.weight * s.previousClose, 0);
   const value = indexValue(world);
   return { ...rest, controls: publicControls, headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), revision: world.version, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => {
+    const { newsBias: _newsBias, ...publicStock } = stock;
     const fullCandles = stock.candles.slice(-600);
     const since = options.candlesSince;
     const canSendDelta = typeof since === "number" && Number.isFinite(since) && fullCandles.length > 0 && since >= fullCandles[0].time && since <= fullCandles.at(-1)!.time;
     const candles = options.includeCandles === false ? [] : canSendDelta ? fullCandles.filter(bar => bar.time >= since) : fullCandles;
-    return { ...stock, trend: stock.candles.slice(-18).map(bar => bar.close), candles: stock.symbol === selectedStock ? candles : [] };
+    return { ...publicStock, trend: stock.candles.slice(-18).map(bar => bar.close), candles: stock.symbol === selectedStock ? candles : [] };
   }), player: sessionId ? sessions[sessionId] ?? null : null, index: value, indexChange: base ? ((value - 10_000) / 10_000) * 100 : 0, participants: Object.values(sessions).filter(p => p.included && !p.ended).length };
 }
 

@@ -1,6 +1,6 @@
 export type Mode = "live" | "test";
 export type Candle = { time: number; open: number; high: number; low: number; close: number; volume: number };
-export type Stock = { symbol: string; name: string; sector: string; domain: string; base: number; previousClose: number; price: number; weight: number; candles: Candle[]; trend?: number[]; flow: number };
+export type Stock = { symbol: string; name: string; sector: string; domain: string; base: number; previousClose: number; price: number; weight: number; candles: Candle[]; trend?: number[]; flow: number; newsBias?: number };
 export type News = { id: string; type: "major" | "minor"; scope?: "stock" | "sector" | "economy"; sector: string; symbols?: string[]; headline: string; direction: -1 | 1; severity: number; createdAt: number };
 export type PublicNews = Omit<News, "direction" | "severity">;
 export type Position = { qty: number; avg: number };

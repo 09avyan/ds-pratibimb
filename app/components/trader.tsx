@@ -70,7 +70,6 @@ function MiniChart({ stock }: { stock: Stock }) {
 
 function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Candles"; trades: Trade[] }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [hoverPoint, setHoverPoint] = useState<{ x: number; width: number } | null>(null);
   const data = stock.candles.slice(-600);
   if (data.length < 2) return <div className="chart-loading">Building the first market bars…</div>;
   const w = 760, h = 250, pad = { l: 8, r: 68, t: 15, b: 24 };
@@ -82,7 +81,7 @@ function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Cand
   const path = smoothPath(data.map((c, i) => ({ x: x(i), y: y(c.close) })));
   const ticks = [0, .25, .5, .75, 1].map(f => max - f * (max - min));
   const visibleTrades = trades.flatMap(trade => {
-    if (trade.symbol !== stock.symbol || (trade.side !== "Buy" && trade.side !== "Short") || trade.time < data[0].time - 1500 || trade.time > data.at(-1)!.time + 1500) return [];
+    if (trade.symbol !== stock.symbol || trade.time < data[0].time - 1500 || trade.time > data.at(-1)!.time + 1500) return [];
     let index = 0;
     for (let i = 1; i < data.length; i++) if (Math.abs(data[i].time - trade.time) < Math.abs(data[index].time - trade.time)) index = i;
     return [{ trade, index }];
@@ -94,10 +93,10 @@ function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Cand
     const bounds = event.currentTarget.getBoundingClientRect();
     const chartX = (event.clientX - bounds.left) / bounds.width * w;
     const nearest = Math.round((chartX - pad.l) / plotWidth * (data.length - 1));
-    setHoverPoint({ x: event.clientX - bounds.left, width: bounds.width });
-    setHoveredIndex(Math.max(0, Math.min(data.length - 1, nearest)));
-  }} onPointerLeave={() => { setHoveredIndex(null); setHoverPoint(null); }}>
-    <title>{stock.name} {kind.toLowerCase()} chart with buy and short markers</title>
+    const next = Math.max(0, Math.min(data.length - 1, nearest));
+    setHoveredIndex(current => current === next ? current : next);
+  }} onPointerLeave={() => setHoveredIndex(null)}>
+    <title>{stock.name} {kind.toLowerCase()} chart with buy, sell, short and cover markers</title>
     <defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#9ee4cc" stopOpacity=".28"/><stop offset="1" stopColor="#9ee4cc" stopOpacity="0"/></linearGradient></defs>
     {ticks.map((v, i) => <g key={i}><line x1={pad.l} x2={w - pad.r + 8} y1={y(v)} y2={y(v)} stroke="var(--line)" strokeDasharray="3 5"/><text x={w - pad.r + 14} y={y(v) + 5} fill="var(--muted)" fontSize="16">{v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</text></g>)}
     {kind === "Line" ? <><path d={`${path} L${x(data.length - 1)},${h - pad.b} L${x(0)},${h - pad.b} Z`} fill="url(#chartFill)"/><path d={path} fill="none" stroke="#087c66" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round"/></> : data.map((c, i) => {
@@ -109,15 +108,18 @@ function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Cand
     {visibleTrades.map(({ trade, index }, markIndex) => {
       const sameBarBefore = visibleTrades.slice(0, markIndex).filter(mark => mark.index === index).length;
       const markerY = Math.max(pad.t + 5, Math.min(h - pad.b - 5, y(trade.price) - sameBarBefore * 11));
-      const color = trade.side === "Buy" ? "#087c66" : "#bd4b42";
-      return <g key={trade.id} transform={`translate(${x(index)},${markerY})`}><circle r="5.5" fill={color}/><text x="0" y="2.4" textAnchor="middle" fill="white" fontSize="6.5" fontWeight="800">{trade.side === "Buy" ? "B" : "S"}</text><title>{trade.side} {trade.qty} {stock.symbol} at {money(trade.price)} · {new Date(trade.time).toLocaleString("en-IN")}</title></g>;
+      const marker = trade.side === "Buy" ? { label: "B", color: "#087c66" }
+        : trade.side === "Sell" ? { label: "S", color: "#cf781d" }
+          : trade.side === "Short" ? { label: "SH", color: "#bd4b42" }
+            : { label: "C", color: "#475dd1" };
+      return <g key={trade.id} data-trade-marker={trade.side} transform={`translate(${x(index)},${markerY})`}><circle r="6" fill={marker.color}/><text x="0" y="2.4" textAnchor="middle" fill="white" fontSize={marker.label.length > 1 ? "5.2" : "6.5"} fontWeight="800">{marker.label}</text><title>{trade.side} {trade.qty} {stock.symbol} at {money(trade.price)} · {new Date(trade.time).toLocaleString("en-IN")}</title></g>;
     })}
     <circle cx={x(data.length - 1)} cy={y(stock.price)} r="3.5" fill="#1247d2"/><line x1={x(data.length - 1) + 8} x2={w - pad.r + 4} y1={y(stock.price)} y2={y(stock.price)} stroke="#1247d2" strokeDasharray="3 3"/>
     <text x={pad.l} y={h - 4} fill="var(--muted)" fontSize="13">{formatTime(data[0].time)}</text><text x={x(Math.floor((data.length - 1) / 2))} y={h - 4} textAnchor="middle" fill="var(--muted)" fontSize="13">{formatTime(data[Math.floor((data.length - 1) / 2)].time)}</text>
     <text x={w - pad.r - 20} y={h - 4} fill="var(--muted)" fontSize="13">{formatTime(data.at(-1)!.time)}</text>
     {activeHover !== null && <><line x1={x(activeHover)} x2={x(activeHover)} y1={pad.t} y2={h - pad.b} stroke="var(--muted)" strokeDasharray="3 3" opacity=".65"/><circle cx={x(activeHover)} cy={y(data[activeHover].close)} r="4" fill="#1247d2" stroke="white" strokeWidth="1.5"/>
     </>}
-  </svg>{activeHover !== null && hoverPoint && <div className="chart-hover-card chart-hover-overlay" style={hoverPoint.x > hoverPoint.width * .58 ? { left: 8 } : { right: 8 }}><b>{new Date(data[activeHover].time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "medium" })}</b><span>O {money(data[activeHover].open)} · H {money(data[activeHover].high)}</span><span>L {money(data[activeHover].low)} · C {money(data[activeHover].close)}</span><span>Volume {data[activeHover].volume.toLocaleString("en-IN")}</span>{hoveredTrades.slice(0, 3).map(({ trade }) => <span key={trade.id} className={trade.side === "Buy" ? "buy" : "short"}>{trade.side.toUpperCase()} {trade.qty} @ {money(trade.price)} · {formatTime(trade.time)}</span>)}{hoveredTrades.length > 3 && <span>+{hoveredTrades.length - 3} more markers on this candle</span>}</div>}</div>{visibleTrades.length > 0 && <div className="chart-marker-legend"><span><i className="buy">B</i> Buy</span><span><i className="short">S</i> Short</span><small>Hover for exact trade time and price</small></div>}</>;
+  </svg>{activeHover !== null && <div className="chart-hover-card chart-hover-overlay" style={activeHover > data.length * .58 ? { left: 8 } : { right: 8 }}><b>{new Date(data[activeHover].time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "medium" })}</b><span>O {money(data[activeHover].open)} · H {money(data[activeHover].high)}</span><span>L {money(data[activeHover].low)} · C {money(data[activeHover].close)}</span><span>Volume {data[activeHover].volume.toLocaleString("en-IN")}</span>{hoveredTrades.slice(0, 3).map(({ trade }) => <span key={trade.id} className={`trade-detail ${trade.side.toLowerCase().replace("-", "")}`}>{trade.side.toUpperCase()} {trade.qty} @ {money(trade.price)} · {formatTime(trade.time)}</span>)}{hoveredTrades.length > 3 && <span>+{hoveredTrades.length - 3} more markers on this candle</span>}</div>}</div>{visibleTrades.length > 0 && <div className="chart-marker-legend"><span><i className="buy">B</i> Buy</span><span><i className="sell">S</i> Sell</span><span><i className="short">SH</i> Short</span><span><i className="cover">C</i> Cover</span><small>Hover for exact trade time and price</small></div>}</>;
 }
 
 function Header({ world, player, onTheme, clockNow }: { world: PublicWorld | null; player: Player | null; onTheme: () => void; clockNow: number }) {
