@@ -29,6 +29,16 @@ export const UI_OPTIONS = [
     highlights: ["A paper-like surface with crisp, functional cards", "Chart, watchlist, and order controls stay easy to reach", "Paper cutout accents add character without hiding data"],
     palette: "paper",
   },
+  {
+    number: "5",
+    slug: "pacman",
+    version: "v5",
+    name: "Market Maze",
+    title: "A Pac-Man-inspired arcade market",
+    tagline: "A bright maze-board treatment brings arcade energy to the market while every stock, chart, order, and round remains fully playable.",
+    highlights: ["Maze paths and coin-like market details", "A familiar arcade palette with a clear, dense watchlist", "The same shared live market and instant trade controls"],
+    palette: "pacman",
+  },
 ] as const;
 
 export type UiVariant = (typeof UI_OPTIONS)[number]["slug"];

@@ -386,27 +386,46 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
 }
 
 export function performance(world: World, player: Player) {
-  const value = equity(world, player), pnl = value - player.initialCash, trades = player.history.filter(t => t.side !== "Auto-cover");
-  const winners = trades.filter(t => t.realized > 0).length, losers = trades.filter(t => t.realized < 0).length;
+  const value = equity(world, player), pnl = value - player.initialCash;
+  const trades = player.history.filter(t => t.side !== "Auto-cover");
+  const closedTrades = player.history.filter(t => t.realized !== 0);
+  const winners = closedTrades.filter(t => t.realized > 0).length, losers = closedTrades.filter(t => t.realized < 0).length;
   const symbols = new Set([...Object.keys(player.holdings), ...Object.keys(player.shorts)]);
   const sectors = new Set([...Object.keys(player.holdings), ...Object.keys(player.shorts)].map(symbol => world.stocks.find(s => s.symbol === symbol)?.sector).filter(Boolean));
   const symbolsTraded = new Set(trades.map(trade => trade.symbol));
   const sectorsTraded = new Set(trades.map(trade => world.stocks.find(stock => stock.symbol === trade.symbol)?.sector).filter(Boolean));
-  const profitableSales = trades.filter(trade => trade.side === "Sell" && trade.realized > 0);
   const manualShortCover = trades.some(trade => trade.side === "Buy" && trade.note?.includes("Covered"));
-  const top = trades.filter(t => t.realized !== 0).sort((a, b) => b.realized - a.realized);
+  const openedShort = trades.some(trade => trade.side === "Short");
+  const earlyTrade = trades.some(trade => trade.time >= world.startedAt && trade.time - world.startedAt <= 60_000);
+  const largestOrder = trades.reduce((largest, trade) => Math.max(largest, trade.qty * trade.price), 0);
+  const sortedClosedTrades = [...closedTrades].sort((a, b) => b.realized - a.realized || b.time - a.time);
   const badgeChoices: [string, string, boolean][] = [
-    ["First Move", "Placed a trade", trades.length >= 1], ["Portfolio Builder", "Held three companies", Object.keys(player.holdings).length >= 3],
-    ["Diversifier", "Invested across three sectors", sectors.size >= 3], ["Active Trader", "Completed five trades", trades.length >= 5],
-    ["Green Close", "Finished with a positive return", pnl > 0], ["Risk Manager", "Kept short exposure within limits", Object.keys(player.shorts).length === 0 && Object.keys(player.holdings).length > 0],
-    ["Steady Hand", "Kept at least half your cash available", player.cash >= player.initialCash * .5], ["Quick Study", "Reviewed your results", player.ended],
-    ["Conviction", "Built a position above ₹1 lakh", Object.entries(player.holdings).some(([symbol, p]) => p.qty * (world.stocks.find(s => s.symbol === symbol)?.price ?? 0) >= 100_000)],
-    ["Early Bird", "Joined within the opening minute", player.joinedAt - world.startedAt <= 60_000], ["Careful Timing", "Closed more winning than losing trades", winners > losers && winners > 0],
-    ["Market Explorer", "Traded five different companies", symbolsTraded.size >= 5],
-    ["Sector Sampler", "Traded in four different sectors", sectorsTraded.size >= 4],
-    ["Profit Taker", "Closed a long position at a profit", profitableSales.length > 0],
-    ["Short Closer", "Bought back shares to close a short", manualShortCover],
+    ["First Trade", "You placed an order in this round", trades.length >= 1],
+    ["Stock Explorer", "You traded at least four different companies", symbolsTraded.size >= 4],
+    ["Sector Hopper", "You traded across at least three sectors", sectorsTraded.size >= 3],
+    ["Green Exit", "At least one closed trade finished in profit", closedTrades.some(trade => trade.realized > 0)],
+    ["Two Winners", "You closed at least two trades in profit", winners >= 2],
+    ["Short Seller", "You opened a short position", openedShort],
+    ["Short Cover", "You chose to buy back a short position", manualShortCover],
+    ["Opening Bell", "You placed an order within the first minute", earlyTrade],
+    ["Big Ticket", "You placed an order worth at least ₹1,00,000", largestOrder >= 100_000],
   ];
   const badges = badgeChoices.filter(b => b[2]).map(b => ({ name: b[0], detail: b[1] }));
-  return { value, cash: player.cash, pnl, returnPct: pnl / player.initialCash * 100, holdings: player.holdings, shorts: player.shorts, trades: player.history, tradeCount: trades.length, winners, losers, bestTrade: top[0] ?? null, worstTrade: top.at(-1) ?? null, badges, sectors: sectors.size, symbols: symbols.size, lessons: [sectors.size >= 3 ? "Your positions covered several sectors, reducing dependence on a single industry." : "Spreading positions across sectors can reduce the effect of one industry shock.", Object.keys(player.shorts).length ? "Short positions magnify risk; review the liability before opening another." : "You kept short-sale exposure clear through the close.", trades.length >= 5 ? "Frequent trading adds up quickly; compare each trade's expected benefit with its risk." : "A clear plan can help you decide when to enter and when to wait."] };
+  const lessons = [
+    trades.length === 0
+      ? "No orders this round. Next time, pick a company and decide how much of your cash you want to use."
+      : sectorsTraded.size >= 3
+        ? `You explored ${sectorsTraded.size} sectors. A move in one industry did not define every company you traded.`
+        : "You focused on a small part of the market. Comparing another sector can show how news affects different companies.",
+    closedTrades.length
+      ? `You closed ${winners} trade${winners === 1 ? "" : "s"} in profit and ${losers} at a loss. Compare the size and timing of those exits.`
+      : "No trade was closed for a realised result. An open position can still change in value as prices move.",
+    openedShort
+      ? "You tried short selling. A short can gain when its price falls, and its loss can grow when the price rises."
+      : "A short position works in the opposite direction from a buy: it gains when price falls and loses when price rises.",
+    trades.length >= 8
+      ? `You placed ${trades.length} orders. A quick pause between moves can help you check the latest price and your available cash.`
+      : "News can affect the whole market, one sector, or a single company. Check a story’s target before reacting.",
+  ];
+  return { value, cash: player.cash, pnl, returnPct: pnl / player.initialCash * 100, holdings: player.holdings, shorts: player.shorts, trades: player.history, tradeCount: trades.length, winners, losers, bestTrade: sortedClosedTrades[0] ?? null, worstTrade: sortedClosedTrades.at(-1) ?? null, badges, sectors: sectors.size, symbols: symbols.size, lessons };
 }

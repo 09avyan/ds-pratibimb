@@ -53,171 +53,116 @@ export const makeStocks = (seed: number): Stock[] => rows.map(([symbol, name, se
   return { symbol, name, sector, domain, base: price, previousClose: open, price: current, weight: INDEX_WEIGHTS[symbol] ?? 0, candles, flow: 0 };
 });
 
-const BASE_NEWS_PRESETS: Omit<News, "id" | "createdAt">[] = [
-  { type: "major", sector: "Energy", symbols: ["RELIANCE", "ONGC"], headline: "Oil demand rises, lifting Reliance and ONGC sales", direction: 1, severity: 1.7 },
-  { type: "major", sector: "Technology", headline: "More businesses plan to buy software", direction: 1, severity: 1.8 },
-  { type: "major", sector: "Banking", headline: "More bank customers fall behind on loan payments", direction: -1, severity: 1.9 },
-  { type: "major", sector: "Industrial", headline: "New road and rail projects bring more factory orders", direction: 1, severity: 1.9 },
-  { type: "major", sector: "Auto", headline: "Imported car parts become more expensive", direction: -1, severity: 1.65 },
-  { type: "major", sector: "Consumer", headline: "Rising prices leave shoppers with less to spend", direction: -1, severity: 1.55 },
-  { type: "major", sector: "Healthcare", headline: "New medicine approvals help drug makers", direction: 1, severity: 1.65 },
-  { type: "major", sector: "ALL", headline: "Stock markets fall as investors worry about the world economy", direction: -1, severity: 1.5 },
-  { type: "major", sector: "Energy", symbols: ["RELIANCE", "ONGC"], headline: "New oil and gas fields are approved for Reliance and ONGC", direction: 1, severity: 1.55 },
-  { type: "major", sector: "Energy", symbols: ["RELIANCE"], headline: "Fuel price rules cut Reliance's refinery profits", direction: -1, severity: 1.6 },
-  { type: "major", sector: "Technology", symbols: ["TCS", "INFY", "WIPRO"], headline: "TCS, Infosys and Wipro win a large cloud-computing deal", direction: 1, severity: 1.6 },
-  { type: "major", sector: "Technology", symbols: ["TCS", "INFY", "WIPRO"], headline: "Overseas clients pause projects with TCS, Infosys and Wipro", direction: -1, severity: 1.7 },
-  { type: "major", sector: "Banking", headline: "Fewer customers miss their loan payments", direction: 1, severity: 1.55 },
-  { type: "major", sector: "Banking", headline: "Banks pay more to get the money they lend", direction: -1, severity: 1.75 },
-  { type: "major", sector: "Industrial", headline: "New rail and defence contracts bring work to manufacturers", direction: 1, severity: 1.65 },
-  { type: "major", sector: "Industrial", headline: "Delays slow down large construction projects", direction: -1, severity: 1.65 },
-  { type: "major", sector: "Auto", headline: "New discounts bring more buyers to electric cars", direction: 1, severity: 1.6 },
-  { type: "major", sector: "Auto", headline: "A shortage of parts slows car production", direction: -1, severity: 1.7 },
-  { type: "major", sector: "Consumer", headline: "A good harvest gives rural families more to spend", direction: 1, severity: 1.5 },
-  { type: "major", sector: "Consumer", headline: "Higher packaging costs squeeze consumer companies", direction: -1, severity: 1.6 },
-  { type: "major", sector: "Healthcare", headline: "Drug makers can sell medicines in more countries", direction: 1, severity: 1.6 },
-  { type: "major", sector: "Healthcare", headline: "A safety review delays a new medicine", direction: -1, severity: 1.7 },
-  { type: "major", sector: "ALL", headline: "Prices rise more slowly, raising hopes of lower loan rates", direction: 1, severity: 1.55 },
-  { type: "major", sector: "ALL", headline: "Shipping delays raise costs for businesses around the world", direction: -1, severity: 1.7 },
-  { type: "minor", sector: "Banking", headline: "More businesses take loans to grow", direction: 1, severity: .58 },
-  { type: "minor", sector: "Auto", headline: "More families book cars for the festival season", direction: 1, severity: .62 },
-  { type: "minor", sector: "Consumer", headline: "Families in smaller towns buy more everyday goods", direction: 1, severity: .55 },
-  { type: "minor", sector: "Healthcare", headline: "Hospitals treat more patients this month", direction: 1, severity: .48 },
-  { type: "minor", sector: "Energy", symbols: ["RELIANCE", "ONGC"], headline: "Oil prices fall, cutting income for Reliance and ONGC", direction: -1, severity: .5 },
-  { type: "minor", sector: "Technology", symbols: ["TCS", "INFY", "WIPRO"], headline: "TCS, Infosys and Wipro win more overseas work", direction: 1, severity: .6 },
-  { type: "minor", sector: "Industrial", headline: "Construction firms receive more orders", direction: 1, severity: .49 },
-  { type: "minor", sector: "ALL", headline: "Investors sell shares after a market rally", direction: -1, severity: .4 },
-  { type: "minor", sector: "Energy", symbols: ["NTPC"], headline: "Hot weather lifts electricity sales at NTPC", direction: 1, severity: .56 },
-  { type: "minor", sector: "Energy", symbols: ["NTPC"], headline: "NTPC pays less for gas used to make electricity", direction: 1, severity: .48 },
-  { type: "minor", sector: "Technology", symbols: ["TCS", "INFY", "WIPRO"], headline: "TCS, Infosys and Wipro win more client work", direction: 1, severity: .57 },
-  { type: "minor", sector: "Technology", symbols: ["TCS", "INFY", "WIPRO"], headline: "Clients delay projects with TCS, Infosys and Wipro", direction: -1, severity: .52 },
-  { type: "minor", sector: "Banking", headline: "More people use bank apps to make payments", direction: 1, severity: .54 },
-  { type: "minor", sector: "Banking", headline: "Banks pay more to attract savings", direction: -1, severity: .58 },
-  { type: "minor", sector: "Industrial", headline: "Factories make more goods this month", direction: 1, severity: .57 },
-  { type: "minor", sector: "Industrial", headline: "Steel costs rise for manufacturers", direction: -1, severity: .55 },
-  { type: "minor", sector: "Auto", headline: "Car dealers sell more popular models", direction: 1, severity: .5 },
-  { type: "minor", sector: "Auto", headline: "Tyre costs rise for car makers", direction: -1, severity: .53 },
-  { type: "minor", sector: "Consumer", headline: "More shoppers visit stores in smaller cities", direction: 1, severity: .56 },
-  { type: "minor", sector: "Healthcare", headline: "More people choose private hospitals", direction: 1, severity: .5 },
+type NewsPreset = Omit<News, "id" | "createdAt">;
+type Story = { type: News["type"]; headline: string; direction: News["direction"]; severity: number };
+
+const economyStories: Story[] = [
+  { type: "major", headline: "Loan rates fall, leaving businesses more room to grow", direction: 1, severity: 1.75 },
+  { type: "major", headline: "The central bank raises loan rates", direction: -1, severity: 1.8 },
+  { type: "major", headline: "Families spend more as prices settle", direction: 1, severity: 1.65 },
+  { type: "major", headline: "A jump in fuel costs puts pressure on businesses", direction: -1, severity: 1.7 },
+  { type: "major", headline: "The government adds money for roads and railways", direction: 1, severity: 1.7 },
+  { type: "major", headline: "Investors sell shares after worries about the world economy", direction: -1, severity: 1.75 },
+  { type: "minor", headline: "Factories receive more orders this month", direction: 1, severity: .62 },
+  { type: "minor", headline: "Prices rise more slowly than expected", direction: 1, severity: .58 },
+  { type: "minor", headline: "Delivery delays raise costs for many businesses", direction: -1, severity: .6 },
+  { type: "minor", headline: "Foreign investors buy more local shares", direction: 1, severity: .58 },
+  { type: "minor", headline: "Foreign investors sell local shares", direction: -1, severity: .58 },
+  { type: "minor", headline: "Household spending dips this month", direction: -1, severity: .55 },
 ];
 
-const COMPANY_NEWS: Record<string, { up: string; down: string }> = {
-  RELIANCE: { up: "Reliance adds capacity at an oil refinery", down: "Reliance faces delays at an oil refinery" },
-  TCS: { up: "TCS wins a new software contract", down: "TCS loses a major software contract" },
-  HDFCBANK: { up: "More HDFC Bank customers repay their loans", down: "More HDFC Bank customers miss loan payments" },
-  INFY: { up: "Infosys wins a new software contract", down: "Infosys clients delay their projects" },
-  ICICIBANK: { up: "More ICICI Bank customers repay their loans", down: "More ICICI Bank customers miss loan payments" },
-  BHARTIARTL: { up: "Bharti Airtel adds more mobile customers", down: "A network outage disrupts Bharti Airtel service" },
-  ITC: { up: "ITC sells more of its everyday products", down: "ITC pays more for its raw materials" },
-  LT: { up: "Larsen & Toubro wins a large construction order", down: "A Larsen & Toubro project faces delays" },
-  SBIN: { up: "More State Bank of India customers repay loans", down: "More State Bank of India customers miss payments" },
-  HINDUNILVR: { up: "Hindustan Unilever sells more household goods", down: "Higher ingredient costs squeeze Hindustan Unilever" },
-  TATAMOTORS: { up: "Tata Motors receives more car orders", down: "A parts shortage slows Tata Motors production" },
-  MARUTI: { up: "Maruti Suzuki receives more car bookings", down: "Production delays hold up Maruti Suzuki cars" },
-  SUNPHARMA: { up: "Sun Pharma gets approval for a new medicine", down: "A production delay holds up a Sun Pharma medicine" },
-  CIPLA: { up: "Cipla sells more medicines overseas", down: "Approval delays a new Cipla medicine" },
-  BAJFINANCE: { up: "More Bajaj Finance customers repay their loans", down: "More Bajaj Finance customers miss payments" },
-  AXISBANK: { up: "Axis Bank adds more savings customers", down: "Axis Bank pays more to attract savings" },
-  WIPRO: { up: "Wipro wins a new technology contract", down: "A Wipro client pauses a technology project" },
-  ADANIPORTS: { up: "Adani Ports handles more cargo", down: "Delays slow cargo at Adani Ports" },
-  NTPC: { up: "NTPC sells more electricity as demand rises", down: "NTPC pays more for fuel to make electricity" },
-  ONGC: { up: "ONGC produces more oil and gas", down: "ONGC produces less oil and gas" },
-  "M&M": { up: "Mahindra & Mahindra receives more vehicle orders", down: "A parts shortage slows Mahindra vehicle production" },
-  TITAN: { up: "Titan sells more jewellery and watches", down: "Higher gold costs squeeze Titan sales" },
-  ULTRACEMCO: { up: "UltraTech receives more cement orders", down: "Higher fuel costs squeeze UltraTech profits" },
-  DRREDDY: { up: "Dr. Reddy's gets approval for a new medicine", down: "A review delays a Dr. Reddy's medicine" },
-  KOTAKBANK: { up: "More Kotak Bank customers repay their loans", down: "More Kotak Bank customers miss payments" },
-  TATASTEEL: { up: "Tata Steel receives more steel orders", down: "Lower steel prices cut Tata Steel income" },
-  TATACONSUM: { up: "Tata Consumer sells more food and drinks", down: "Higher ingredient costs squeeze Tata Consumer" },
-  APOLLOHOSP: { up: "Apollo Hospitals treats more patients", down: "Delays slow an Apollo Hospitals expansion" },
+const sectorStories: Record<string, [Story, Story]> = {
+  Banking: [
+    { type: "major", headline: "Fewer bank borrowers miss loan payments", direction: 1, severity: 1.7 },
+    { type: "major", headline: "More bank borrowers miss loan payments", direction: -1, severity: 1.8 },
+  ],
+  Technology: [
+    { type: "major", headline: "Businesses increase their software budgets", direction: 1, severity: 1.75 },
+    { type: "major", headline: "Businesses cut their software budgets", direction: -1, severity: 1.75 },
+  ],
+  Energy: [
+    { type: "major", headline: "Energy companies report higher profits", direction: 1, severity: 1.7 },
+    { type: "major", headline: "Energy companies report lower profits", direction: -1, severity: 1.7 },
+  ],
+  Telecommunications: [
+    { type: "major", headline: "More people sign up for mobile plans", direction: 1, severity: 1.7 },
+    { type: "major", headline: "Mobile companies lose customers this month", direction: -1, severity: 1.7 },
+  ],
+  Consumer: [
+    { type: "major", headline: "Shoppers buy more everyday products", direction: 1, severity: 1.7 },
+    { type: "major", headline: "Shoppers cut back on everyday products", direction: -1, severity: 1.7 },
+  ],
+  Industrial: [
+    { type: "major", headline: "Builders place more orders with manufacturers", direction: 1, severity: 1.75 },
+    { type: "major", headline: "New building projects are delayed", direction: -1, severity: 1.7 },
+  ],
+  Auto: [
+    { type: "major", headline: "Car and two-wheeler sales rise", direction: 1, severity: 1.75 },
+    { type: "major", headline: "Car and two-wheeler sales fall", direction: -1, severity: 1.75 },
+  ],
+  Healthcare: [
+    { type: "major", headline: "Healthcare companies report higher sales", direction: 1, severity: 1.7 },
+    { type: "major", headline: "Healthcare companies report lower sales", direction: -1, severity: 1.75 },
+  ],
 };
 
-// These added presets keep the production catalog's indices stable while
-// giving hosts a few clear market-wide and single-company headlines.
-const EXTRA_NEWS_PRESETS: Omit<News, "id" | "createdAt">[] = [
-  { type: "major", scope: "economy", sector: "ALL", headline: "The central bank raises rates, making loans more expensive", direction: -1, severity: 1.8 },
-  { type: "major", scope: "economy", sector: "ALL", headline: "Inflation cools faster than expected", direction: 1, severity: 1.7 },
-  { type: "major", scope: "economy", sector: "ALL", headline: "A weaker rupee raises costs for companies that import goods", direction: -1, severity: 1.6 },
-  { type: "major", scope: "economy", sector: "ALL", headline: "The government brings forward spending on roads and railways", direction: 1, severity: 1.7 },
-  { type: "minor", scope: "economy", sector: "ALL", headline: "Factories receive more new orders", direction: 1, severity: .65 },
-  { type: "minor", scope: "economy", sector: "ALL", headline: "Bond yields fall after inflation comes in lower", direction: 1, severity: .58 },
-  { type: "minor", scope: "economy", sector: "ALL", headline: "The trade gap widens as energy imports rise", direction: -1, severity: .62 },
-  { type: "major", scope: "stock", sector: "Energy", symbols: ["RELIANCE"], headline: "Reliance earns more from fuel refining", direction: 1, severity: 1.9 },
-  { type: "major", scope: "stock", sector: "Technology", symbols: ["TCS"], headline: "TCS wins a large multi-year software contract", direction: 1, severity: 1.9 },
-  { type: "major", scope: "stock", sector: "Banking", symbols: ["HDFCBANK"], headline: "HDFC Bank reports growth in deposits and loans", direction: 1, severity: 1.8 },
-  { type: "minor", scope: "stock", sector: "Technology", symbols: ["INFY"], headline: "Infosys expands a delivery centre to take on more work", direction: 1, severity: .7 },
-];
+const stockStories: Record<string, { up: string; down: string }> = {
+  RELIANCE: { up: "Reliance earns more from its refineries", down: "Reliance earns less from its refineries" },
+  TCS: { up: "TCS wins a large software contract", down: "A major TCS client cancels its software contract" },
+  HDFCBANK: { up: "More HDFC Bank borrowers repay their loans", down: "More HDFC Bank borrowers miss loan payments" },
+  INFY: { up: "Infosys wins a large software contract", down: "An Infosys client cancels a large project" },
+  ICICIBANK: { up: "More ICICI Bank borrowers repay their loans", down: "More ICICI Bank borrowers miss loan payments" },
+  BHARTIARTL: { up: "Bharti Airtel adds many new mobile customers", down: "A network outage disrupts Bharti Airtel service" },
+  ITC: { up: "ITC sells more of its everyday products", down: "ITC sales fall after a product recall" },
+  LT: { up: "Larsen & Toubro wins a large construction order", down: "A Larsen & Toubro project is delayed" },
+  SBIN: { up: "More State Bank of India borrowers repay loans", down: "More State Bank of India borrowers miss payments" },
+  HINDUNILVR: { up: "Hindustan Unilever sells more household goods", down: "Hindustan Unilever pays more for ingredients" },
+  TATAMOTORS: { up: "Tata Motors receives more vehicle orders", down: "A parts shortage slows Tata Motors production" },
+  MARUTI: { up: "Maruti Suzuki receives more car bookings", down: "A factory delay holds up Maruti Suzuki cars" },
+  SUNPHARMA: { up: "Sun Pharma gets approval for a new medicine", down: "A safety review delays a Sun Pharma medicine" },
+  CIPLA: { up: "Cipla wins approval to sell a new medicine", down: "A safety review delays a Cipla medicine" },
+  BAJFINANCE: { up: "More Bajaj Finance customers repay loans", down: "More Bajaj Finance customers miss payments" },
+  AXISBANK: { up: "Axis Bank adds many new savings customers", down: "Axis Bank loses savings customers this month" },
+  WIPRO: { up: "Wipro wins a large technology contract", down: "A Wipro client cancels a technology project" },
+  ADANIPORTS: { up: "Adani Ports handles more cargo", down: "A delay slows cargo at Adani Ports" },
+  NTPC: { up: "NTPC sells more electricity as demand rises", down: "A fuel shortage slows electricity production at NTPC" },
+  ONGC: { up: "ONGC finds a new oil and gas field", down: "ONGC reports a fall in oil and gas output" },
+  "M&M": { up: "Mahindra receives more vehicle orders", down: "A parts shortage slows Mahindra vehicle production" },
+  TITAN: { up: "Titan sells more jewellery and watches", down: "Titan sells fewer jewellery and watches" },
+  ULTRACEMCO: { up: "UltraTech receives more cement orders", down: "A fuel shortage slows UltraTech cement production" },
+  DRREDDY: { up: "Dr. Reddy's gets approval for a new medicine", down: "A safety review delays a Dr. Reddy's medicine" },
+  KOTAKBANK: { up: "More Kotak Bank borrowers repay their loans", down: "More Kotak Bank borrowers miss loan payments" },
+  TATASTEEL: { up: "Tata Steel wins new steel orders", down: "Lower steel prices cut Tata Steel income" },
+  TATACONSUM: { up: "Tata Consumer sells more food and drinks", down: "Tata Consumer pays more for ingredients" },
+  APOLLOHOSP: { up: "Apollo Hospitals treats many more patients", down: "Apollo Hospitals treats fewer patients this month" },
+};
 
-export const NEWS_PRESETS: Omit<News, "id" | "createdAt">[] = [
-  ...BASE_NEWS_PRESETS.map(news => ({ ...news, scope: news.symbols?.length ? "stock" as const : news.sector === "ALL" ? "economy" as const : "sector" as const })),
-  ...EXTRA_NEWS_PRESETS,
+const majorStockStories = new Set(["RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "LT", "TATAMOTORS", "SUNPHARMA", "BAJFINANCE", "NTPC", "ONGC", "ADANIPORTS", "MARUTI", "ITC"]);
+const preset = (story: Story, scope: News["scope"], sector: string, symbols?: string[]): NewsPreset => ({
+  ...story,
+  scope,
+  sector,
+  ...(symbols ? { symbols } : {}),
+});
+
+export const NEWS_PRESETS: NewsPreset[] = [
+  ...economyStories.map(story => preset(story, "economy", "ALL")),
+  ...Object.entries(sectorStories).flatMap(([sector, stories]) => stories.map(story => preset(story, "sector", sector))),
   ...rows.flatMap(([symbol, , sector]) => {
-    const news = COMPANY_NEWS[symbol];
+    const story = stockStories[symbol];
+    if (!story) throw new Error(`Missing news for ${symbol}`);
+    const major = majorStockStories.has(symbol);
+    const type = major ? "major" : "minor";
+    const severity = major ? 1.8 : .62;
     return [
-      { type: "minor" as const, scope: "stock" as const, sector, symbols: [symbol], headline: news.up, direction: 1 as const, severity: .62 },
-      { type: "minor" as const, scope: "stock" as const, sector, symbols: [symbol], headline: news.down, direction: -1 as const, severity: .62 },
+      preset({ type, headline: story.up, direction: 1, severity }, "stock", sector, [symbol]),
+      preset({ type, headline: story.down, direction: -1, severity }, "stock", sector, [symbol]),
     ];
   }),
 ];
 
-const LEGACY_BASE_HEADLINES = [
-  "Energy majors rally on a sharp rise in global crude demand",
-  "Global technology spending outlook improves after strong earnings",
-  "Central bank signals tighter liquidity in a surprise policy note",
-  "New infrastructure package lifts capital goods outlook",
-  "Import policy shift puts pressure on auto sector margins",
-  "Inflation surprise sparks a broad consumer stocks repricing",
-  "New medicine approvals brighten healthcare earnings outlook",
-  "Global equity markets turn cautious after a sudden risk-off shift",
-  "Fresh offshore exploration awards lift domestic producers",
-  "Fuel-price controls squeeze refiners as input costs climb",
-  "A multi-year cloud contract boosts India's IT outlook",
-  "Overseas clients pause discretionary technology projects",
-  "Credit quality improves as lenders report fewer bad loans",
-  "Higher funding costs put pressure on bank margins",
-  "Rail and defence orders add to the manufacturing pipeline",
-  "Key infrastructure projects face fresh execution delays",
-  "Electric-vehicle demand accelerates after new charging incentives",
-  "A component shortage disrupts vehicle production schedules",
-  "A strong harvest improves rural spending expectations",
-  "Packaging and commodity costs rise across consumer brands",
-  "New export clearances open a larger market for drug makers",
-  "A regulatory review delays a key pharmaceutical launch",
-  "Cooling inflation lifts expectations for an easier rate path",
-  "A global shipping disruption renews investor caution",
-  "Banks report steady credit growth as lending expands",
-  "Automakers report firmer-than-expected festival bookings",
-  "Consumer brands note a gradual improvement in rural demand",
-  "Defensive buying brings fresh interest to healthcare shares",
-  "Energy prices ease on signs of firmer global supply",
-  "IT exporters gain after a supportive currency move",
-  "Construction activity indicators remain resilient",
-  "Investors book modest gains after a steady morning session",
-  "Power demand rises ahead of an expected warm spell",
-  "A softer natural-gas price eases operating costs",
-  "Rupee movement offers a small tailwind to exporters",
-  "Hiring plans remain measured across IT services",
-  "Digital payments volumes reach a new monthly high",
-  "Lenders compete more aggressively for retail deposits",
-  "Factory activity expands for a second consecutive month",
-  "Steel input prices edge higher in the spot market",
-  "Dealers report shorter waiting periods for popular models",
-  "Tyre and battery costs tick higher this quarter",
-  "Retail footfall improves in smaller cities",
-  "Hospitals see steady growth in elective procedures",
-];
+// Historical headlines stay in the batch record. New sessions only use the
+// curated catalog above; old stories are not guessed onto unrelated presets.
+export const LEGACY_NEWS_PRESETS = new Map<string, NewsPreset>();
 
-export const LEGACY_NEWS_PRESETS = new Map<string, Omit<News, "id" | "createdAt">>();
-LEGACY_BASE_HEADLINES.forEach((headline, index) => {
-  const replacement = NEWS_PRESETS[index];
-  if (replacement) LEGACY_NEWS_PRESETS.set(headline, replacement);
-});
-LEGACY_NEWS_PRESETS.set("Investors book profits after the morning rally", NEWS_PRESETS[31]);
-rows.forEach(([, name], rowIndex) => {
-  const replacementIndex = BASE_NEWS_PRESETS.length + EXTRA_NEWS_PRESETS.length + rowIndex * 2;
-  const replacementUp = NEWS_PRESETS[replacementIndex];
-  const replacementDown = NEWS_PRESETS[replacementIndex + 1];
-  if (replacementUp) LEGACY_NEWS_PRESETS.set(`${name} raises its outlook after a strong company update`, replacementUp);
-  if (replacementDown) LEGACY_NEWS_PRESETS.set(`${name} trims its outlook after a setback in its latest update`, replacementDown);
-});
-
-export const makeNews = (seed: number) => NEWS_PRESETS.map((n, i) => ({ ...n, id: `${seed}-${i}`, createdAt: 0 }));
+export const makeNews = (seed: number) => NEWS_PRESETS.map((news, index) => ({ ...news, id: `${seed}-${index}`, createdAt: 0 }));
