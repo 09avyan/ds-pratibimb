@@ -409,7 +409,7 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
     const canSendDelta = typeof since === "number" && Number.isFinite(since) && fullCandles.length > 0 && since >= fullCandles[0].time && since <= fullCandles.at(-1)!.time;
     const candles = options.includeCandles === false ? [] : canSendDelta ? fullCandles.filter(bar => bar.time >= since) : fullCandles;
     return { ...publicStock, trend: stock.candles.slice(-18).map(bar => bar.close), candles: stock.symbol === selectedStock ? candles : [] };
-  }), player: sessionId ? sessions[sessionId] ?? null : null, index: value, indexChange: base ? ((value - 10_000) / 10_000) * 100 : 0, participants: Object.values(sessions).filter(p => p.included && !p.ended).length };
+  }), player: sessionId ? sessions[sessionId] ?? null : null, index: value, indexChange: base ? ((value - 10_000) / 10_000) * 100 : 0, participants: world.status === "closed" ? 0 : Object.values(sessions).filter(p => p.batch === world.batch && p.included && !p.ended).length };
 }
 
 export function performance(world: World, player: Player) {

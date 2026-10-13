@@ -19,6 +19,7 @@ function touchSession(state: World, sessionId: string, terminalNumber?: number) 
   let player = state.sessions[sessionId];
   if (!player) {
     player = newPlayer(sessionId, state.batch, now, true, terminalNumber);
+    if (state.status === "closed") player.ended = true;
     state.sessions[sessionId] = player;
     state.version++;
   } else {
