@@ -628,3 +628,349 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   .preview-home-hero { padding-top: 26px; }
   .preview-choice .choice-copy { min-height: 0; }
 }
+
+/* Versioned trading treatments: Atlas (v2), Mash (v3), and Paper Pop (v4). */
+.terminal.ui-atlas {
+  --page: #edf3f8; --card: #fbfdff; --secondary: #e1ebf3; --input: #fff;
+  --ink: #1a2e43; --muted: #64788b; --faint: #8799a8; --line: #cbd9e4;
+  --accent: #315edb; --accent-soft: #e0e9ff; --nav: #172d45;
+  --up: #087d69; --down: #c3494f; --up-soft: #dff2ea; --down-soft: #fae5e3;
+  --shadow: 0 8px 22px rgba(28, 55, 83, .08);
+  color: var(--ink);
+  background: radial-gradient(ellipse at 85% 0%, #d7e7ff 0, transparent 38%), var(--page);
+}
+.terminal.ui-atlas .topbar { background: #fbfdff; border-bottom-color: #cbd9e4; }
+.terminal.ui-atlas .topbar-brand > span:last-child,
+.terminal.ui-atlas .terminal-tabs > button.active,
+.terminal.ui-atlas .section-heading h1 .heading-period { color: #315edb; }
+.terminal.ui-atlas .market-ribbon { border: 1px solid #cbd9e4; background: #e7f0f7; border-radius: 12px; }
+.terminal.ui-atlas .terminal-tabs { background: #fbfdff; border-bottom-color: #cbd9e4; }
+.terminal.ui-atlas .terminal-tabs > button.active:after { background: #315edb; }
+.terminal.ui-atlas .workspace-markets { padding-top: 17px; }
+.terminal.ui-atlas .stock-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.terminal.ui-atlas .stock-card { padding: 12px; border-radius: 14px; background: rgba(251,253,255,.94); box-shadow: 0 3px 12px rgba(28,55,83,.035); }
+.terminal.ui-atlas .stock-card:hover, .terminal.ui-atlas .stock-card.selected { border-color: #6585e8; box-shadow: 0 7px 20px rgba(49,94,219,.12); }
+.terminal.ui-atlas .stock-card.selected { border-left: 3px solid #315edb; }
+.terminal.ui-atlas .focus-card, .terminal.ui-atlas .holdings-card { border-radius: 16px; }
+.terminal.ui-atlas .focus-card { border-top: 3px solid #315edb; }
+.terminal.ui-atlas .focus-trade-button { border: 0; border-radius: 8px; background: #e3ebff; color: #284eb8; }
+.terminal.ui-atlas .execute-button.buy { background: #315edb; }
+.terminal.ui-atlas .latest-brief { border: 1px solid #d2dfeb; background: #e3edf8; }
+.terminal.ui-atlas .breaking-alert { border-color: #e7c772; background: #fff6dc; }
+
+/* v3 retains the playful Market Mash board and adds clearer card hierarchy. */
+.terminal.ui-arcade .stock-card { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.terminal.ui-arcade .stock-card:hover { transform: translateY(-2px); }
+.terminal.ui-arcade .focus-trade-button { border: 2px solid #493b55; border-radius: 8px; background: #f5d96d; color: #493b55; font-weight: 850; }
+.terminal.ui-arcade .trade-dialog-panel { border: 2px solid #493b55; border-radius: 20px; box-shadow: 7px 8px 0 #493b5530; }
+
+/* v4 is a card-first paper surface: warm stock, ink, and subtle cut-paper depth. */
+.terminal.ui-paper {
+  --page: #f1eadb; --card: #fffdf7; --secondary: #e9e1d0; --input: #fffefa;
+  --ink: #282f2b; --muted: #68736a; --faint: #92988d; --line: #d7cebc;
+  --accent: #315d48; --accent-soft: #dfeadd; --nav: #2d4038;
+  --up: #24775a; --down: #b65248; --up-soft: #e0eee3; --down-soft: #f7e5df;
+  --shadow: 0 5px 0 rgba(66, 60, 44, .08), 0 12px 24px rgba(66, 60, 44, .055);
+  color: var(--ink);
+  background-color: var(--page);
+  background-image: radial-gradient(rgba(93, 77, 47, .07) .65px, transparent .7px), linear-gradient(135deg, #f6f0e4, #eee5d4 70%, #f4ead9);
+  background-size: 9px 9px, auto;
+}
+.terminal.ui-paper .topbar { background: rgba(255,253,247,.96); border-bottom: 1px solid #cbc0ab; box-shadow: 0 3px 0 rgba(65,57,42,.06); }
+.terminal.ui-paper .topbar-brand { font-weight: 850; letter-spacing: -.02em; }
+.terminal.ui-paper .topbar-brand > span:last-child,
+.terminal.ui-paper .terminal-tabs > button.active,
+.terminal.ui-paper .section-heading h1 .heading-period { color: #a44d36; }
+.terminal.ui-paper .market-ribbon { border: 1px solid #cfc3ad; border-radius: 12px; background: #e7dfcf; }
+.terminal.ui-paper .terminal-tabs { z-index: 2; height: 44px; margin: 8px 18px 0; padding: 0 13px; border: 1px solid #cfc3ad; border-radius: 12px; background: #fffdf7; box-shadow: 0 3px 0 rgba(65,57,42,.07); }
+.terminal.ui-paper .terminal-tabs > button { font-weight: 750; }
+.terminal.ui-paper .terminal-tabs > button.active:after { height: 3px; border-radius: 4px; background: #a44d36; }
+.terminal.ui-paper .workspace-markets { padding: 15px 20px 12px; }
+.terminal.ui-paper .trading-grid { grid-template-columns: minmax(0, 1.35fr) minmax(330px, .78fr); gap: 16px; }
+.terminal.ui-paper .stock-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.terminal.ui-paper .stock-card { padding: 10px 11px 9px; border: 1px solid #d6cbb8; border-radius: 13px; background: #fffdf7; box-shadow: 0 3px 0 rgba(66,60,44,.07), 0 6px 12px rgba(66,60,44,.035); }
+.terminal.ui-paper .stock-card:nth-child(4n + 1), .terminal.ui-paper .stock-card:nth-child(4n + 2), .terminal.ui-paper .stock-card:nth-child(4n + 3), .terminal.ui-paper .stock-card:nth-child(4n) { background: #fffdf7; }
+.terminal.ui-paper .stock-card:hover, .terminal.ui-paper .stock-card.selected { border-color: #527c63; box-shadow: 0 4px 0 rgba(49,93,72,.17), 0 8px 16px rgba(49,93,72,.09); }
+.terminal.ui-paper .stock-card.selected { border-left: 3px solid #315d48; }
+.terminal.ui-paper .stock-card-foot { border-color: #e6dece; }
+.terminal.ui-paper .focus-card, .terminal.ui-paper .holdings-card { border: 1px solid #d2c6b1; border-radius: 16px; background: #fffdf7; box-shadow: var(--shadow); }
+.terminal.ui-paper .focus-card { border-top: 4px solid #315d48; }
+.terminal.ui-paper .focus-company .company-mark { border: 1px solid #d6cbb8; }
+.terminal.ui-paper .focus-price-row > strong { font-size: 32px; }
+.terminal.ui-paper .price-chart { height: clamp(160px, 20vh, 230px); }
+.terminal.ui-paper .chart-toggle, .terminal.ui-paper .side-switch { border-radius: 10px; background: #eee7d9; }
+.terminal.ui-paper .chart-toggle button.active { background: #fffdf7; }
+.terminal.ui-paper .focus-trade-button { border: 1px solid #315d48; border-radius: 8px; background: #315d48; color: white; font-weight: 700; }
+.terminal.ui-paper .latest-brief { border: 1px solid #d4c8b3; background: rgba(255,253,247,.86); }
+.terminal.ui-paper .brief-icon { border: 1px solid #d4c8b3; background: #e6ead9; color: #315d48; }
+.terminal.ui-paper .breaking-alert { border-color: #c7a75c; background: #fff4d8; }
+.terminal.ui-paper .section-heading h1, .terminal.ui-paper .order-title h2 { font-family: Georgia, 'Times New Roman', serif; }
+
+/* The selected-stock order ticket opens as a proper accessible quick-trade sheet. */
+.trade-dialog { width: min(480px, calc(100vw - 28px)); max-width: none; max-height: min(92dvh, 790px); padding: 0; overflow: visible; border: 0; border-radius: 18px; background: transparent; color: var(--ink); }
+.trade-dialog::backdrop { background: rgba(11, 22, 31, .58); backdrop-filter: blur(4px); }
+.trade-dialog-panel { max-height: min(92dvh, 790px); overflow: auto; padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); box-shadow: 0 24px 70px rgba(0,0,0,.24); }
+.trade-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+.trade-dialog-heading h2 { margin: 5px 0 4px; font: 750 22px Georgia, 'Times New Roman', serif; }
+.trade-dialog-heading h2 span { display: block; margin-top: 3px; color: var(--muted); font: 500 11px var(--body); }
+.trade-dialog-heading p { display: flex; gap: 8px; margin: 0; font: 12px var(--mono); }
+.trade-dialog-close { flex: none; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 10px; background: var(--secondary); font-size: 21px; line-height: 1; }
+.trade-dialog .order-card { padding: 14px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; }
+.trade-dialog.ui-arcade .order-card, .trade-dialog.ui-paper .order-card, .trade-dialog.ui-atlas .order-card { background: transparent; }
+.trade-dialog :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 62%, white); outline-offset: 2px; }
+.focus-trade-button { flex: none; margin-left: auto; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--secondary); color: var(--ink); font-size: 9px; font-weight: 750; white-space: nowrap; }
+.focus-company .ellipsis { flex: none; margin-left: 0; }
+
+/* Shared audience dashboard and batch recap, allowed to grow and scroll. */
+.audience-wall { --wall-surface: var(--card); --wall-secondary: var(--secondary); height: auto; min-height: 100svh; overflow-x: hidden; overflow-y: auto; display: grid; align-content: start; gap: 14px; padding: 15px clamp(14px, 2.1vw, 34px) 13px; color: var(--ink); background: var(--page); }
+.wall-header { height: auto; min-height: 54px; gap: 14px; }
+.wall-brand { min-width: 210px; }
+.wall-brand small, .wall-index small, .wall-footer { color: var(--muted); }
+.wall-brand b span, .wall-footer a { color: var(--accent); }
+.wall-status { color: var(--muted); }
+.wall-status b, .wall-index strong { color: var(--ink); }
+.wall-index, .wall-status b { border-color: var(--line); }
+.wall-fullscreen { border-color: var(--line); border-radius: 9px; background: var(--card); color: var(--ink); font-weight: 700; }
+.wall-theme-button { flex: none; }
+.wall-overview { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(145px, .8fr)); gap: 10px; }
+.wall-index-card, .wall-mover-card, .wall-breadth-card { min-width: 0; padding: 13px 15px; border: 1px solid var(--line); border-radius: 13px; background: var(--wall-surface); box-shadow: var(--shadow); }
+.wall-index-card { display: grid; grid-template-columns: 1fr auto; align-content: center; gap: 5px 12px; }
+.wall-index-card > div { display: grid; gap: 4px; }
+.wall-index-card > div small, .wall-index-card > div span, .mover-label { color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .12em; }
+.wall-index-card > strong { grid-column: 1; font: 500 clamp(23px, 2.3vw, 36px) var(--mono); letter-spacing: -.055em; white-space: nowrap; }
+.wall-index-card > b { grid-column: 2; grid-row: 2; align-self: end; font: 700 13px var(--mono); white-space: nowrap; }
+.wall-index-card > b small { font: 800 8px var(--body); letter-spacing: .1em; }
+.wall-index-card > p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 9px; }
+.wall-mover-card, .wall-breadth-card { display: grid; align-content: space-between; gap: 9px; }
+.mover-company { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 2px 7px; }
+.mover-company .company-mark { grid-row: span 2; }
+.mover-company b { font-size: 11px; }
+.mover-company small { overflow: hidden; color: var(--muted); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.wall-mover-card > strong { justify-self: end; font: 700 15px var(--mono); }
+.wall-mover-card > p { margin: 0; color: var(--muted); font-size: 10px; }
+.wall-breadth-card > strong { display: flex; gap: 7px; flex-wrap: wrap; font: 750 13px var(--mono); }
+.wall-breadth-card > strong i { padding: 6px 8px; border-radius: 8px; background: var(--secondary); font-style: normal; }
+.wall-breadth-card > small { color: var(--muted); font-size: 9px; }
+.wall-news { min-height: 70px; grid-template-columns: 110px minmax(0,1fr) 140px; margin: 0; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: 13px; background: var(--nav); box-shadow: var(--shadow); }
+.wall-news-label { color: var(--lime); }
+.wall-news-headlines { max-height: 65px; }
+.wall-news strong { line-height: 1.4; }
+.wall-market-section, .wall-learning, .wall-news-archive { min-width: 0; }
+.wall-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 2px 1px 9px; }
+.wall-section-heading .eyebrow { color: var(--muted); font-size: 8px; }
+.wall-section-heading h1, .wall-section-heading h2 { margin: 4px 0 0; color: var(--ink); font: 750 20px Georgia, 'Times New Roman', serif; letter-spacing: -.025em; }
+.wall-section-heading h1 span { color: var(--accent); }
+.wall-section-heading > span { color: var(--muted); font-size: 9px; text-align: right; }
+.wall-grid { flex: initial; min-height: 0; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); grid-template-rows: none; gap: 8px; }
+.wall-stock { min-height: 83px; padding: 9px 10px; border-color: var(--line); border-radius: 11px; background: var(--wall-surface); box-shadow: var(--shadow); }
+.wall-stock-top { gap: 7px; }
+.wall-stock-top .company-mark { width: 26px; height: 26px; }
+.wall-stock-top b { color: var(--ink); font-size: 9px; }
+.wall-stock-top small { color: var(--muted); font-size: 8px; }
+.wall-price strong { color: var(--ink); font-size: clamp(12px, 1vw, 16px); }
+.wall-price > span { font-size: 8px; }
+.wall-learning-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; }
+.wall-learning-grid article { display: grid; grid-template-columns: 27px minmax(0,1fr); align-items: start; gap: 8px; min-height: 70px; padding: 11px; border: 1px solid var(--line); border-radius: 12px; background: var(--wall-surface); box-shadow: var(--shadow); }
+.wall-learning-grid article > i { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font: 700 9px var(--mono); font-style: normal; }
+.wall-learning-grid p { margin: 0; color: var(--ink); font-size: 10px; line-height: 1.5; }
+.wall-news-list { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; }
+.wall-news-list article { display: grid; gap: 7px; min-width: 0; padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--wall-surface); }
+.wall-news-list article.current { border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb,var(--accent) 16%,transparent); }
+.wall-news-list article > div { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.wall-news-list article > div small { overflow: hidden; color: var(--muted); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.wall-news-list article time { margin-left: auto; color: var(--muted); font: 8px var(--mono); white-space: nowrap; }
+.wall-news-list article > strong { color: var(--ink); font-size: 10px; line-height: 1.45; }
+.wall-news-empty { padding: 16px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: 10px; text-align: center; }
+.audience-wall .wall-footer { height: auto; min-height: 24px; margin-top: 1px; }
+
+/* Atlas audience uses crisp map-like blues and evenly weighted data cards. */
+.audience-wall.ui-atlas { --page: #edf3f8; --card: #fbfdff; --secondary: #e1ebf3; --ink: #1a2e43; --muted: #64788b; --line: #cbd9e4; --accent: #315edb; --accent-soft: #e0e9ff; --nav: #172d45; --up: #087d69; --down: #c3494f; --up-soft: #dff2ea; --down-soft: #fae5e3; --shadow: 0 7px 18px rgba(28,55,83,.07); background: radial-gradient(ellipse at 85% 0%,#d7e7ff 0,transparent 38%),var(--page); }
+.audience-wall.ui-atlas .wall-index-card { border-left: 4px solid #315edb; }
+.audience-wall.ui-atlas .wall-mover-card.best { border-top: 3px solid #16876f; }
+.audience-wall.ui-atlas .wall-mover-card.worst { border-top: 3px solid #c3494f; }
+.audience-wall.ui-atlas .wall-stock { border-radius: 9px; }
+
+/* Market Mash uses its warm board-game palette on both screens. */
+.audience-wall.ui-arcade { --page: #f6e9c9; --card: #fff9e8; --secondary: #f5d96d; --ink: #302b36; --muted: #756d77; --line: #d9c6a1; --accent: #ed5b3c; --accent-soft: #ffe0c8; --nav: #493b55; --up: #147c63; --down: #c8484c; --up-soft: #d9efdf; --down-soft: #ffe0d7; --shadow: 0 4px 0 rgba(73,55,56,.08); background: radial-gradient(#d4bd91 .8px,transparent .9px),linear-gradient(135deg,#fbf1d8,#f4e5c6 72%,#f9d8ae); background-size: 19px 19px,auto; }
+.audience-wall.ui-arcade .wall-index-card, .audience-wall.ui-arcade .wall-mover-card, .audience-wall.ui-arcade .wall-breadth-card, .audience-wall.ui-arcade .wall-learning-grid article, .audience-wall.ui-arcade .wall-news-list article { border: 2px solid #493b55; border-radius: 13px; }
+.audience-wall.ui-arcade .wall-index-card { background: #fff9e8; }
+.audience-wall.ui-arcade .wall-news { border: 2px solid #493b55; background: #493b55; }
+.audience-wall.ui-arcade .wall-news-label { color: #f5d96d; }
+.audience-wall.ui-arcade .wall-stock { min-height: 88px; border: 2px solid #493b55; border-radius: 13px; box-shadow: 3px 4px 0 #493b5522; }
+.audience-wall.ui-arcade .wall-stock:nth-child(4n + 1) { background: #fff0c3; }
+.audience-wall.ui-arcade .wall-stock:nth-child(4n + 2) { background: #e4f2d6; }
+.audience-wall.ui-arcade .wall-stock:nth-child(4n + 3) { background: #f7dfdb; }
+.audience-wall.ui-arcade .wall-stock:nth-child(4n) { background: #e4edf5; }
+
+/* Paper Pop is editorial paper with useful cards, plenty of breathing room, and ink accents. */
+.audience-wall.ui-paper { --page: #f1eadb; --card: #fffdf7; --secondary: #e9e1d0; --ink: #282f2b; --muted: #68736a; --line: #d7cebc; --accent: #315d48; --accent-soft: #dfeadd; --nav: #2d4038; --up: #24775a; --down: #b65248; --up-soft: #e0eee3; --down-soft: #f7e5df; --shadow: 0 4px 0 rgba(66,60,44,.07),0 10px 20px rgba(66,60,44,.045); background-color:var(--page); background-image:radial-gradient(rgba(93,77,47,.07) .65px,transparent .7px),linear-gradient(135deg,#f6f0e4,#eee5d4 70%,#f4ead9); background-size:9px 9px,auto; }
+.audience-wall.ui-paper .wall-brand b { font-family: Georgia,'Times New Roman',serif; }
+.audience-wall.ui-paper .wall-index-card { border-top: 3px solid #a44d36; }
+.audience-wall.ui-paper .wall-index-card, .audience-wall.ui-paper .wall-mover-card, .audience-wall.ui-paper .wall-breadth-card, .audience-wall.ui-paper .wall-learning-grid article, .audience-wall.ui-paper .wall-news-list article { border-radius: 15px; }
+.audience-wall.ui-paper .wall-stock { min-height: 89px; border-radius: 13px; }
+.audience-wall.ui-paper .wall-news { border-color: #344b3c; background: #2d4038; }
+.audience-wall.ui-paper .wall-news-label { color: #e7c978; }
+.audience-wall.ui-paper .wall-section-heading h1, .audience-wall.ui-paper .wall-section-heading h2 { font-family: Georgia,'Times New Roman',serif; }
+
+/* Every visual direction has a high contrast dark mode, including v3's hand-set palette. */
+:root[data-theme="dark"] .terminal.ui-atlas { --page:#142333; --card:#1c3041; --secondary:#263d50; --input:#172a3a; --ink:#eff6fa; --muted:#b1c2cd; --faint:#90a7b5; --line:#3b566a; --accent:#9db5ff; --accent-soft:#2b3f66; --nav:#102232; --up:#72e3bd; --down:#ff9088; --up-soft:#234b43; --down-soft:#573637; --shadow:0 10px 24px rgba(0,0,0,.2); background:radial-gradient(ellipse at 85% 0%,#263e65 0,transparent 40%),var(--page); }
+:root[data-theme="dark"] .terminal.ui-atlas .topbar, :root[data-theme="dark"] .terminal.ui-atlas .terminal-tabs { background:#172a3a; border-color:#3b566a; }
+:root[data-theme="dark"] .terminal.ui-atlas .market-ribbon, :root[data-theme="dark"] .terminal.ui-atlas .stock-card { background:#1c3041; border-color:#3b566a; }
+:root[data-theme="dark"] .terminal.ui-atlas .focus-trade-button { background:#2b3f66; color:#c3d0ff; }
+:root[data-theme="dark"] .terminal.ui-atlas .latest-brief { background:#263d50; border-color:#3b566a; }
+:root[data-theme="dark"] .terminal.ui-paper { --page:#222b28; --card:#303a34; --secondary:#3b4940; --input:#252f2a; --ink:#f0eee3; --muted:#bdc4b7; --faint:#9da99b; --line:#526254; --accent:#b0d0ae; --accent-soft:#354e3c; --nav:#1b2922; --up:#83e0b4; --down:#ff9384; --up-soft:#284a3b; --down-soft:#573a38; --shadow:0 5px 0 rgba(0,0,0,.18),0 12px 26px rgba(0,0,0,.16); background-color:var(--page); background-image:radial-gradient(rgba(229,218,187,.045) .65px,transparent .7px),linear-gradient(135deg,#2a332e,#222b28 70%,#302f28); }
+:root[data-theme="dark"] .terminal.ui-paper .topbar, :root[data-theme="dark"] .terminal.ui-paper .terminal-tabs { background:#303a34; border-color:#526254; }
+:root[data-theme="dark"] .terminal.ui-paper .stock-card, :root[data-theme="dark"] .terminal.ui-paper .focus-card, :root[data-theme="dark"] .terminal.ui-paper .holdings-card { background:#303a34; border-color:#526254; }
+:root[data-theme="dark"] .terminal.ui-paper .stock-card:nth-child(4n + 1), :root[data-theme="dark"] .terminal.ui-paper .stock-card:nth-child(4n + 2), :root[data-theme="dark"] .terminal.ui-paper .stock-card:nth-child(4n + 3), :root[data-theme="dark"] .terminal.ui-paper .stock-card:nth-child(4n) { background:#303a34; }
+:root[data-theme="dark"] .terminal.ui-paper .latest-brief { background:#3b4940; border-color:#526254; }
+:root[data-theme="dark"] .terminal.ui-arcade { --page:#211e2b; --card:#302a3b; --secondary:#40394a; --input:#282431; --ink:#f5efe4; --muted:#c5b9c2; --faint:#a69aa5; --line:#574b60; --accent:#ff9b75; --accent-soft:#50363b; --nav:#201b2b; --up:#79dbb2; --down:#ff8c91; --up-soft:#25483e; --down-soft:#53353b; --shadow:0 7px 0 rgba(0,0,0,.22); color:var(--ink); background-color:var(--page); background-image:radial-gradient(#63546b .8px,transparent .9px),linear-gradient(135deg,#272231,#211e2b 72%,#35252d); background-size:19px 19px,auto; }
+:root[data-theme="dark"] .terminal.ui-arcade .topbar { background:#302a3b; border-color:#6a5362; box-shadow:0 3px 0 #17141e; }
+:root[data-theme="dark"] .terminal.ui-arcade .topbar-brand > span:last-child, :root[data-theme="dark"] .terminal.ui-arcade .terminal-tabs > button.active { color:#ff9b75; }
+:root[data-theme="dark"] .terminal.ui-arcade .market-ribbon { background:#40394a; border-color:#756173; box-shadow:2px 3px 0 #0003; }
+:root[data-theme="dark"] .terminal.ui-arcade .terminal-tabs { background:#302a3b; border-color:#6a5362; box-shadow:2px 3px 0 #0003; }
+:root[data-theme="dark"] .terminal.ui-arcade .filter-chip { background:#302a3b; border-color:#65596a; color:#ded4dd; }
+:root[data-theme="dark"] .terminal.ui-arcade .filter-chip.active { background:#ff9b75; border-color:#ff9b75; color:#2a2025; }
+:root[data-theme="dark"] .terminal.ui-arcade .search-field { background:#282431; border-color:#65596a; }
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card, :root[data-theme="dark"] .terminal.ui-arcade .focus-card, :root[data-theme="dark"] .terminal.ui-arcade .order-card { background:#302a3b; border-color:#65596a; }
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card:nth-child(4n + 1) { background:#493b3b; }
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card:nth-child(4n + 2) { background:#34473d; }
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card:nth-child(4n + 3) { background:#49363d; }
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card:nth-child(4n) { background:#34414c; }
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card-foot { border-color:#574b60; }
+:root[data-theme="dark"] .terminal.ui-arcade .chart-toggle, :root[data-theme="dark"] .terminal.ui-arcade .side-switch { background:#282431; }
+:root[data-theme="dark"] .terminal.ui-arcade .chart-toggle button.active { background:#574b60; color:#fff; }
+:root[data-theme="dark"] .terminal.ui-arcade .focus-trade-button { background:#ff9b75; border-color:#ff9b75; color:#2a2025; }
+:root[data-theme="dark"] .terminal.ui-arcade .holdings-card { background:#40394a; border-color:#65596a; }
+:root[data-theme="dark"] .terminal.ui-arcade .latest-brief { background:#3b3345; border-color:#65596a; }
+:root[data-theme="dark"] .terminal.ui-arcade .breaking-alert { background:#4b3a43; border-color:#e19c61; }
+:root[data-theme="dark"] .terminal.ui-arcade .breaking-alert strong, :root[data-theme="dark"] .terminal.ui-arcade .breaking-alert small { color:#fff0dc; }
+
+:root[data-theme="dark"] .audience-wall.ui-default { --page:#12242c; --card:#183540; --secondary:#23424a; --ink:#edf7f1; --muted:#aac0ba; --faint:#98b5bb; --line:#35545d; --accent:#b7f36c; --accent-soft:#314f36; --nav:#092631; --up:#78e8bf; --down:#ff8c7b; --up-soft:#204f45; --down-soft:#4b3331; --shadow:0 10px 28px rgba(0,0,0,.18); }
+:root[data-theme="dark"] .audience-wall.ui-default .wall-index-card, :root[data-theme="dark"] .audience-wall.ui-default .wall-mover-card, :root[data-theme="dark"] .audience-wall.ui-default .wall-breadth-card, :root[data-theme="dark"] .audience-wall.ui-default .wall-learning-grid article, :root[data-theme="dark"] .audience-wall.ui-default .wall-news-list article, :root[data-theme="dark"] .audience-wall.ui-default .wall-stock { background:#183540; border-color:#35545d; }
+:root[data-theme="dark"] .audience-wall.ui-default .wall-news { background:#092631; border-color:#35545d; }
+:root[data-theme="dark"] .audience-wall.ui-atlas { --page:#142333; --card:#1c3041; --secondary:#263d50; --ink:#eff6fa; --muted:#b1c2cd; --line:#3b566a; --accent:#9db5ff; --accent-soft:#2b3f66; --nav:#102232; --up:#72e3bd; --down:#ff9088; --up-soft:#234b43; --down-soft:#573637; --shadow:0 9px 22px rgba(0,0,0,.2); background:radial-gradient(ellipse at 85% 0%,#263e65 0,transparent 40%),var(--page); }
+:root[data-theme="dark"] .audience-wall.ui-atlas .wall-index-card, :root[data-theme="dark"] .audience-wall.ui-atlas .wall-mover-card, :root[data-theme="dark"] .audience-wall.ui-atlas .wall-breadth-card, :root[data-theme="dark"] .audience-wall.ui-atlas .wall-learning-grid article, :root[data-theme="dark"] .audience-wall.ui-atlas .wall-news-list article, :root[data-theme="dark"] .audience-wall.ui-atlas .wall-stock { background:#1c3041; border-color:#3b566a; }
+:root[data-theme="dark"] .audience-wall.ui-atlas .wall-news { background:#102232; border-color:#3b566a; }
+:root[data-theme="dark"] .audience-wall.ui-paper { --page:#222b28; --card:#303a34; --secondary:#3b4940; --ink:#f0eee3; --muted:#bdc4b7; --line:#526254; --accent:#b0d0ae; --accent-soft:#354e3c; --nav:#1b2922; --up:#83e0b4; --down:#ff9384; --up-soft:#284a3b; --down-soft:#573a38; --shadow:0 5px 0 rgba(0,0,0,.18),0 12px 24px rgba(0,0,0,.15); background-color:var(--page); background-image:radial-gradient(rgba(229,218,187,.045) .65px,transparent .7px),linear-gradient(135deg,#2a332e,#222b28 70%,#302f28); }
+:root[data-theme="dark"] .audience-wall.ui-paper .wall-index-card, :root[data-theme="dark"] .audience-wall.ui-paper .wall-mover-card, :root[data-theme="dark"] .audience-wall.ui-paper .wall-breadth-card, :root[data-theme="dark"] .audience-wall.ui-paper .wall-learning-grid article, :root[data-theme="dark"] .audience-wall.ui-paper .wall-news-list article, :root[data-theme="dark"] .audience-wall.ui-paper .wall-stock { background:#303a34; border-color:#526254; }
+:root[data-theme="dark"] .audience-wall.ui-paper .wall-news { background:#1b2922; border-color:#526254; }
+:root[data-theme="dark"] .audience-wall.ui-arcade { --page:#211e2b; --card:#302a3b; --secondary:#40394a; --ink:#f5efe4; --muted:#c5b9c2; --line:#574b60; --accent:#ff9b75; --accent-soft:#50363b; --nav:#201b2b; --up:#79dbb2; --down:#ff8c91; --up-soft:#25483e; --down-soft:#53353b; --shadow:0 6px 0 rgba(0,0,0,.22); background-color:var(--page); background-image:radial-gradient(#63546b .8px,transparent .9px),linear-gradient(135deg,#272231,#211e2b 72%,#35252d); background-size:19px 19px,auto; }
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-index-card, :root[data-theme="dark"] .audience-wall.ui-arcade .wall-mover-card, :root[data-theme="dark"] .audience-wall.ui-arcade .wall-breadth-card, :root[data-theme="dark"] .audience-wall.ui-arcade .wall-learning-grid article, :root[data-theme="dark"] .audience-wall.ui-arcade .wall-news-list article { background:#302a3b; border-color:#65596a; }
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-news { background:#302a3b; border-color:#65596a; }
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-stock { background:#302a3b; border-color:#65596a; }
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-stock:nth-child(4n + 1) { background:#493b3b; }
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-stock:nth-child(4n + 2) { background:#34473d; }
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-stock:nth-child(4n + 3) { background:#49363d; }
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-stock:nth-child(4n) { background:#34414c; }
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-index strong, :root[data-theme="dark"] .audience-wall.ui-arcade .wall-status b { color:var(--ink); }
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-fullscreen { color:var(--ink); border-color:#65596a; background:#302a3b; }
+
+/* Current version palette illustrations for the local comparison page. */
+.preview-choice.choice-atlas { --preview-a:#5680f1; --preview-b:#6bd8bb; }
+.preview-choice.choice-atlas .choice-art { background:radial-gradient(ellipse at 80% 0%,#344f7b,transparent 52%),#14283d; color:#f2f7fb; }
+.preview-choice.choice-atlas .choice-art-header > span { background:var(--preview-a); }
+.preview-choice.choice-atlas .choice-art-header > span:nth-child(2) { background:var(--preview-b); }
+.preview-choice.choice-atlas .choice-art-header > strong { color:#9db5ff; }
+.preview-choice.choice-atlas .choice-art-chart { background-image:repeating-linear-gradient(to bottom,transparent 0 23px,#ffffff14 24px),#1d344c; }
+.preview-choice.choice-atlas .choice-art-chart > b, .preview-choice.choice-atlas .choice-art-ticket b { background:#9db5ff; }
+.preview-choice.choice-atlas .choice-copy { background:#fbfdff; color:#1a2e43; }
+.preview-choice.choice-atlas .choice-open { background:#315edb; }
+.preview-choice.choice-atlas .choice-audience-open { background:#e7f0f7; border-color:#cbd9e4; color:#28476b; }
+.preview-choice.choice-mash { --preview-a:#ed5b3c; --preview-b:#f5d96d; }
+.preview-choice.choice-mash .choice-art { background-color:#f6e9c9; background-image:radial-gradient(#d4bd91 1px,transparent 1px),linear-gradient(135deg,#fbf1d8,#f4e5c6); background-size:14px 14px,auto; color:#302b36; }
+.preview-choice.choice-mash .choice-art-header { color:#493b55; }
+.preview-choice.choice-mash .choice-art-header > span { background:#ed5b3c; }
+.preview-choice.choice-mash .choice-art-header > span:nth-child(2) { background:#f5d96d; }
+.preview-choice.choice-mash .choice-art-header > strong { color:#e85035; }
+.preview-choice.choice-mash .choice-art-list, .preview-choice.choice-mash .choice-art-chart, .preview-choice.choice-mash .choice-art-ticket { border:2px solid #493b55; background-color:#fff9e8; box-shadow:2px 3px 0 #493b5522; }
+.preview-choice.choice-mash .choice-art-chart { background-image:repeating-linear-gradient(to bottom,transparent 0 23px,#e6d8bd 24px),#fff9e8; }
+.preview-choice.choice-mash .choice-art-chart > span { background:#168267; }
+.preview-choice.choice-mash .choice-art-chart > span:nth-child(even) { background:#ed6b68; }
+.preview-choice.choice-mash .choice-art-chart > b, .preview-choice.choice-mash .choice-art-ticket b { background:#ed5b3c; }
+.preview-choice.choice-mash .choice-copy { background:#fff9e8; color:#302b36; }
+.preview-choice.choice-mash .choice-open { color:#fff; background:#493b55; }
+.preview-choice.choice-mash .choice-audience-open { border-color:#d9c6a1; color:#493b55; background:#f6e9c9; }
+.preview-choice.choice-paper { --preview-a:#315d48; --preview-b:#c57650; }
+.preview-choice.choice-paper .choice-art { background-color:#eee5d4; background-image:radial-gradient(rgba(93,77,47,.15) .7px,transparent .8px),linear-gradient(135deg,#f6f0e4,#eee5d4); background-size:9px 9px,auto; color:#282f2b; }
+.preview-choice.choice-paper .choice-art-header { color:#405248; }
+.preview-choice.choice-paper .choice-art-header > span { background:#315d48; }
+.preview-choice.choice-paper .choice-art-header > span:nth-child(2) { background:#c57650; }
+.preview-choice.choice-paper .choice-art-header > strong { color:#315d48; }
+.preview-choice.choice-paper .choice-art-list, .preview-choice.choice-paper .choice-art-chart, .preview-choice.choice-paper .choice-art-ticket { border:1px solid #cfc3ad; border-radius:10px; background-color:#fffdf7; box-shadow:0 3px 0 #433c2e19; }
+.preview-choice.choice-paper .choice-art-chart { background-image:repeating-linear-gradient(to bottom,transparent 0 23px,#e7dfcf 24px),#fffdf7; }
+.preview-choice.choice-paper .choice-art-chart > span { background:#24775a; }
+.preview-choice.choice-paper .choice-art-chart > span:nth-child(even) { background:#b65248; }
+.preview-choice.choice-paper .choice-art-chart > b, .preview-choice.choice-paper .choice-art-ticket b { background:#315d48; }
+.preview-choice.choice-paper .choice-copy { background:#fffdf7; color:#282f2b; }
+.preview-choice.choice-paper .choice-open { background:#315d48; }
+.preview-choice.choice-paper .choice-audience-open { border-color:#d7cebc; background:#f1eadb; color:#315d48; }
+
+@media (min-width: 1500px) {
+  .terminal.ui-atlas .stock-grid, .terminal.ui-paper .stock-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+@media (max-width: 1200px) {
+  .terminal.ui-atlas .stock-grid, .terminal.ui-paper .stock-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .audience-wall { gap: 11px; }
+  .wall-overview { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .wall-index-card { grid-column: span 2; }
+}
+@media (max-width: 900px) {
+  .wall-overview { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .wall-index-card { grid-column: span 2; }
+  .wall-learning-grid { grid-template-columns: 1fr; }
+  .wall-news-list { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .terminal.ui-atlas .stock-grid, .terminal.ui-paper .stock-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .trade-dialog { position: fixed; inset: auto 0 0; width: 100%; max-width: none; max-height: 92dvh; margin: 0; border-radius: 20px 20px 0 0; }
+  .trade-dialog-panel { max-height: 92dvh; padding: 17px 15px calc(16px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; }
+  .audience-wall { gap: 10px; padding: 9px 10px 12px; }
+  .wall-header { min-height: 43px; gap: 6px; }
+  .wall-brand { min-width: 0; gap: 5px; }
+  .brand-glyph { width: 29px; height: 29px; border-radius: 8px; font-size: 17px; }
+  .wall-brand small { font-size: 5px; letter-spacing: .06em; }
+  .wall-brand b { font-size: 8px; }
+  .wall-status { gap: 4px; font-size: 6px; letter-spacing: .025em; }
+  .wall-status b { padding-left: 5px; margin-left: 1px; font-size: 7px; }
+  .wall-theme-button { width: 27px; height: 27px; font-size: 14px; }
+  .wall-fullscreen { height: 27px; padding: 0 6px; font-size: 7px; }
+  .wall-overview { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+  .wall-index-card { grid-column: span 2; }
+  .wall-index-card, .wall-mover-card, .wall-breadth-card { padding: 9px; border-radius: 9px; }
+  .wall-index-card > strong { font-size: 22px; }
+  .wall-index-card > b { font-size: 10px; }
+  .wall-mover-card, .wall-breadth-card { gap: 6px; }
+  .mover-label { font-size: 6px; }
+  .mover-company { gap: 2px 5px; }
+  .mover-company .company-mark { width: 23px; height: 23px; }
+  .mover-company b { font-size: 9px; }
+  .mover-company small { font-size: 6px; }
+  .wall-mover-card > strong, .wall-breadth-card > strong { font-size: 10px; }
+  .wall-breadth-card > small, .wall-index-card > p { font-size: 7px; }
+  .wall-news { min-height: 53px; grid-template-columns: 62px minmax(0,1fr); gap: 6px; padding: 7px 8px; border-radius: 9px; }
+  .wall-news-label { font-size: 6px; }
+  .wall-news strong { font-size: 8px; }
+  .wall-news small { display: none; }
+  .wall-section-heading { align-items: flex-start; gap: 4px; flex-direction: column; margin-bottom: 7px; }
+  .wall-section-heading h1, .wall-section-heading h2 { font-size: 16px; }
+  .wall-section-heading > span { font-size: 7px; text-align: left; }
+  .wall-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 5px; }
+  .wall-stock { min-height: 68px; padding: 6px; border-radius: 8px; }
+  .wall-stock-top { gap: 4px; }
+  .wall-stock-top .company-mark { width: 21px; height: 21px; }
+  .wall-stock-top b { font-size: 7px; }
+  .wall-stock-top small { font-size: 6px; }
+  .wall-price strong { font-size: 10px; }
+  .wall-price > span { font-size: 7px; }
+  .wall-learning-grid { gap: 5px; }
+  .wall-learning-grid article { min-height: 0; padding: 8px; grid-template-columns: 22px minmax(0,1fr); gap: 6px; }
+  .wall-learning-grid article > i { width: 21px; height: 21px; font-size: 7px; }
+  .wall-learning-grid p { font-size: 8px; }
+  .wall-news-list { gap: 5px; }
+  .wall-news-list article { padding: 8px; gap: 5px; }
+  .wall-news-list article > div { gap: 5px; }
+  .wall-news-list article > div small { font-size: 6px; }
+  .wall-news-list article time { font-size: 6px; }
+  .wall-news-list article > strong { font-size: 8px; }
+  .wall-footer { font-size: 5px; letter-spacing: .04em; }
+}

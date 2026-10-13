@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import { Trader } from "../../components/trader";
-import { UI_OPTIONS } from "@/ui-options";
+import { uiVariantForVersion } from "@/ui-options";
 
 export const dynamic = "force-dynamic";
 
 export default async function VersionedAudiencePage({ params }: { params: Promise<{ version: string }> }) {
   const { version } = await params;
-  const option = UI_OPTIONS.find(item => item.version === version);
-  if (!option) notFound();
-  return <Trader mode="live" audienceOnly uiVariant={option.slug} />;
+  const uiVariant = uiVariantForVersion(version);
+  if (uiVariant === undefined) notFound();
+  return <Trader mode="live" audienceOnly uiVariant={uiVariant ?? undefined} />;
 }

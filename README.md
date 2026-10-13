@@ -17,10 +17,12 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 | --- | --- |
 | `/play` | Join the live market with an unnumbered device |
 | `/play/01` through `/play/12` | Join a numbered participant terminal |
-| `/v2/play` and `/v2/play/01` through `/v2/play/12` | Signal Rush neon cockpit |
-| `/v3/play` and `/v3/play/01` through `/v3/play/12` | Market Mash paper trading board |
-| `/v4/play` and `/v4/play/01` through `/v4/play/12` | Ticker Arena broadcast trading floor |
-| `/v2/audience`, `/v3/audience`, `/v4/audience` | Audience wall in the matching UI version |
+| `/v1` and `/v1/play` | Original appearance, also available at the unversioned routes |
+| `/v1/play/01` through `/v1/play/12` | Numbered terminals in the original appearance |
+| `/v2/play` and `/v2/play/01` through `/v2/play/12` | Market Atlas, a compact market-map layout |
+| `/v3/play` and `/v3/play/01` through `/v3/play/12` | Market Mash, a playful board-game layout |
+| `/v4/play` and `/v4/play/01` through `/v4/play/12` | Paper Pop, a paper-inspired interface built from functional cards |
+| `/v1/audience` through `/v4/audience` | Audience wall in the matching UI version |
 | `/host` | Host console (requires the configured host password) |
 | `/audience` | Read-only audience wall |
 | `/test` | Isolated six-minute practice market |
@@ -44,7 +46,7 @@ Open `http://localhost:3000`. Configure the environment values before using the 
 - `MARKET_SIGNING_SECRET`: a long random secret used by the server to authorize market-state RPC calls.
 - `HOST_PASSWORD`: password for `/host`.
 
-The unversioned `/play` and `/audience` routes keep the original appearance. `/v2`, `/v3`, and `/v4` select Signal Rush, Market Mash, and Ticker Arena. These versions use different trading layouts and audience-wall compositions while sharing the same market, game rules, and host controls. The host panel keeps its own consistent appearance.
+The unversioned `/play` and `/audience` routes keep the original appearance; `/v1` is an alias for that look. `/v2`, `/v3`, and `/v4` select Market Atlas, Market Mash, and Paper Pop. The versions share the same market, game rules, and host controls, while giving trading and audience screens distinct visual treatments. Selecting a stock opens its quick trade panel, and the light/dark theme choice is remembered on that device. The audience screen shows the Dalaal-10 level and return, the strongest and weakest stocks, market breadth, short factual takeaways, the full batch news feed, and all stock prices. Paper Pop uses paper-like surfaces and tactile card styling while retaining standard, usable cards and controls.
 
 The practice market uses the same price and news simulation as a live round, but has its own state. It starts with a short countdown, runs for six minutes, closes positions at the end, and offers a new practice round. `/test/01` to `/test/12` use their own terminal logins. Legacy autonomous practice sessions are closed safely the first time the updated engine reads them.
 
@@ -80,4 +82,4 @@ The market state is stored as JSONB and shared across app instances through Supa
 
 ## Network behavior
 
-The market keeps its one-second update rhythm and price rules unchanged. Unchanged snapshots return a small `304` response, charts send only new candles after their initial history load, inactive screens stop requesting chart candles, and host snapshots omit chart history. Company badges use local initials, and screens use system fonts, so they do not fetch third-party logo or font assets. Disconnected or hidden terminals stop polling; transient request failures back off automatically before retrying.
+The market keeps its one-second update rhythm and price rules unchanged. Unchanged snapshots return a small `304` response, charts send only new candles after their initial history load, inactive screens stop requesting chart candles, and host snapshots omit chart history. Company marks try to load small, lazy company favicon images and fall back to local initials if an image is unavailable; screens use system fonts. Disconnected or hidden terminals stop polling; transient request failures back off automatically before retrying.

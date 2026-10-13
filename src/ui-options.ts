@@ -1,34 +1,39 @@
 export const UI_OPTIONS = [
   {
-    number: "A",
-    slug: "floor",
+    number: "2",
+    slug: "atlas",
     version: "v2",
-    name: "Signal Rush",
-    title: "A neon market cockpit",
-    tagline: "A compact three-zone control deck puts the watchlist, live chart, and trade ticket in separate lanes.",
-    highlights: ["Browse a dedicated, scrollable stock lane", "Give the selected chart the centre stage", "Keep the order ticket and holdings in reach"],
-    palette: "signal",
+    name: "Market Atlas",
+    title: "A live market map",
+    tagline: "A compact, high-contrast market map keeps the whole watchlist in view and brings a selected company into focus.",
+    highlights: ["Scan the full market in a dense card field", "Keep the active chart beside the watchlist", "Open a quick trade panel from any company card"],
+    palette: "atlas",
   },
   {
-    number: "B",
+    number: "3",
     slug: "arcade",
     version: "v3",
     name: "Market Mash",
-    title: "A playful paper trading board",
-    tagline: "A warm, tactile board-game layout makes the chart the feature and turns the market into a bright card wall.",
-    highlights: ["Large, easy-to-scan company cards", "A chart-first layout with the ticket below", "Chunky, friendly controls for quick rounds"],
-    palette: "paper",
+    title: "A playful trading board",
+    tagline: "A warm, tactile board-game screen makes the chart the feature and turns a fast market round into a friendly challenge.",
+    highlights: ["Large, easy-to-scan company cards", "A chart-first market with an instant trade drawer", "A brighter board with a fully working dark mode"],
+    palette: "mash",
   },
   {
-    number: "C",
-    slug: "studio",
+    number: "4",
+    slug: "paper",
     version: "v4",
-    name: "Ticker Arena",
-    title: "A live sports-broadcast market",
-    tagline: "A sharp broadcast scoreboard pairs a wide trade station with a dense market board built for a room full of players.",
-    highlights: ["Chart and trade ticket share the top row", "All companies sit together in a broad market board", "High-contrast broadcast styling for a big screen"],
-    palette: "arena",
+    name: "Paper Pop",
+    title: "A paper-inspired card UI",
+    tagline: "Soft paper grain, ink-like outlines, and lively paper cards give the screen a handmade feel without changing how the market works.",
+    highlights: ["A paper-like surface with crisp, functional cards", "Chart, watchlist, and order controls stay easy to reach", "Paper cutout accents add character without hiding data"],
+    palette: "paper",
   },
 ] as const;
 
 export type UiVariant = (typeof UI_OPTIONS)[number]["slug"];
+
+export function uiVariantForVersion(version: string): UiVariant | null | undefined {
+  if (version === "v1") return null;
+  return UI_OPTIONS.find(option => option.version === version)?.slug;
+}

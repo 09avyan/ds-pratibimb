@@ -122,14 +122,14 @@ function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Cand
   </svg>{activeHover !== null && <div className="chart-hover-card chart-hover-overlay" style={activeHover > data.length * .58 ? { left: 8 } : { right: 8 }}><b>{new Date(data[activeHover].time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "medium" })}</b><span>O {money(data[activeHover].open)} · H {money(data[activeHover].high)}</span><span>L {money(data[activeHover].low)} · C {money(data[activeHover].close)}</span><span>Volume {data[activeHover].volume.toLocaleString("en-IN")}</span>{hoveredTrades.slice(0, 3).map(({ trade }) => <span key={trade.id} className={`trade-detail ${trade.side.toLowerCase().replace("-", "")}`}>{trade.side.toUpperCase()} {trade.qty} @ {money(trade.price)} · {formatTime(trade.time)}</span>)}{hoveredTrades.length > 3 && <span>+{hoveredTrades.length - 3} more markers on this candle</span>}</div>}</div>{visibleTrades.length > 0 && <div className="chart-marker-legend"><span><i className="buy">B</i> Buy</span><span><i className="sell">S</i> Sell</span><span><i className="short">SH</i> Short</span><span><i className="cover">C</i> Cover</span><small>Hover for exact trade time and price</small></div>}</>;
 }
 
-function Header({ world, player, onTheme, clockNow }: { world: PublicWorld | null; player: Player | null; onTheme: () => void; clockNow: number }) {
+function Header({ world, player, onTheme, theme, clockNow }: { world: PublicWorld | null; player: Player | null; onTheme: () => void; theme: "light" | "dark"; clockNow: number }) {
   const value = world && player ? equity(world as never, player) : 1_000_000;
   const pnl = value - (player?.initialCash ?? 1_000_000);
   return <header className="topbar">
     <div className="topbar-brand"><span className="pulse-dot"/> DALAA<span>L</span> STREET</div>
     <div className="market-ribbon"><span className="ribbon-label">DALAAL-10</span><strong>{world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00"}</strong><span className={world && world.indexChange >= 0 ? "positive" : "negative"}>{world ? `${world.indexChange >= 0 ? "+" : ""}${world.indexChange.toFixed(2)}%` : "0.00%"}</span></div>
     <div className="topbar-metrics"><div><small>SESSION</small><b className="timer-value">{world?.status === "countdown" ? fmtTime(Math.ceil((world.startedAt - clockNow) / 1000)) : world ? fmtTime(world.remaining) : "06:00"}</b></div><div><small>FREE CASH</small><b>{money(player?.cash ?? 1_000_000, 0)}</b></div><div><small>PORTFOLIO</small><b>{money(value, 0)}</b></div><div><small>DAY P&amp;L</small><b className={pnl >= 0 ? "positive" : "negative"}>{pnl >= 0 ? "+" : ""}{money(pnl, 0)}</b></div></div>
-    <button className="theme-button" onClick={onTheme} aria-label="Toggle theme">◐</button>
+    <button className="theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
   </header>;
 }
 function fmtTime(seconds: number) { const s = Math.max(0, Math.floor(seconds)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
@@ -148,10 +148,13 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [breaking, setBreaking] = useState(false);
-  const [theme, setTheme] = useState("light");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [themeReady, setThemeReady] = useState(false);
   const [clockNow, setClockNow] = useState(Date.now);
   const [menu, setMenu] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const [tradeOpen, setTradeOpen] = useState(false);
+  const tradeDialogRef = useRef<HTMLDialogElement>(null);
   const lastNews = useRef<string | null>(null);
   const inFlight = useRef(false);
   const submitting = useRef(false);
@@ -170,6 +173,11 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const newsTimeout = useRef<number | null>(null);
 
   useEffect(() => { if (!audienceOnly) setSessionId(initialSession(mode, terminal, preview)); }, [audienceOnly, mode, preview, terminal]);
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("ds-theme");
+    if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
+    setThemeReady(true);
+  }, []);
   const sync = useCallback(async () => {
     if ((!audienceOnly && !sessionId) || inFlight.current || submitting.current || document.hidden || !navigator.onLine || Date.now() < nextSyncAt.current) return;
     inFlight.current = true;
@@ -233,7 +241,17 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
   useEffect(() => { if (toast) { const t = window.setTimeout(() => setToast(""), 3600); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => () => { if (newsTimeout.current) window.clearTimeout(newsTimeout.current); }, []);
-  useEffect(() => { document.documentElement.dataset.theme = theme; return () => { delete document.documentElement.dataset.theme; }; }, [theme]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    if (themeReady) window.localStorage.setItem("ds-theme", theme);
+    return () => { delete document.documentElement.dataset.theme; };
+  }, [theme, themeReady]);
+  useEffect(() => {
+    const dialog = tradeDialogRef.current;
+    if (!dialog) return;
+    if (tradeOpen && !dialog.open) dialog.showModal();
+    if (!tradeOpen && dialog.open) dialog.close();
+  }, [tradeOpen]);
   useEffect(() => { if (view === "portfolio") setMenu(false); }, [view]);
   useEffect(() => { if (player?.ended && (world?.mode === "test" || world?.status === "closed")) setView("report"); }, [world?.mode, world?.status, player?.ended]);
 
@@ -266,16 +284,16 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     finally { submitting.current = false; nextSyncAt.current = Date.now() + 500; setBusy(false); }
   }
 
-  if (audienceOnly) return <Audience world={world} uiVariant={uiVariant} preview={preview} />;
+  if (audienceOnly) return <Audience world={world} uiVariant={uiVariant} preview={preview} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />;
   const report = world && player ? performance(world as never, player) : null;
   const isTest = mode === "test";
   const activeNews = world?.headlines.find(n => n.id === world.latestNewsId);
   const previewOption = uiVariant ? UI_OPTIONS.find(option => option.slug === uiVariant) : null;
   return <div className={`terminal${uiVariant ? ` ui-${uiVariant}` : ""}`}>
-    {preview && previewOption && <div className="ui-preview-strip"><a className="preview-back" href="/ui-preview">← Compare all</a><div className="preview-option-title"><b>OPTION {previewOption.number} · {previewOption.name}</b><small>{previewOption.tagline}</small></div><span className="preview-sandbox">ISOLATED PREVIEW MARKET · NO LIVE TRADES</span><nav className="preview-switcher" aria-label="Switch design preview">{UI_OPTIONS.map(option => <a key={option.slug} aria-current={option.slug === uiVariant ? "page" : undefined} href={`/ui-preview/${option.slug}/play/${String(terminal ?? 1).padStart(2, "0")}`}>Option {option.number}</a>)}<a href={`/ui-preview/${uiVariant}/audience`}>Audience</a></nav></div>}
-    <Header world={world} player={player} clockNow={clockNow} onTheme={() => setTheme(theme === "light" ? "dark" : "light")} />
+    {preview && previewOption && <div className="ui-preview-strip"><a className="preview-back" href="/ui-preview">← Compare all</a><div className="preview-option-title"><b>VERSION {previewOption.number} · {previewOption.name}</b><small>{previewOption.tagline}</small></div><span className="preview-sandbox">ISOLATED PREVIEW MARKET · NO LIVE TRADES</span><nav className="preview-switcher" aria-label="Switch design preview">{UI_OPTIONS.map(option => <a key={option.slug} aria-current={option.slug === uiVariant ? "page" : undefined} href={`/ui-preview/${option.slug}/play/${String(terminal ?? 1).padStart(2, "0")}`}>V{option.number}</a>)}<a href={`/ui-preview/${uiVariant}/audience`}>Audience</a></nav></div>}
+    <Header world={world} player={player} clockNow={clockNow} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />
     <nav className="terminal-tabs" aria-label="Primary navigation">
-      {([ ["markets", "Markets"], ["portfolio", "Portfolio"], ["news", "News desk"] ] as const).map(([key, label]) => <button key={key} onClick={() => { if (key === "portfolio") setMenu(false); setView(key); }} aria-current={view === key ? "page" : undefined} className={view === key ? "active" : ""}>{label}{key === "news" && Boolean(world?.headlines.length) && <span>{world!.headlines.length}</span>}</button>)}
+      {([ ["markets", "Markets"], ["portfolio", "Portfolio"], ["news", "News desk"] ] as const).map(([key, label]) => <button key={key} onClick={() => { if (key === "portfolio") setMenu(false); setTradeOpen(false); setView(key); }} aria-current={view === key ? "page" : undefined} className={view === key ? "active" : ""}>{label}{key === "news" && Boolean(world?.headlines.length) && <span>{world!.headlines.length}</span>}</button>)}
       <span className="terminal-context">{terminal ? `TERMINAL ${String(terminal).padStart(2, "0")}` : isTest ? "TEST MARKET" : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</span>
     </nav>
 
@@ -287,7 +305,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
         <div className="trading-grid">
           <section className="watch-area">
             <div className="watch-controls"><div className="sector-scroll">{sectors.map(s => <button key={s} className={`filter-chip ${sector === s ? "active" : ""}`} onClick={() => setSector(s)}>{s}</button>)}</div><label className="search-field"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search companies" aria-label="Search stocks"/><kbd>⌘ K</kbd></label></div>
-            <div className="stock-grid">{shownStocks.map(s => <button key={s.symbol} className={`stock-card ${selected === s.symbol ? "selected" : ""}`} onClick={() => { setSelected(s.symbol); setQuantity("10"); setAmount(""); }}>
+            <div className="stock-grid">{shownStocks.map(s => <button key={s.symbol} className={`stock-card ${selected === s.symbol ? "selected" : ""}`} onClick={() => { setSelected(s.symbol); setQuantity("10"); setAmount(""); setTradeOpen(true); }} aria-label={`Select ${s.name} and open its trade panel`}>
               <div className="stock-card-top"><Logo stock={s}/><div className="stock-id"><strong>{s.symbol}</strong><span>{s.name}</span></div></div>
               <div className="stock-card-bottom"><strong>{money(s.price)}</strong><span className={`stock-change ${changePct(s) >= 0 ? "positive" : "negative"}`}>{changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</span></div>
               <MiniChart stock={s}/>
@@ -298,21 +316,11 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
           </section>
 
           <aside className="trade-column">
-            <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
+            <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="focus-trade-button" onClick={() => setTradeOpen(true)}>Trade {stock.symbol}</button><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
               <div className="focus-price-row"><strong>{money(stock.price)}</strong><span className={`stock-change ${changePct(stock) >= 0 ? "positive" : "negative"}`}>{changePct(stock) >= 0 ? "+" : ""}{changePct(stock).toFixed(2)}%</span><small>SESSION</small></div>
               <MainChart key={stock.symbol} stock={stock} kind={chartType} trades={world?.player?.history ?? []}/>
               <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.tickRate ?? 1} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
               <div className="chart-foot"><span><i/> Open <b>{money(stock.candles[0]?.open ?? stock.price)}</b></span><span>High <b>{money(Math.max(stock.price, ...stock.candles.map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(stock.price, ...stock.candles.map(c => c.low)))}</b></span></div>
-            </div>
-            <div className="order-card"><div className="order-title"><div><span className="eyebrow">ORDER TICKET</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
-              <div className="side-switch">{(["Buy", "Sell", "Short"] as const).map(t => <button key={t} onClick={() => setSide(t)} className={`${side === t ? `active ${t.toLowerCase()}` : ""}`} disabled={t === "Sell" && !ownedQty}>{t}</button>)}</div>
-              {side === "Sell" && <div className="context-hint">You hold {ownedQty} {selected} shares. Sell closes owned shares only.</div>}
-              {side === "Short" && <div className="context-hint short-hint">Short exposure is capped at 30% of your starting portfolio. A buy covers open shorts first.</div>}
-              {side === "Buy" && shortQty > 0 && <div className="context-hint cover-hint">Your buy will cover up to {shortQty} open short shares first.</div>}
-              <div className="quantity-row"><label><span>QUANTITY</span><div><input inputMode="numeric" type="number" min="1" step="1" value={quantity} onChange={e => { setQuantity(e.target.value); setAmount(""); }}/><span>SHARES</span></div></label><label><span>ORDER VALUE</span><div><span className="currency-prefix">₹</span><input inputMode="decimal" type="number" min="0" step="1" value={amount || (calculatedAmount ? calculatedAmount.toFixed(2) : "")} onChange={e => { setAmount(e.target.value); setQuantity(String(Math.floor((Number(e.target.value) || 0) / stock.price))); }}/></div></label></div>
-              <div className="order-estimate"><span>Est. order value</span><b>{money(calculatedAmount)}</b></div>
-              <button className={`execute-button ${side.toLowerCase()}`} disabled={blocked || qty < 1 || (side === "Sell" && qty > ownedQty)} onClick={() => void send("trade", { side, symbol: stock.symbol, quantity: qty })}>{busy ? "Submitting order…" : blocked ? world?.status === "closed" ? "Market closed" : "Waiting for the batch" : `${side} ${qty || "—"} ${stock.symbol}`}</button>
-              <div className="available-row"><span>Available cash</span><b>{money(player?.cash ?? 1_000_000, 0)}</b></div>
             </div>
             <div className="holdings-card"><div><span className="eyebrow">YOUR HOLDINGS</span><button onClick={() => setView("portfolio")}>Portfolio →</button></div>
               {invested.length + shorts.length === 0 ? <p>Build your first position from the watchlist.</p> : [...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].slice(0, 4).map(p => {
@@ -337,6 +345,21 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       </section>}
       <footer className="workspace-footer"><span>SIMULATED MARKET · FICTIONAL PRICES · NO REAL TRADES</span><span>© PULSE / DALAA<span>L</span> STREET</span></footer>
     </main>
+    {tradeOpen && stock && <dialog ref={tradeDialogRef} className={`trade-dialog${uiVariant ? ` ui-${uiVariant}` : ""}`} aria-labelledby="trade-dialog-title" onCancel={event => { event.preventDefault(); setTradeOpen(false); }} onClick={event => { if (event.target === event.currentTarget) setTradeOpen(false); }}>
+      <div className="trade-dialog-panel">
+        <header className="trade-dialog-heading"><div><span className="eyebrow">QUICK TRADE · {stock?.sector?.toUpperCase()}</span><h2 id="trade-dialog-title">{stock?.symbol} <span>{stock?.name}</span></h2><p>{stock ? money(stock.price) : "—"} <b className={stock && changePct(stock) >= 0 ? "positive" : "negative"}>{stock ? `${changePct(stock) >= 0 ? "+" : ""}${changePct(stock).toFixed(2)}%` : ""}</b></p></div><button className="trade-dialog-close" type="button" onClick={() => setTradeOpen(false)} aria-label="Close quick trade panel">×</button></header>
+        <div className="order-card"><div className="order-title"><div><span className="eyebrow">ORDER TICKET</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
+          <div className="side-switch">{(["Buy", "Sell", "Short"] as const).map(t => <button key={t} onClick={() => setSide(t)} className={`${side === t ? `active ${t.toLowerCase()}` : ""}`} disabled={t === "Sell" && !ownedQty}>{t}</button>)}</div>
+          {side === "Sell" && <div className="context-hint">You hold {ownedQty} {selected} shares. Sell closes owned shares only.</div>}
+          {side === "Short" && <div className="context-hint short-hint">Short exposure is capped at 30% of your starting portfolio. A buy covers open shorts first.</div>}
+          {side === "Buy" && shortQty > 0 && <div className="context-hint cover-hint">Your buy will cover up to {shortQty} open short shares first.</div>}
+          <div className="quantity-row"><label><span>QUANTITY</span><div><input autoFocus inputMode="numeric" type="number" min="1" step="1" value={quantity} onChange={e => { setQuantity(e.target.value); setAmount(""); }}/><span>SHARES</span></div></label><label><span>ORDER VALUE</span><div><span className="currency-prefix">₹</span><input inputMode="decimal" type="number" min="0" step="1" value={amount || (calculatedAmount ? calculatedAmount.toFixed(2) : "")} onChange={e => { setAmount(e.target.value); setQuantity(String(Math.floor((Number(e.target.value) || 0) / stock.price))); }}/></div></label></div>
+          <div className="order-estimate"><span>Est. order value</span><b>{money(calculatedAmount)}</b></div>
+          <button className={`execute-button ${side.toLowerCase()}`} disabled={blocked || qty < 1 || (side === "Sell" && qty > ownedQty)} onClick={() => void send("trade", { side, symbol: stock.symbol, quantity: qty })}>{busy ? "Submitting order…" : blocked ? world?.status === "closed" ? "Market closed" : "Waiting for the batch" : `${side} ${qty || "—"} ${stock.symbol}`}</button>
+          <div className="available-row"><span>Available cash</span><b>{money(player?.cash ?? 1_000_000, 0)}</b></div>
+        </div>
+      </div>
+    </dialog>}
     {!audienceOnly && world?.status === "live" && player && !player.ended && <button className="end-session" onClick={() => { if (window.confirm("End your trading session now? Open shorts will be settled at the current simulated price.")) void send("end"); }}>Finish session <span>↗</span></button>}
     {toast && <div className="toast-message" role="status"><span>✓</span>{toast}<button onClick={() => setToast("")}>×</button></div>}
     {drawer && <div className="drawer-backdrop" onClick={() => setDrawer(false)}><section className="news-drawer" onClick={e => e.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">MARKET BULLETINS</span><h2>News desk</h2></div><button onClick={() => setDrawer(false)}>×</button></div>{world?.headlines.slice(0, 12).map(n => <article key={n.id}><small className={`news-tag ${n.type}`}>{n.type}</small><b>{n.headline}</b><span>{newsScope(n)}</span></article>)}</section></div>}
@@ -345,20 +368,53 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
 function Metric({ label, value, note }: { label: string; value: string; note?: string }) { return <div className="summary-metric"><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</div>; }
 
-function Audience({ world, uiVariant, preview }: { world: PublicWorld | null; uiVariant?: UiVariant; preview?: boolean }) {
+function Audience({ world, uiVariant, preview, theme, onTheme }: { world: PublicWorld | null; uiVariant?: UiVariant; preview?: boolean; theme: "light" | "dark"; onTheme: () => void }) {
   const [fullscreen, setFullscreen] = useState(false);
   const latestItems = world ? (world.latestNewsIds?.length ? world.latestNewsIds : world.latestNewsId ? [world.latestNewsId] : [])
     .map(id => world.headlines.find(news => news.id === id))
     .filter((news): news is PublicWorld["headlines"][number] => Boolean(news)) : [];
-  const latest = latestItems[0];
-  const movers = [...(world?.stocks ?? [])].sort((a, b) => Math.abs(changePct(b)) - Math.abs(changePct(a))).slice(0, 3);
+  const stocks = world?.stocks ?? [];
+  const batchHeadlines = [...(world?.headlines ?? [])].sort((a, b) => b.createdAt - a.createdAt);
+  const rankedStocks = useMemo(() => [...stocks].sort((a, b) => changePct(b) - changePct(a)), [stocks]);
+  const bestStock = rankedStocks[0];
+  const worstStock = rankedStocks.at(-1);
+  const rising = stocks.filter(stock => changePct(stock) > 0).length;
+  const falling = stocks.filter(stock => changePct(stock) < 0).length;
+  const returnPct = world?.indexChange ?? 0;
+  const isClosed = world?.status === "closed";
+  const statusText = world?.status === "live" && !world.controls.paused ? "MARKET LIVE" : isClosed ? "MARKET CLOSED" : "MARKET READY";
+  const signReturn = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+  const indexText = world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00";
+  const indexTakeaway = isClosed
+    ? `closed at ${indexText}, returning ${signReturn(returnPct)} for the batch`
+    : world?.status === "live"
+      ? `is at ${indexText}, returning ${signReturn(returnPct)} so far`
+      : `opens at ${indexText}, the 10,000-point reference`;
+  const learningNotes = [
+    `The Dalaal-10 ${indexTakeaway}.`,
+    `${rising} of ${stocks.length || 28} companies are up${falling ? `, while ${falling} are down` : ""}. This shows whether the move was broad across the market.`,
+    bestStock && worstStock ? `${bestStock.symbol} is the strongest mover (${signReturn(changePct(bestStock))}); ${worstStock.symbol} is the weakest (${signReturn(changePct(worstStock))}). Single stocks can move differently from the index.` : "Compare individual stock moves with the index to see how one company can differ from the wider market.",
+  ];
   useEffect(() => { const done = () => setFullscreen(Boolean(document.fullscreenElement)); document.addEventListener("fullscreenchange", done); return () => document.removeEventListener("fullscreenchange", done); }, []);
-  return <main className={`audience-wall${uiVariant ? ` ui-${uiVariant}` : ""}`}>
-    <header className="wall-header"><div className="wall-brand"><span className="brand-glyph">D</span><span><small>PRATIBIMB · INTERACTIVE MARKET</small><b>DALAA<span>L</span> STREET</b></span></div><div className="wall-index"><small>DALAAL-10</small><strong>{world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00"}</strong><span className={world && world.indexChange >= 0 ? "positive" : "negative"}>{world ? `${world.indexChange >= 0 ? "+" : ""}${world.indexChange.toFixed(2)}%` : "0.00%"}</span></div><div className="wall-status"><span className="live-dot"/>{world?.status === "live" && !world.controls.paused ? "MARKET LIVE" : world?.status === "closed" ? "MARKET CLOSED" : "MARKET READY"}<b>{world?.status === "live" ? fmtTime(world.remaining) : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</b></div><button className="wall-fullscreen" onClick={() => document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen()}>{fullscreen ? "Exit full screen" : "Full screen"} ↗</button></header>
-    {world?.status === "closed" ? <section className="wall-close"><span className="eyebrow">BATCH {world.batch} · MARKET CLOSE</span><h1>That’s a wrap.</h1><div className="close-index">{world.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span className={world.indexChange >= 0 ? "positive" : "negative"}>{world.indexChange >= 0 ? "+" : ""}{world.indexChange.toFixed(2)}%</span></div><div className="mover-row">{movers.map(s => <span key={s.symbol}><b>{s.symbol}</b><small>{changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</small></span>)}</div><p>{latestItems.length ? latestItems.map(item => item.headline).join(" · ") : "The batch has closed. Thank you for trading."}</p></section> : <>
-      <div className="wall-news"><div className={`wall-news-label ${latestItems.some(item => item.type === "major") ? "major" : ""}`}>{latestItems.length > 1 ? `${latestItems.length} HEADLINES` : latest?.type === "major" ? "MAJOR NEWS" : "LATEST NEWS"}</div><div className="wall-news-headlines">{latestItems.length ? latestItems.map(item => <strong key={item.id}>{item.headline}</strong>) : <strong>The opening bell is close. Markets are ready for the next batch.</strong>}</div><small>{latestItems.length ? [...new Set(latestItems.map(newsScope))].join(" · ").toUpperCase() : "DALAA L STREET"}</small></div>
-      <section className="wall-grid">{world?.stocks.map(s => <article className="wall-stock" key={s.symbol}><div className="wall-stock-top"><Logo stock={s} compact/><span><b>{s.symbol}</b><small>{s.name}</small></span></div><div className="wall-price"><strong>{money(s.price, s.price < 100 ? 2 : 0)}</strong><span className={changePct(s) >= 0 ? "positive" : "negative"}>{changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</span></div></article>)}</section>
-    </>}
-    <footer className="wall-footer"><span>{preview && uiVariant && <><a href="/ui-preview">PREVIEW OPTION {uiVariant.toUpperCase()} · COMPARE ALL</a> · </>}FICTIONAL PRICES · LEARNING EXPERIENCE · NO REAL TRADES</span><span>{world?.participants ?? 0} PARTICIPANTS <i/> {world?.stocks.length ?? 28} LISTED COMPANIES</span></footer>
+  return <main className={`audience-wall ui-${uiVariant ?? "default"}`}>
+    <header className="wall-header">
+      <div className="wall-brand"><span className="brand-glyph">D</span><span><small>PRATIBIMB · INTERACTIVE MARKET</small><b>DALAA<span>L</span> STREET</b></span></div>
+      <div className="wall-status"><span className="live-dot"/>{statusText}<b>{world?.status === "live" ? fmtTime(world.remaining) : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</b></div>
+      <button className="theme-button wall-theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
+      <button className="wall-fullscreen" onClick={() => document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen()}>{fullscreen ? "Exit full screen" : "Full screen"} ↗</button>
+    </header>
+    <section className="wall-overview" aria-label="Batch market summary">
+      <article className="wall-index-card"><div><small>DALAAL-10 · {isClosed ? "CLOSING LEVEL" : world?.status === "live" ? "LIVE LEVEL" : "REFERENCE LEVEL"}</small><span>{isClosed ? "BATCH CLOSE" : isClosed === false && world?.status === "live" ? "SO FAR" : "BATCH START"}</span></div><strong>{indexText}</strong><b className={returnPct >= 0 ? "positive" : "negative"}>{signReturn(returnPct)} <small>RETURN</small></b><p>Return from the 10,000-point reference</p></article>
+      <article className="wall-mover-card best"><span className="mover-label">{isClosed ? "BEST STOCK" : "BEST SO FAR"}</span>{bestStock ? <><div className="mover-company"><Logo stock={bestStock} compact/><b>{bestStock.symbol}</b><small>{bestStock.name}</small></div><strong>{signReturn(changePct(bestStock))}</strong></> : <p>Stock data will appear when the market loads.</p>}</article>
+      <article className="wall-mover-card worst"><span className="mover-label">{isClosed ? "WORST STOCK" : "WORST SO FAR"}</span>{worstStock ? <><div className="mover-company"><Logo stock={worstStock} compact/><b>{worstStock.symbol}</b><small>{worstStock.name}</small></div><strong>{signReturn(changePct(worstStock))}</strong></> : <p>Stock data will appear when the market loads.</p>}</article>
+      <article className="wall-breadth-card"><span className="mover-label">MARKET BREADTH</span><strong><i className="positive">{rising} up</i><i className="negative">{falling} down</i></strong><small>{world?.participants ?? 0} participants · {stocks.length || 28} companies</small></article>
+    </section>
+    <div className="wall-news"><div className={`wall-news-label ${latestItems.some(item => item.type === "major") ? "major" : ""}`}>{latestItems.length > 1 ? `${latestItems.length} NEW HEADLINES` : latestItems[0]?.type === "major" ? "MAJOR NEWS" : "LATEST NEWS"}</div><div className="wall-news-headlines">{latestItems.length ? latestItems.map(item => <strong key={item.id}>{item.headline}</strong>) : <strong>The opening bell is close. Markets are ready for the next batch.</strong>}</div><small>{latestItems.length ? [...new Set(latestItems.map(newsScope))].join(" · ").toUpperCase() : "DALAA L STREET"}</small></div>
+    <section className="wall-market-section"><div className="wall-section-heading"><div><span className="eyebrow">BATCH {String(world?.batch || 1).padStart(2, "0")} · MARKET BOARD</span><h1>Every stock, at a glance<span>.</span></h1></div><span>Prices and returns are measured against the previous close</span></div>
+      <section className="wall-grid" aria-label="All listed stocks">{stocks.map(stock => <article className="wall-stock" key={stock.symbol}><div className="wall-stock-top"><Logo stock={stock} compact/><span><b>{stock.symbol}</b><small>{stock.name}</small></span></div><div className="wall-price"><strong>{money(stock.price, stock.price < 100 ? 2 : 0)}</strong><span className={changePct(stock) >= 0 ? "positive" : "negative"}>{signReturn(changePct(stock))}</span></div></article>)}</section>
+    </section>
+    <section className="wall-learning"><div className="wall-section-heading"><div><span className="eyebrow">QUICK TAKEAWAYS · BATCH {String(world?.batch || 1).padStart(2, "0")}</span><h2>What the market showed</h2></div><span>Observed moves, without guessing what caused them</span></div><div className="wall-learning-grid">{learningNotes.map((note, index) => <article key={index}><i>{String(index + 1).padStart(2, "0")}</i><p>{note}</p></article>)}</div></section>
+    <section className="wall-news-archive"><div className="wall-section-heading"><div><span className="eyebrow">BATCH {String(world?.batch || 1).padStart(2, "0")} · FULL NEWS FEED</span><h2>Every headline this batch</h2></div><span>{batchHeadlines.length} headlines · newest first</span></div><div className="wall-news-list">{batchHeadlines.length ? batchHeadlines.map((news, index) => <article className={index === 0 ? "current" : ""} key={news.id}><div><span className={`news-tag ${news.type}`}>{news.type}</span><small>{newsScope(news)}</small><time>{new Date(news.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><strong>{news.headline}</strong></article>) : <div className="wall-news-empty">No headlines have been released in this batch yet.</div>}</div></section>
+    <footer className="wall-footer"><span>{preview && uiVariant && <><a href="/ui-preview">PREVIEW V{uiVariant.toUpperCase()} · COMPARE ALL</a> · </>}FICTIONAL PRICES · LEARNING EXPERIENCE · NO REAL TRADES</span><span>{stocks.length || 28} LISTED COMPANIES</span></footer>
   </main>;
 }
