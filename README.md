@@ -17,15 +17,15 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 | --- | --- |
 | `/play` | Join the live market with an unnumbered device |
 | `/play/01` through `/play/12` | Join a numbered participant terminal |
-| `/v2/play` and `/v2/play/01` through `/v2/play/12` | Neon Rush trading screens |
-| `/v3/play` and `/v3/play/01` through `/v3/play/12` | Candy Clash trading screens |
-| `/v4/play` and `/v4/play/01` through `/v4/play/12` | Game Show trading screens |
+| `/v2/play` and `/v2/play/01` through `/v2/play/12` | Signal Rush neon cockpit |
+| `/v3/play` and `/v3/play/01` through `/v3/play/12` | Market Mash paper trading board |
+| `/v4/play` and `/v4/play/01` through `/v4/play/12` | Ticker Arena broadcast trading floor |
 | `/v2/audience`, `/v3/audience`, `/v4/audience` | Audience wall in the matching UI version |
 | `/host` | Host console (requires the configured host password) |
 | `/audience` | Read-only audience wall |
 | `/test` | Isolated six-minute practice market |
 | `/test/01` through `/test/12` | Numbered practice terminals, separate from live terminals |
-| `/ui-preview` | Local-only design review for three trading and audience colour options; unavailable in production |
+| `/ui-preview` | Local-only design review for the three trading and audience layouts; unavailable in production |
 
 ## Run locally
 
@@ -44,11 +44,11 @@ Open `http://localhost:3000`. Configure the environment values before using the 
 - `MARKET_SIGNING_SECRET`: a long random secret used by the server to authorize market-state RPC calls.
 - `HOST_PASSWORD`: password for `/host`.
 
-The unversioned `/play` and `/audience` routes keep the original appearance. `/v2`, `/v3`, and `/v4` select Neon Rush, Candy Clash, and Game Show colour themes for trading and audience screens; all versions share the same market, game rules, and host controls. The host panel keeps its own consistent appearance.
+The unversioned `/play` and `/audience` routes keep the original appearance. `/v2`, `/v3`, and `/v4` select Signal Rush, Market Mash, and Ticker Arena. These versions use different trading layouts and audience-wall compositions while sharing the same market, game rules, and host controls. The host panel keeps its own consistent appearance.
 
 The practice market uses the same price and news simulation as a live round, but has its own state. It starts with a short countdown, runs for six minutes, closes positions at the end, and offers a new practice round. `/test/01` to `/test/12` use their own terminal logins. Legacy autonomous practice sessions are closed safely the first time the updated engine reads them.
 
-During local development, open `http://localhost:3000/ui-preview` to compare the three themes. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
+During local development, open `http://localhost:3000/ui-preview` to compare the three design directions. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
 
 ## Supabase setup
 
