@@ -7,7 +7,10 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 - Each participant gets a device session and starts with ₹10,00,000 of simulated cash.
 - Players can buy shares, sell shares they own, or open short positions. Prices move as the market simulation, news events, and participant trades update the shared market.
 - A host can start, pause, and end a timed batch; set the next batch to 4–15 minutes; adjust market behavior; publish or schedule bulletins; and review participant sessions.
-- Hosts can combine any number of stock, sector and economy bulletins in one publication. The news library uses simple, fictional stories with explicit targets and direction. Before publishing, the host can review the combined stock-by-stock price estimate and open each headline for its individual effect.
+- The curated news library has 61 fictional bulletins: 12 economy stories, 3 for each of the 8 sectors, and 25 company stories for 25 different stocks. The remaining stocks still respond to their sector and economy stories. Hosts can select any mix of categories in Quick Access or News Studio, review the combined stock-by-stock estimate, and expand a headline for its individual effect before publishing.
+- A new batch reset restores the market's starting stock prices as well as clearing its terminal sessions and published headlines.
+- Host presence uses each device's last-seen heartbeat. A new batch resets participant portfolios without marking previously offline terminals as connected.
+- Price movement is driven by 128 simulated traders with 16 distinct trading styles. The baseline volatility is 15% lower than the previous engine setting; hosts can still adjust volatility for an event.
 - The audience wall shows the shared market without creating a participant account.
 - The game includes an isolated practice market with the same three-second countdown, six-minute rounds, trading rules, news flow, settlement, and session report as a hosted game.
 - Each player’s round report includes short, activity-based learning notes, badges tied to their choices, and their best and toughest realized closed trades.
@@ -21,16 +24,17 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 | `/play/01` through `/play/12` | Join a numbered participant terminal |
 | `/v1` and `/v1/play` | Original appearance, also available at the unversioned routes |
 | `/v1/play/01` through `/v1/play/12` | Numbered terminals in the original appearance |
-| `/v2/play` and `/v2/play/01` through `/v2/play/12` | Market Atlas, a compact market-map layout |
-| `/v3/play` and `/v3/play/01` through `/v3/play/12` | Market Mash, a playful board-game layout |
-| `/v4/play` and `/v4/play/01` through `/v4/play/12` | Paper Pop, a paper-inspired interface built from functional cards |
-| `/v5/play` and `/v5/play/01` through `/v5/play/12` | Market Maze, a Pac-Man-inspired arcade theme using the same trading game |
-| `/v1/audience` through `/v5/audience` | Audience wall in the matching UI version |
+| `/v2` and `/v2/play/01` through `/v2/play/12` | Block Market, a voxel-inspired trading floor |
+| `/v3` and `/v3/play/01` through `/v3/play/12` | Market Mash, a playful board-game layout with Buy, Sell, and Short controls inline beside the chart |
+| `/v4` and `/v4/play/01` through `/v4/play/12` | Paper Parade, a paper-crafted card interface |
+| `/v5` and `/v5/play/01` through `/v5/play/12` | Market Maze, a Pac-Man-inspired arcade theme using the same trading game |
+| `/v6` and `/v6/play/01` through `/v6/play/12` | Aurora Exchange, a luminous glass-card market |
+| `/v1/audience` through `/v6/audience` | Audience wall in the matching UI version |
 | `/host` | Host console with Quick Access, shared private notes, news studio, market controls and participant sessions (requires the configured host password) |
 | `/audience` | Read-only audience wall |
 | `/test` | Isolated six-minute practice market |
 | `/test/01` through `/test/12` | Numbered practice terminals, separate from live terminals |
-| `/ui-preview` | Local-only design review for the four themed trading and audience layouts; unavailable in production |
+| `/ui-preview` | Local-only design review for the five themed trading and audience layouts; unavailable in production |
 
 ## Run locally
 
@@ -49,11 +53,11 @@ Open `http://localhost:3000`. Configure the environment values before using the 
 - `MARKET_SIGNING_SECRET`: a long random secret used by the server to authorize market-state RPC calls.
 - `HOST_PASSWORD`: password for `/host`.
 
-The unversioned `/play` and `/audience` routes keep the original appearance; `/v1` is an alias for that look. `/v2` through `/v5` select Market Atlas, Market Mash, Paper Pop, and Market Maze. The versions share the same market, game rules, and host controls, while giving trading and audience screens distinct visual treatments. Selecting a stock opens its quick trade panel, and the light/dark theme choice is remembered on that device. The audience screen shows the Dalaal-10 level and return, the strongest and weakest stocks, market breadth, short factual takeaways, the full batch news feed, and all stock prices. Paper Pop uses paper-like surfaces and tactile card styling while retaining standard, usable cards and controls. Market Maze adds a Pac-Man-inspired arcade look without changing game rules or trade behavior.
+The unversioned `/play` and `/audience` routes keep the original appearance; `/v1` is an alias for that look. `/v2` through `/v6` select Block Market, Market Mash, Paper Parade, Market Maze, and Aurora Exchange. All versions use the same market engine, accounts, controls, and news. Their trading and audience screens adapt to screen size and browser zoom, and their light/dark modes retain each theme's visual identity. Selecting a stock opens its quick trade panel; in v3 the Buy, Sell, and Short controls stay inline in the trading panel. The audience screen shows the Dalaal-10 closing level and return, strongest and weakest stocks, market breadth, short factual takeaways, the batch news feed, and all stock prices.
 
 The practice market uses the same price and curated news simulation as a live round, but has its own state. It starts with a short countdown, runs for six minutes, closes positions at the end, and offers a new practice round. `/test/01` to `/test/12` use their own terminal logins. Legacy autonomous practice sessions are closed safely the first time the updated engine reads them.
 
-During local development, open `http://localhost:3000/ui-preview` to compare the four themed design directions. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
+During local development, open `http://localhost:3000/ui-preview` to compare the five themed design directions. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
 
 ## Supabase setup
 
@@ -68,7 +72,7 @@ on conflict (id) do update
 set market_signing_secret = excluded.market_signing_secret;
 ```
 
-Keep the signing secret and host password out of source control. The Supabase publishable key is designed to be public, but this app still keeps it server-side. For Vercel and Netlify, configure `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `MARKET_SIGNING_SECRET`, and `HOST_PASSWORD` as environment variables, then redeploy. Netlify production should build from the GitHub `main` branch. It needs the database values in the Production context with both Builds and Functions scopes so its Next.js server handler can read and write the shared game state. The host-console login also reads `HOST_PASSWORD` server-side; update it in the host's environment settings to reset that password. Trigger a new production deploy after changing any of these values. `vercel.json` selects the Mumbai (`bom1`) region.
+Keep the signing secret and host password out of source control. The Supabase publishable key is designed to be public, but this app still keeps it server-side. For Vercel, configure `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `MARKET_SIGNING_SECRET`, and `HOST_PASSWORD` as environment variables, then redeploy. The host-console login reads `HOST_PASSWORD` server-side; update it in Vercel's environment settings to reset that password. `vercel.json` selects the Mumbai (`bom1`) region.
 
 ## Project layout
 

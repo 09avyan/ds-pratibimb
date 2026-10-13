@@ -1091,3 +1091,225 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   .wall-news-list article > strong { font-size: 8px; }
   .wall-footer { font-size: 5px; letter-spacing: .04em; }
 }
+
+/* Branded mark and non-text company icon fallbacks. */
+.dalaal-mark{display:inline-block;width:30px;height:30px;flex:none;color:var(--accent,#14705f)}
+.topbar-brand .dalaal-mark{width:25px;height:25px;color:var(--accent)}
+.login-wordmark .dalaal-mark,.preview-wordmark .dalaal-mark{width:31px;height:31px;padding:3px;border-radius:9px;color:#143641;background:#b7f36c}
+.company-mark>span svg{display:block;width:64%;height:64%}
+.company-mark.logo-loaded>span{display:none}
+.brand-glyph{display:grid;place-items:center}
+.brand-glyph .dalaal-mark{width:31px;height:31px;color:currentColor}
+.host-top .login-wordmark .dalaal-mark{background:var(--lime)}
+
+/* V2 · Block Market: a voxel-inspired trading world. */
+.terminal.ui-blockcraft{--page:#d9eee4;--card:#f7fff3;--secondary:#e5f0d2;--input:#fbfff6;--ink:#20372e;--muted:#61766a;--faint:#819287;--line:#9bb89a;--accent:#26784a;--accent-soft:#d7efce;--nav:#254f3d;--up:#16815a;--down:#c44d48;--up-soft:#d7f0dc;--down-soft:#f7dddd;--shadow:0 5px 0 #335c3827,0 10px 18px #284e3010;color:var(--ink);background-color:#cde4d3;background-image:linear-gradient(90deg,#ffffff15 1px,transparent 1px),linear-gradient(#ffffff15 1px,transparent 1px),linear-gradient(135deg,#d8efd6,#bdd8c9);background-size:32px 32px,32px 32px,auto}
+.terminal.ui-blockcraft .topbar{background:#f4ffe9;border-bottom:4px solid #42783c;box-shadow:0 4px 0 #714f34}
+.terminal.ui-blockcraft .topbar-brand{gap:7px;font-weight:950;letter-spacing:.015em}
+.terminal.ui-blockcraft .topbar-brand .dalaal-mark{color:#27784a}
+.terminal.ui-blockcraft .terminal-tabs{border:3px solid #396943;border-radius:4px;background:#e4f2d5;box-shadow:0 4px 0 #4b6240}
+.terminal.ui-blockcraft .terminal-tabs>button.active{color:#27784a}
+.terminal.ui-blockcraft .terminal-tabs>button.active:after{height:4px;background:#79bb4a}
+.terminal.ui-blockcraft .market-ribbon{border:3px solid #456d42;border-radius:4px;background:#d7edbf;box-shadow:3px 3px 0 #523f2b2c}
+.terminal.ui-blockcraft .stock-card,.terminal.ui-blockcraft .focus-card,.terminal.ui-blockcraft .holdings-card,.terminal.ui-blockcraft .order-card{border:2px solid #6d9865;border-radius:4px;box-shadow:0 4px 0 #49664625}
+.terminal.ui-blockcraft .stock-card{background:linear-gradient(180deg,#f4ffe9 0 15%,#e2f1d2 15% 100%)}
+.terminal.ui-blockcraft .stock-card:nth-child(3n + 2){background:linear-gradient(180deg,#d5edbd 0 15%,#f3fbe9 15% 100%)}
+.terminal.ui-blockcraft .stock-card.selected{border-color:#d38f27;outline:2px solid #e0aa36}
+.terminal.ui-blockcraft .focus-card{border-top:5px solid #69a344;background:#f8fff1}
+.terminal.ui-blockcraft .focus-trade-button,.terminal.ui-blockcraft .execute-button.buy{border:2px solid #73563a;border-radius:3px;color:white;background:#459348;box-shadow:0 3px 0 #315e37}
+.terminal.ui-blockcraft .market-state-banner,.terminal.ui-blockcraft .latest-brief{border:2px solid #82a36a;border-radius:4px;background:#e5f1ce}
+.terminal.ui-blockcraft .chart-toggle,.terminal.ui-blockcraft .side-switch{border:1px solid #91aa7e;border-radius:4px}
+.terminal.ui-blockcraft .side-switch button{border-radius:3px}
+.terminal.ui-blockcraft .workspace-footer{color:#52705d}
+.terminal.ui-blockcraft .company-mark{border:2px solid #648b5c;border-radius:4px}
+.audience-wall.ui-blockcraft{--page:#d1e5d0;--card:#f6ffe9;--secondary:#e2efcf;--ink:#20372e;--muted:#61766a;--faint:#819287;--line:#9bb89a;--accent:#26784a;--accent-soft:#d7efce;--nav:#254f3d;--up:#16815a;--down:#c44d48;--up-soft:#d7f0dc;--down-soft:#f7dddd;--shadow:0 4px 0 #335c3822;background-color:#cde4d3;background-image:linear-gradient(90deg,#ffffff18 1px,transparent 1px),linear-gradient(#ffffff18 1px,transparent 1px),linear-gradient(135deg,#d8efd6,#bdd8c9);background-size:32px 32px,32px 32px,auto}
+.audience-wall.ui-blockcraft .wall-index-card,.audience-wall.ui-blockcraft .wall-mover-card,.audience-wall.ui-blockcraft .wall-breadth-card,.audience-wall.ui-blockcraft .wall-learning-grid article,.audience-wall.ui-blockcraft .wall-news-list article,.audience-wall.ui-blockcraft .wall-stock{border:2px solid #6d9865;border-radius:4px;box-shadow:0 4px 0 #49664625}
+.audience-wall.ui-blockcraft .wall-news,.audience-wall.ui-blockcraft .wall-close{border:3px solid #456d42;border-radius:4px;background:#254f3d}
+.audience-wall.ui-blockcraft .brand-glyph{border:2px solid #456d42;border-radius:4px;color:#397642;background:#d7edbf}
+
+/* V3 · Market Mash: inline order controls and extra arcade-board character. */
+.terminal.ui-arcade .topbar-brand .dalaal-mark{color:#ed5b3c}
+.terminal.ui-arcade .stock-card{border-width:2px;border-radius:14px 14px 8px 14px;box-shadow:3px 4px 0 #493b5522}
+.terminal.ui-arcade .focus-card{border:2px solid #493b55;border-top:5px solid #ed5b3c;border-radius:17px;box-shadow:4px 5px 0 #493b5522}
+.terminal.ui-arcade .inline-order-ticket{grid-area:order;min-width:0;padding:10px;border:2px dashed #ed5b3c;border-radius:16px;background:#fff1cf}
+.terminal.ui-arcade .inline-order-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:1px 2px 8px}
+.terminal.ui-arcade .inline-order-heading small{color:#e85035;font-size:8px;font-weight:900;letter-spacing:.14em}
+.terminal.ui-arcade .inline-order-ticket .order-card{padding:11px;border:2px solid #493b55;border-radius:12px;background:#fff9e8;box-shadow:2px 3px 0 #493b5522}
+.terminal.ui-arcade .inline-order-ticket .order-title h2{font-size:16px}
+.terminal.ui-arcade .inline-order-ticket .execute-button{min-height:43px;border:2px solid #493b55;border-radius:9px}
+.terminal.ui-arcade .inline-order-ticket .side-switch button{border-radius:9px}
+.terminal.ui-arcade .inline-order-ticket .side-switch button.active.buy{background:#4baf76;color:white}
+.terminal.ui-arcade .focus-trade-button{background:#ed5b3c;color:white}
+.audience-wall.ui-arcade .wall-index-card{position:relative;overflow:hidden}
+.audience-wall.ui-arcade .wall-index-card:after{content:"";position:absolute;right:12px;top:12px;width:28px;height:28px;border:3px dotted #ed5b3c;border-radius:50%;opacity:.5}
+
+/* V4 · Paper Parade: functional cards arranged like a cut-paper stage. */
+.terminal.ui-paper .topbar-brand .dalaal-mark{color:#a44d36}
+.terminal.ui-paper .workspace-markets{background:radial-gradient(ellipse at 94% 6%,#efc88946,transparent 28%)}
+.terminal.ui-paper .stock-card{border-bottom-width:3px}
+.terminal.ui-paper .focus-card{position:relative;border-top-color:#c87943}
+.terminal.ui-paper .focus-card:before{content:"";position:absolute;top:-7px;right:20px;width:74px;height:13px;transform:rotate(2deg);background:#e9cf95;opacity:.8}
+.terminal.ui-paper .focus-trade-button,.terminal.ui-paper .execute-button.buy{background:#c76842;border-color:#9a4d37;color:#fffaf0}
+.terminal.ui-paper .stock-card:nth-child(5n + 1){transform:rotate(-.2deg)}
+.terminal.ui-paper .stock-card:nth-child(5n + 3){transform:rotate(.18deg)}
+.audience-wall.ui-paper .wall-stock:nth-child(5n + 1){transform:rotate(-.16deg)}
+.audience-wall.ui-paper .wall-stock:nth-child(5n + 3){transform:rotate(.15deg)}
+.audience-wall.ui-paper .wall-index-card{border-left:5px solid #c76842}
+
+/* V5 · Market Maze: the arcade maze stays clear in both color modes. */
+.terminal.ui-pacman{background-color:#fbf0c8;background-image:radial-gradient(circle,#d7b842 1.5px,transparent 2px),linear-gradient(90deg,transparent 0 39px,#29498620 39px 42px,transparent 42px 100%),linear-gradient(transparent 0 39px,#29498620 39px 42px,transparent 42px 100%);background-size:28px 28px,84px 84px,84px 84px}
+.terminal.ui-pacman .topbar-brand .dalaal-mark{color:#f2bd20}
+.terminal.ui-pacman .terminal-tabs{background:#21385f;border-color:#ffe36b;box-shadow:0 4px 0 #152846}
+.terminal.ui-pacman .stock-card{background-image:radial-gradient(circle,#edc94d8c 1.2px,transparent 1.8px);background-size:16px 16px}
+.terminal.ui-pacman .focus-card,.terminal.ui-pacman .holdings-card,.terminal.ui-pacman .order-card{border:3px solid #35527e;background:#fffef6;box-shadow:0 5px 0 #1c376038}
+.terminal.ui-pacman .focus-card{border-top:6px solid #ffe36b}
+.terminal.ui-pacman .market-ribbon{background:#ffe36b}
+.terminal.ui-pacman .focus-trade-button,.terminal.ui-pacman .execute-button.buy{color:#202f53;background:#ffe36b;border:2px solid #35527e;box-shadow:0 3px 0 #d3a92f}
+.terminal.ui-pacman .company-mark{border:2px solid #35527e;border-radius:50%}
+.terminal.ui-pacman .workspace-footer{color:#435b86}
+.audience-wall.ui-pacman{background-image:radial-gradient(circle,#e5bc37a6 1.5px,transparent 2px),linear-gradient(90deg,transparent 0 39px,#29498620 39px 42px,transparent 42px 100%),linear-gradient(transparent 0 39px,#29498620 39px 42px,transparent 42px 100%);background-size:28px 28px,84px 84px,84px 84px}
+.audience-wall.ui-pacman .wall-index-card,.audience-wall.ui-pacman .wall-mover-card,.audience-wall.ui-pacman .wall-breadth-card{border:2px solid #35527e;box-shadow:0 4px 0 #1c37602e}
+.audience-wall.ui-pacman .wall-news{background:#20365f;border-color:#ffe36b}
+.audience-wall.ui-pacman .wall-close{background:#20365f;border:3px solid #ffe36b}
+
+/* V6 · Aurora Exchange: a luminous glass-card market with its own night palette. */
+.terminal.ui-aurora{--page:#eef2fb;--card:#fbfbff;--secondary:#e3e8fa;--input:#fbfbff;--ink:#242846;--muted:#6e7191;--faint:#9698b3;--line:#c9cdec;--accent:#7257d9;--accent-soft:#eee8ff;--nav:#332e65;--up:#168c79;--down:#d64f78;--up-soft:#d9f4ec;--down-soft:#ffe1eb;--shadow:0 10px 30px #4b49a018,0 2px 8px #302e7020;color:var(--ink);background:radial-gradient(ellipse at 7% 6%,#8edce888,transparent 30%),radial-gradient(ellipse at 96% 12%,#da9dec77,transparent 33%),linear-gradient(140deg,#f3f6ff,#e9eafa 52%,#dcecf5)}
+.terminal.ui-aurora .topbar{background:#fbfbffdf;backdrop-filter:blur(16px);border-bottom:1px solid #c6c9e7}
+.terminal.ui-aurora .topbar-brand .dalaal-mark{color:#7257d9}
+.terminal.ui-aurora .market-ribbon{background:linear-gradient(120deg,#e2f7f5,#eee5ff);border:1px solid #c5c6ee;border-radius:14px}
+.terminal.ui-aurora .terminal-tabs{margin:8px 18px 0;border:1px solid #c6c9e7;border-radius:14px;background:#fbfbffcf;backdrop-filter:blur(14px)}
+.terminal.ui-aurora .terminal-tabs>button.active:after{height:3px;border-radius:4px;background:linear-gradient(90deg,#48b8b0,#9a69dc)}
+.terminal.ui-aurora .stock-card,.terminal.ui-aurora .focus-card,.terminal.ui-aurora .holdings-card,.terminal.ui-aurora .order-card{border:1px solid #c3c6e7;border-radius:16px;background:#ffffffc9;box-shadow:var(--shadow);backdrop-filter:blur(12px)}
+.terminal.ui-aurora .stock-card:nth-child(4n + 1){background:linear-gradient(145deg,#ffffffdf,#e8f8f4d9)}
+.terminal.ui-aurora .stock-card:nth-child(4n + 2){background:linear-gradient(145deg,#ffffffdf,#f3eaffd9)}
+.terminal.ui-aurora .focus-card{border-top:4px solid #7b69da}
+.terminal.ui-aurora .focus-trade-button,.terminal.ui-aurora .execute-button.buy{color:#fff;background:linear-gradient(110deg,#675fe0,#9a63d1);border:0;border-radius:11px}
+.terminal.ui-aurora .latest-brief{border:1px solid #c4c9eb;background:linear-gradient(100deg,#def5f0,#efe7ff)}
+.terminal.ui-aurora .company-mark{border:1px solid #c8c9e9;border-radius:12px}
+.audience-wall.ui-aurora{--page:#eef2fb;--card:#fbfbff;--secondary:#e3e8fa;--ink:#242846;--muted:#6e7191;--faint:#9698b3;--line:#c9cdec;--accent:#7257d9;--accent-soft:#eee8ff;--nav:#332e65;--up:#168c79;--down:#d64f78;--up-soft:#d9f4ec;--down-soft:#ffe1eb;--shadow:0 8px 23px #4b49a018;background:radial-gradient(ellipse at 7% 6%,#8edce888,transparent 30%),radial-gradient(ellipse at 96% 12%,#da9dec77,transparent 33%),linear-gradient(140deg,#f3f6ff,#e9eafa 52%,#dcecf5)}
+.audience-wall.ui-aurora .wall-index-card,.audience-wall.ui-aurora .wall-mover-card,.audience-wall.ui-aurora .wall-breadth-card,.audience-wall.ui-aurora .wall-learning-grid article,.audience-wall.ui-aurora .wall-news-list article,.audience-wall.ui-aurora .wall-stock{border:1px solid #c3c6e7;border-radius:15px;background:#ffffffc9;box-shadow:var(--shadow)}
+.audience-wall.ui-aurora .wall-index-card{border-top:4px solid #7b69da}
+.audience-wall.ui-aurora .wall-news,.audience-wall.ui-aurora .wall-close{color:#f6f4ff;background:linear-gradient(110deg,#333369,#4c4383 58%,#315d79);border:1px solid #9285db;border-radius:17px;box-shadow:0 8px 24px #3333692b}
+.audience-wall.ui-aurora .brand-glyph{color:#7257d9;background:#fbfbff;border:1px solid #c3c6e7}
+
+/* Theme-specific dark surfaces preserve each visual identity. */
+:root[data-theme="dark"] .terminal.ui-blockcraft{--page:#172b25;--card:#20372e;--secondary:#29463a;--input:#1b3028;--ink:#edf7dc;--muted:#b2c8b7;--faint:#91ab9a;--line:#456c50;--accent:#a5e276;--accent-soft:#35553d;--nav:#18332b;--up:#77e2ad;--down:#ff8982;--up-soft:#244b3b;--down-soft:#553937;--shadow:0 5px 0 #0004,0 12px 20px #0002;background-color:#142a25;background-image:linear-gradient(90deg,#ffffff0b 1px,transparent 1px),linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(135deg,#1a352c,#142a25)}
+:root[data-theme="dark"] .terminal.ui-blockcraft .topbar{background:#1d352c;border-color:#7ca75b}
+:root[data-theme="dark"] .terminal.ui-blockcraft .terminal-tabs{background:#1b352d;border-color:#64875a}
+:root[data-theme="dark"] .terminal.ui-blockcraft .stock-card,:root[data-theme="dark"] .terminal.ui-blockcraft .focus-card,:root[data-theme="dark"] .terminal.ui-blockcraft .holdings-card,:root[data-theme="dark"] .terminal.ui-blockcraft .order-card{background:#20372e;border-color:#587b55}
+:root[data-theme="dark"] .terminal.ui-blockcraft .stock-card:nth-child(3n + 2){background:#294438}
+:root[data-theme="dark"] .terminal.ui-blockcraft .market-ribbon{background:#34482d;border-color:#8aaa56}
+:root[data-theme="dark"] .terminal.ui-blockcraft .inline-order-ticket{background:#20392e;border-color:#d39a40}
+:root[data-theme="dark"] .audience-wall.ui-blockcraft{--page:#172b25;--card:#20372e;--secondary:#29463a;--ink:#edf7dc;--muted:#b2c8b7;--faint:#91ab9a;--line:#456c50;--accent:#a5e276;--accent-soft:#35553d;--nav:#18332b;--up:#77e2ad;--down:#ff8982;--up-soft:#244b3b;--down-soft:#553937;--shadow:0 5px 0 #0004,0 12px 20px #0002;background-color:#142a25;background-image:linear-gradient(90deg,#ffffff0b 1px,transparent 1px),linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(135deg,#1a352c,#142a25)}
+:root[data-theme="dark"] .audience-wall.ui-blockcraft .wall-index-card,:root[data-theme="dark"] .audience-wall.ui-blockcraft .wall-mover-card,:root[data-theme="dark"] .audience-wall.ui-blockcraft .wall-breadth-card,:root[data-theme="dark"] .audience-wall.ui-blockcraft .wall-learning-grid article,:root[data-theme="dark"] .audience-wall.ui-blockcraft .wall-news-list article,:root[data-theme="dark"] .audience-wall.ui-blockcraft .wall-stock{background:#20372e;border-color:#587b55}
+:root[data-theme="dark"] .audience-wall.ui-blockcraft .wall-news,:root[data-theme="dark"] .audience-wall.ui-blockcraft .wall-close{background:#18332b;border-color:#64875a}
+:root[data-theme="dark"] .terminal.ui-arcade .inline-order-ticket{background:#302a3b;border-color:#ff9b75}
+:root[data-theme="dark"] .terminal.ui-arcade .inline-order-ticket .order-card{background:#302a3b;border-color:#65596a}
+:root[data-theme="dark"] .terminal.ui-arcade .inline-order-ticket .side-switch{background:#282431}
+:root[data-theme="dark"] .terminal.ui-paper .focus-card:before{background:#a97c48}
+:root[data-theme="dark"] .terminal.ui-pacman{background-color:#111b37;background-image:radial-gradient(circle,#ffe36bba 1.5px,transparent 2px),linear-gradient(90deg,transparent 0 39px,#8aa9ed25 39px 42px,transparent 42px 100%),linear-gradient(transparent 0 39px,#8aa9ed25 39px 42px,transparent 42px 100%)}
+:root[data-theme="dark"] .terminal.ui-pacman .focus-card,:root[data-theme="dark"] .terminal.ui-pacman .holdings-card,:root[data-theme="dark"] .terminal.ui-pacman .order-card{background:#1c2a4c}
+:root[data-theme="dark"] .terminal.ui-pacman .stock-card{background-color:#1c2a4c}
+:root[data-theme="dark"] .terminal.ui-aurora{--page:#14172e;--card:#202240;--secondary:#292b4b;--input:#1d203c;--ink:#f3f3ff;--muted:#bdc0dc;--faint:#969cbb;--line:#484d75;--accent:#c4a6ff;--accent-soft:#3c315b;--nav:#16182e;--up:#79e4c4;--down:#ff8eb1;--up-soft:#234b47;--down-soft:#4d2d4a;--shadow:0 10px 28px #0005,0 2px 8px #94dff117;background:radial-gradient(ellipse at 8% 7%,#2d7d7e66,transparent 32%),radial-gradient(ellipse at 94% 8%,#8b4aa966,transparent 35%),linear-gradient(140deg,#191b37,#12172f 58%,#1c2542)}
+:root[data-theme="dark"] .terminal.ui-aurora .topbar,:root[data-theme="dark"] .terminal.ui-aurora .terminal-tabs{background:#202240dc;border-color:#484d75}
+:root[data-theme="dark"] .terminal.ui-aurora .stock-card,:root[data-theme="dark"] .terminal.ui-aurora .focus-card,:root[data-theme="dark"] .terminal.ui-aurora .holdings-card,:root[data-theme="dark"] .terminal.ui-aurora .order-card{background:#202240db;border-color:#555b87}
+:root[data-theme="dark"] .terminal.ui-aurora .stock-card:nth-child(4n + 1){background:linear-gradient(145deg,#263c43dd,#202240dd)}
+:root[data-theme="dark"] .terminal.ui-aurora .stock-card:nth-child(4n + 2){background:linear-gradient(145deg,#342b4add,#202240dd)}
+:root[data-theme="dark"] .terminal.ui-aurora .market-ribbon,:root[data-theme="dark"] .terminal.ui-aurora .latest-brief{background:linear-gradient(120deg,#23484ddd,#3d315add)}
+:root[data-theme="dark"] .audience-wall.ui-aurora{--page:#14172e;--card:#202240;--secondary:#292b4b;--ink:#f3f3ff;--muted:#bdc0dc;--faint:#969cbb;--line:#484d75;--accent:#c4a6ff;--accent-soft:#3c315b;--nav:#16182e;--up:#79e4c4;--down:#ff8eb1;--up-soft:#234b47;--down-soft:#4d2d4a;--shadow:0 10px 28px #0005,0 2px 8px #94dff117;background:radial-gradient(ellipse at 8% 7%,#2d7d7e66,transparent 32%),radial-gradient(ellipse at 94% 8%,#8b4aa966,transparent 35%),linear-gradient(140deg,#191b37,#12172f 58%,#1c2542)}
+:root[data-theme="dark"] .audience-wall.ui-aurora .wall-index-card,:root[data-theme="dark"] .audience-wall.ui-aurora .wall-mover-card,:root[data-theme="dark"] .audience-wall.ui-aurora .wall-breadth-card,:root[data-theme="dark"] .audience-wall.ui-aurora .wall-learning-grid article,:root[data-theme="dark"] .audience-wall.ui-aurora .wall-news-list article,:root[data-theme="dark"] .audience-wall.ui-aurora .wall-stock{background:#202240db;border-color:#555b87}
+:root[data-theme="dark"] .audience-wall.ui-aurora .wall-news,:root[data-theme="dark"] .audience-wall.ui-aurora .wall-close{background:linear-gradient(110deg,#252750,#3b315f 58%,#20495b);border-color:#7774b4}
+
+/* Browser zoom and smaller screens: let dense market content flow vertically. */
+.audience-wall{height:auto;min-height:100svh;overflow-x:hidden;overflow-y:auto}
+.audience-wall .wall-grid{flex:initial;grid-template-rows:repeat(4,minmax(74px,auto))}
+.terminal .workspace{min-width:0}
+.terminal .trading-grid,.terminal .watch-area,.terminal .trade-column{min-width:0}
+.terminal .stock-card,.terminal .focus-card,.terminal .order-card,.host-card{min-width:0}
+.quick-news-layout{grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr)}
+.quick-news-card{min-width:0}
+.quick-news-selection{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:7px 0}
+.quick-news-selection>span{display:grid;gap:4px}
+.quick-news-selection b{font-size:10px}
+.quick-news-selection small{color:var(--muted);font-size:8px}
+.quick-news-tabs{margin:9px 0}
+.quick-news-search{margin:8px 0 3px}
+.quick-news-list{max-height:260px;overflow:auto;border-bottom:1px solid var(--line)}
+.quick-news-list .preset-option{padding:9px 5px}
+.quick-news-list .preset-option>span:nth-child(2)>small{line-height:1.4}
+.quick-news-publish-row{display:grid;grid-template-columns:minmax(125px,.45fr) minmax(0,1fr);align-items:end;gap:12px}
+.quick-news-publish-row .host-field{margin:8px 0}
+.quick-news-publish-row .host-primary{min-height:38px;margin:0 0 8px}
+.quick-news-impact{max-height:270px;overflow:auto}
+.quick-news-impact .impact-table{max-height:150px;overflow:auto}
+.quick-news-impact .news-effect-details .impact-table{max-height:210px}
+.quick-news-impact .impact-caveat{display:block;margin-top:8px}
+.terminal.ui-arcade .inline-order-ticket{min-width:0}
+.preview-choice.choice-blockcraft{--preview-a:#58924d;--preview-b:#d6a947}
+.preview-choice.choice-blockcraft .choice-art{color:#f4f8df;background-color:#1e372b;background-image:linear-gradient(90deg,#ffffff0b 1px,transparent 1px),linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(145deg,#294a38,#172b25);background-size:16px 16px,16px 16px,auto}
+.preview-choice.choice-blockcraft .choice-art-header>span{background:#69a344}
+.preview-choice.choice-blockcraft .choice-art-header>span:nth-child(2){background:#d39a40}
+.preview-choice.choice-blockcraft .choice-art-header>strong{color:#a5e276}
+.preview-choice.choice-blockcraft .choice-art-list,.preview-choice.choice-blockcraft .choice-art-chart,.preview-choice.choice-blockcraft .choice-art-ticket{border:2px solid #6d9865;border-radius:3px;background:#20372e;box-shadow:0 3px 0 #0003}
+.preview-choice.choice-blockcraft .choice-art-chart{background-image:repeating-linear-gradient(to bottom,transparent 0 23px,#ffffff12 24px),#20372e}
+.preview-choice.choice-blockcraft .choice-art-chart>b,.preview-choice.choice-blockcraft .choice-art-ticket>b{background:#d39a40}
+.preview-choice.choice-blockcraft .choice-copy{background:#f8fff1;color:#263b2a}
+.preview-choice.choice-blockcraft .choice-open{background:#426e3a}
+.preview-choice.choice-blockcraft .choice-audience-open{border-color:#c6d9bb;background:#e5f0d9;color:#31552f}
+.preview-choice.choice-aurora{--preview-a:#7257d9;--preview-b:#42b8ad}
+.preview-choice.choice-aurora .choice-art{color:#f3f3ff;background:radial-gradient(ellipse at 10% 5%,#42b8ad88,transparent 36%),radial-gradient(ellipse at 90% 12%,#bd72e088,transparent 40%),linear-gradient(145deg,#222345,#172541 65%,#193e4a)}
+.preview-choice.choice-aurora .choice-art-header>span{background:#42b8ad}
+.preview-choice.choice-aurora .choice-art-header>span:nth-child(2){background:#bd72e0}
+.preview-choice.choice-aurora .choice-art-header>strong{color:#c4a6ff}
+.preview-choice.choice-aurora .choice-art-list,.preview-choice.choice-aurora .choice-art-chart,.preview-choice.choice-aurora .choice-art-ticket{border:1px solid #8182c8;border-radius:12px;background:#252746cc;box-shadow:0 6px 16px #10152f66}
+.preview-choice.choice-aurora .choice-art-chart{background-image:repeating-linear-gradient(to bottom,transparent 0 23px,#ffffff17 24px),#252746cc}
+.preview-choice.choice-aurora .choice-art-chart>b,.preview-choice.choice-aurora .choice-art-ticket>b{background:#c4a6ff}
+.preview-choice.choice-aurora .choice-copy{background:#fbfbff;color:#242846}
+.preview-choice.choice-aurora .choice-open{background:linear-gradient(110deg,#675fe0,#9a63d1)}
+.preview-choice.choice-aurora .choice-audience-open{border-color:#c9cdec;background:#eee8ff;color:#51439e}
+@media(max-width:1180px){
+ .terminal .trading-grid{grid-template-columns:minmax(0,1fr) minmax(300px,.78fr)}
+ .terminal.ui-arcade .trading-grid{grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr)}
+ .terminal.ui-blockcraft .stock-grid,.terminal.ui-paper .stock-grid,.terminal.ui-aurora .stock-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .audience-wall{padding:14px 18px}
+}
+@media(max-width:920px){
+ .terminal{height:auto;min-height:100svh;overflow:visible}
+ .terminal .workspace,.terminal .workspace-markets{flex:none;min-height:0;overflow:visible;padding:14px clamp(12px,3vw,24px)}
+ .terminal .trading-grid{display:block}
+ .terminal .watch-area,.terminal .trade-column{display:block;overflow:visible;padding:0}
+ .terminal .trade-column>div+div{margin-top:11px}
+ .terminal .trade-column>.inline-order-ticket{margin-top:11px}
+ .terminal.ui-arcade .trade-column{display:block}
+ .terminal.ui-arcade .inline-order-ticket{margin:12px 0}
+ .terminal .workspace-footer{margin-top:12px}
+ .quick-news-layout{grid-template-columns:1fr}
+ .quick-news-list{max-height:320px}
+ .audience-wall{padding:12px}
+ .audience-wall .wall-grid{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(7,minmax(78px,auto))}
+}
+@media(max-width:620px){
+ .terminal .topbar{gap:7px}
+ .terminal .topbar-brand{gap:4px;font-size:9px}
+ .topbar-brand .dalaal-mark{width:20px;height:20px}
+ .terminal .market-ribbon{gap:5px;font-size:8px}
+ .terminal .market-ribbon strong{font-size:11px}
+ .terminal-tabs{gap:clamp(9px,4vw,20px);padding-inline:10px}
+ .terminal-context{font-size:7px}
+ .terminal.ui-blockcraft .stock-grid,.terminal.ui-paper .stock-grid,.terminal.ui-aurora .stock-grid,.terminal.ui-pacman .stock-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .quick-news-publish-row{grid-template-columns:1fr;gap:2px}
+ .quick-news-publish-row .host-primary{margin:0 0 8px}
+ .audience-wall{height:auto;min-height:100svh;overflow:visible}
+ .audience-wall .wall-header{height:auto;min-height:54px;flex-wrap:wrap}
+ .audience-wall .wall-brand{flex:1 0 46%}
+ .audience-wall .wall-status{margin-left:0;font-size:7px}
+ .audience-wall .wall-news{grid-template-columns:1fr;gap:7px}
+ .audience-wall .wall-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:minmax(73px,auto)}
+ .audience-wall .wall-stock{min-height:73px}
+ .audience-wall .wall-learning-grid{grid-template-columns:1fr}
+ .audience-wall .wall-overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .audience-wall .wall-index-card{grid-column:span 2}
+}
+@media(prefers-reduced-motion:reduce){
+ .terminal *,.audience-wall *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}

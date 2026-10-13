@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Mode, News, Player, PublicWorld, Stock, Trade } from "@/game/types";
 import { equity, performance, shortValue } from "@/game/engine";
-import { Logo } from "@/components/trader-parts";
+import { DalaalMark, Logo } from "@/components/trader-parts";
 import { UI_OPTIONS, type UiVariant } from "@/ui-options";
 
 type Props = { mode?: Mode; audienceOnly?: boolean; terminal?: number; uiVariant?: UiVariant; preview?: boolean };
@@ -126,7 +126,7 @@ function Header({ world, player, onTheme, theme, clockNow }: { world: PublicWorl
   const value = world && player ? equity(world as never, player) : 1_000_000;
   const pnl = value - (player?.initialCash ?? 1_000_000);
   return <header className="topbar">
-    <div className="topbar-brand"><span className="pulse-dot"/> DALAA<span>L</span> STREET</div>
+    <div className="topbar-brand"><DalaalMark/><span>DALAA<span>L</span> STREET</span></div>
     <div className="market-ribbon"><span className="ribbon-label">DALAAL-10</span><strong>{world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00"}</strong><span className={world && world.indexChange >= 0 ? "positive" : "negative"}>{world ? `${world.indexChange >= 0 ? "+" : ""}${world.indexChange.toFixed(2)}%` : "0.00%"}</span></div>
     <div className="topbar-metrics"><div><small>SESSION</small><b className="timer-value">{world?.status === "countdown" ? fmtTime(Math.ceil((world.startedAt - clockNow) / 1000)) : world ? fmtTime(world.remaining) : "06:00"}</b></div><div><small>FREE CASH</small><b>{money(player?.cash ?? 1_000_000, 0)}</b></div><div><small>PORTFOLIO</small><b>{money(value, 0)}</b></div><div><small>DAY P&amp;L</small><b className={pnl >= 0 ? "positive" : "negative"}>{pnl >= 0 ? "+" : ""}{money(pnl, 0)}</b></div></div>
     <button className="theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
@@ -289,6 +289,17 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const isTest = mode === "test";
   const activeNews = world?.headlines.find(n => n.id === world.latestNewsId);
   const previewOption = uiVariant ? UI_OPTIONS.find(option => option.slug === uiVariant) : null;
+  const inlineTrade = uiVariant === "arcade";
+  const orderTicket = stock && <div className="order-card"><div className="order-title"><div><span className="eyebrow">ORDER TICKET · {stock.symbol}</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
+    <div className="side-switch">{(["Buy", "Sell", "Short"] as const).map(t => <button key={t} onClick={() => setSide(t)} className={`${side === t ? `active ${t.toLowerCase()}` : ""}`} disabled={t === "Sell" && !ownedQty}>{t}</button>)}</div>
+    {side === "Sell" && <div className="context-hint">You hold {ownedQty} {selected} shares. Sell closes owned shares only.</div>}
+    {side === "Short" && <div className="context-hint short-hint">Short exposure is capped at 30% of your starting portfolio. A buy covers open shorts first.</div>}
+    {side === "Buy" && shortQty > 0 && <div className="context-hint cover-hint">Your buy will cover up to {shortQty} open short shares first.</div>}
+    <div className="quantity-row"><label><span>QUANTITY</span><div><input autoFocus={!inlineTrade} inputMode="numeric" type="number" min="1" step="1" value={quantity} onChange={e => { setQuantity(e.target.value); setAmount(""); }}/><span>SHARES</span></div></label><label><span>ORDER VALUE</span><div><span className="currency-prefix">₹</span><input inputMode="decimal" type="number" min="0" step="1" value={amount || (calculatedAmount ? calculatedAmount.toFixed(2) : "")} onChange={e => { setAmount(e.target.value); setQuantity(String(Math.floor((Number(e.target.value) || 0) / stock.price))); }}/></div></label></div>
+    <div className="order-estimate"><span>Est. order value</span><b>{money(calculatedAmount)}</b></div>
+    <button className={`execute-button ${side.toLowerCase()}`} disabled={blocked || qty < 1 || (side === "Sell" && qty > ownedQty)} onClick={() => void send("trade", { side, symbol: stock.symbol, quantity: qty })}>{busy ? "Submitting order…" : blocked ? world?.status === "closed" ? "Market closed" : "Waiting for the batch" : `${side} ${qty || "—"} ${stock.symbol}`}</button>
+    <div className="available-row"><span>Available cash</span><b>{money(player?.cash ?? 1_000_000, 0)}</b></div>
+  </div>;
   return <div className={`terminal${uiVariant ? ` ui-${uiVariant}` : ""}`}>
     {preview && previewOption && <div className="ui-preview-strip"><a className="preview-back" href="/ui-preview">← Compare all</a><div className="preview-option-title"><b>VERSION {previewOption.number} · {previewOption.name}</b><small>{previewOption.tagline}</small></div><span className="preview-sandbox">ISOLATED PREVIEW MARKET · NO LIVE TRADES</span><nav className="preview-switcher" aria-label="Switch design preview">{UI_OPTIONS.map(option => <a key={option.slug} aria-current={option.slug === uiVariant ? "page" : undefined} href={`/ui-preview/${option.slug}/play/${String(terminal ?? 1).padStart(2, "0")}`}>V{option.number}</a>)}<a href={`/ui-preview/${uiVariant}/audience`}>Audience</a></nav></div>}
     <Header world={world} player={player} clockNow={clockNow} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />
@@ -305,7 +316,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
         <div className="trading-grid">
           <section className="watch-area">
             <div className="watch-controls"><div className="sector-scroll">{sectors.map(s => <button key={s} className={`filter-chip ${sector === s ? "active" : ""}`} onClick={() => setSector(s)}>{s}</button>)}</div><label className="search-field"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search companies" aria-label="Search stocks"/><kbd>⌘ K</kbd></label></div>
-            <div className="stock-grid">{shownStocks.map(s => <button key={s.symbol} className={`stock-card ${selected === s.symbol ? "selected" : ""}`} onClick={() => { setSelected(s.symbol); setQuantity("10"); setAmount(""); setTradeOpen(true); }} aria-label={`Select ${s.name} and open its trade panel`}>
+            <div className="stock-grid">{shownStocks.map(s => <button key={s.symbol} className={`stock-card ${selected === s.symbol ? "selected" : ""}`} onClick={() => { setSelected(s.symbol); setQuantity("10"); setAmount(""); if (!inlineTrade) setTradeOpen(true); }} aria-label={`Select ${s.name}${inlineTrade ? " for the inline order panel" : " and open its trade panel"}`}>
               <div className="stock-card-top"><Logo stock={s}/><div className="stock-id"><strong>{s.symbol}</strong><span>{s.name}</span></div></div>
               <div className="stock-card-bottom"><strong>{money(s.price)}</strong><span className={`stock-change ${changePct(s) >= 0 ? "positive" : "negative"}`}>{changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</span></div>
               <MiniChart stock={s}/>
@@ -316,12 +327,13 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
           </section>
 
           <aside className="trade-column">
-            <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="focus-trade-button" onClick={() => setTradeOpen(true)}>Trade {stock.symbol}</button><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
+            <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="focus-trade-button" onClick={() => inlineTrade ? document.getElementById("inline-order-ticket")?.scrollIntoView({ behavior: "smooth", block: "nearest" }) : setTradeOpen(true)}>Trade {stock.symbol}</button><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
               <div className="focus-price-row"><strong>{money(stock.price)}</strong><span className={`stock-change ${changePct(stock) >= 0 ? "positive" : "negative"}`}>{changePct(stock) >= 0 ? "+" : ""}{changePct(stock).toFixed(2)}%</span><small>SESSION</small></div>
               <MainChart key={stock.symbol} stock={stock} kind={chartType} trades={world?.player?.history ?? []}/>
               <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.tickRate ?? 1} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
               <div className="chart-foot"><span><i/> Open <b>{money(stock.candles[0]?.open ?? stock.price)}</b></span><span>High <b>{money(Math.max(stock.price, ...stock.candles.map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(stock.price, ...stock.candles.map(c => c.low)))}</b></span></div>
             </div>
+            {inlineTrade && <section id="inline-order-ticket" className="inline-order-ticket"><div className="inline-order-heading"><span className="eyebrow">TRADE {stock.symbol} · {stock.sector.toUpperCase()}</span><small>ORDER PANEL</small></div>{orderTicket}</section>}
             <div className="holdings-card"><div><span className="eyebrow">YOUR HOLDINGS</span><button onClick={() => setView("portfolio")}>Portfolio →</button></div>
               {invested.length + shorts.length === 0 ? <p>Build your first position from the watchlist.</p> : [...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].slice(0, 4).map(p => {
                 const found = world?.stocks.find(s => s.symbol === p.symbol); const val = (found?.price ?? 0) * p.qty;
@@ -346,19 +358,10 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       </section>}
       <footer className="workspace-footer"><span>SIMULATED MARKET · FICTIONAL PRICES · NO REAL TRADES</span><span>© PULSE / DALAA<span>L</span> STREET</span></footer>
     </main>
-    {tradeOpen && stock && <dialog ref={tradeDialogRef} className={`trade-dialog${uiVariant ? ` ui-${uiVariant}` : ""}`} aria-labelledby="trade-dialog-title" onCancel={event => { event.preventDefault(); setTradeOpen(false); }} onClick={event => { if (event.target === event.currentTarget) setTradeOpen(false); }}>
+    {tradeOpen && stock && !inlineTrade && <dialog ref={tradeDialogRef} className={`trade-dialog${uiVariant ? ` ui-${uiVariant}` : ""}`} aria-labelledby="trade-dialog-title" onCancel={event => { event.preventDefault(); setTradeOpen(false); }} onClick={event => { if (event.target === event.currentTarget) setTradeOpen(false); }}>
       <div className="trade-dialog-panel">
         <header className="trade-dialog-heading"><div><span className="eyebrow">QUICK TRADE · {stock?.sector?.toUpperCase()}</span><h2 id="trade-dialog-title">{stock?.symbol} <span>{stock?.name}</span></h2><p>{stock ? money(stock.price) : "—"} <b className={stock && changePct(stock) >= 0 ? "positive" : "negative"}>{stock ? `${changePct(stock) >= 0 ? "+" : ""}${changePct(stock).toFixed(2)}%` : ""}</b></p></div><button className="trade-dialog-close" type="button" onClick={() => setTradeOpen(false)} aria-label="Close quick trade panel">×</button></header>
-        <div className="order-card"><div className="order-title"><div><span className="eyebrow">ORDER TICKET</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
-          <div className="side-switch">{(["Buy", "Sell", "Short"] as const).map(t => <button key={t} onClick={() => setSide(t)} className={`${side === t ? `active ${t.toLowerCase()}` : ""}`} disabled={t === "Sell" && !ownedQty}>{t}</button>)}</div>
-          {side === "Sell" && <div className="context-hint">You hold {ownedQty} {selected} shares. Sell closes owned shares only.</div>}
-          {side === "Short" && <div className="context-hint short-hint">Short exposure is capped at 30% of your starting portfolio. A buy covers open shorts first.</div>}
-          {side === "Buy" && shortQty > 0 && <div className="context-hint cover-hint">Your buy will cover up to {shortQty} open short shares first.</div>}
-          <div className="quantity-row"><label><span>QUANTITY</span><div><input autoFocus inputMode="numeric" type="number" min="1" step="1" value={quantity} onChange={e => { setQuantity(e.target.value); setAmount(""); }}/><span>SHARES</span></div></label><label><span>ORDER VALUE</span><div><span className="currency-prefix">₹</span><input inputMode="decimal" type="number" min="0" step="1" value={amount || (calculatedAmount ? calculatedAmount.toFixed(2) : "")} onChange={e => { setAmount(e.target.value); setQuantity(String(Math.floor((Number(e.target.value) || 0) / stock.price))); }}/></div></label></div>
-          <div className="order-estimate"><span>Est. order value</span><b>{money(calculatedAmount)}</b></div>
-          <button className={`execute-button ${side.toLowerCase()}`} disabled={blocked || qty < 1 || (side === "Sell" && qty > ownedQty)} onClick={() => void send("trade", { side, symbol: stock.symbol, quantity: qty })}>{busy ? "Submitting order…" : blocked ? world?.status === "closed" ? "Market closed" : "Waiting for the batch" : `${side} ${qty || "—"} ${stock.symbol}`}</button>
-          <div className="available-row"><span>Available cash</span><b>{money(player?.cash ?? 1_000_000, 0)}</b></div>
-        </div>
+        {orderTicket}
       </div>
     </dialog>}
     {!audienceOnly && world?.status === "live" && player && !player.ended && <button className="end-session" onClick={() => { if (window.confirm("End your trading session now? Open shorts will be settled at the current simulated price.")) void send("end"); }}>Finish session <span>↗</span></button>}
@@ -399,7 +402,7 @@ function Audience({ world, uiVariant, preview, theme, onTheme }: { world: Public
   useEffect(() => { const done = () => setFullscreen(Boolean(document.fullscreenElement)); document.addEventListener("fullscreenchange", done); return () => document.removeEventListener("fullscreenchange", done); }, []);
   return <main className={`audience-wall ui-${uiVariant ?? "default"}`}>
     <header className="wall-header">
-      <div className="wall-brand"><span className="brand-glyph">D</span><span><small>PRATIBIMB · INTERACTIVE MARKET</small><b>DALAA<span>L</span> STREET</b></span></div>
+      <div className="wall-brand"><span className="brand-glyph"><DalaalMark/></span><span><small>PRATIBIMB · INTERACTIVE MARKET</small><b>DALAA<span>L</span> STREET</b></span></div>
       <div className="wall-status"><span className="live-dot"/>{statusText}<b>{world?.status === "live" ? fmtTime(world.remaining) : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</b></div>
       <button className="theme-button wall-theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
       <button className="wall-fullscreen" onClick={() => document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen()}>{fullscreen ? "Exit full screen" : "Full screen"} ↗</button>

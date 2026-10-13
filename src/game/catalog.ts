@@ -56,88 +56,97 @@ export const makeStocks = (seed: number): Stock[] => rows.map(([symbol, name, se
 type NewsPreset = Omit<News, "id" | "createdAt">;
 type Story = { type: News["type"]; headline: string; direction: News["direction"]; severity: number };
 
+export const NEWS_CATALOG_VERSION = 3;
+
+const majorStory = (headline: string, direction: News["direction"], severity = 1.7): Story => ({ type: "major", headline, direction, severity });
+const minorStory = (headline: string, direction: News["direction"], severity = .6): Story => ({ type: "minor", headline, direction, severity });
+
 const economyStories: Story[] = [
-  { type: "major", headline: "Loan rates fall, leaving businesses more room to grow", direction: 1, severity: 1.75 },
-  { type: "major", headline: "The central bank raises loan rates", direction: -1, severity: 1.8 },
-  { type: "major", headline: "Families spend more as prices settle", direction: 1, severity: 1.65 },
-  { type: "major", headline: "A jump in fuel costs puts pressure on businesses", direction: -1, severity: 1.7 },
-  { type: "major", headline: "The government adds money for roads and railways", direction: 1, severity: 1.7 },
-  { type: "major", headline: "Investors sell shares after worries about the world economy", direction: -1, severity: 1.75 },
-  { type: "minor", headline: "Factories receive more orders this month", direction: 1, severity: .62 },
-  { type: "minor", headline: "Prices rise more slowly than expected", direction: 1, severity: .58 },
-  { type: "minor", headline: "Delivery delays raise costs for many businesses", direction: -1, severity: .6 },
-  { type: "minor", headline: "Foreign investors buy more local shares", direction: 1, severity: .58 },
-  { type: "minor", headline: "Foreign investors sell local shares", direction: -1, severity: .58 },
-  { type: "minor", headline: "Household spending dips this month", direction: -1, severity: .55 },
+  majorStory("Loan costs fall for businesses and families", 1, 1.75),
+  majorStory("Loan costs rise for businesses and families", -1, 1.8),
+  majorStory("Household spending grows as prices stay steady", 1, 1.65),
+  majorStory("Fuel and transport costs rise for many businesses", -1, 1.7),
+  majorStory("New public projects bring more orders to local companies", 1, 1.7),
+  majorStory("A slower world economy weakens demand for local exports", -1, 1.75),
+  minorStory("Prices rise more slowly than families expected", 1, .58),
+  minorStory("Rising prices make everyday purchases more expensive", -1, .62),
+  minorStory("Factories across the country report stronger orders", 1, .62),
+  minorStory("Overseas buyers place more orders with local companies", 1, .58),
+  minorStory("Shipping delays raise costs for companies nationwide", -1, .6),
+  minorStory("Families feel less confident about spending", -1, .58),
 ];
 
-const sectorStories: Record<string, [Story, Story]> = {
+const sectorStories: Record<string, [Story, Story, Story]> = {
   Banking: [
-    { type: "major", headline: "Fewer bank borrowers miss loan payments", direction: 1, severity: 1.7 },
-    { type: "major", headline: "More bank borrowers miss loan payments", direction: -1, severity: 1.8 },
+    majorStory("Fewer bank customers fall behind on repayments", 1),
+    minorStory("More families and businesses apply for bank loans", 1),
+    majorStory("More bank customers fall behind on repayments", -1, 1.75),
   ],
   Technology: [
-    { type: "major", headline: "Businesses increase their software budgets", direction: 1, severity: 1.75 },
-    { type: "major", headline: "Businesses cut their software budgets", direction: -1, severity: 1.75 },
+    majorStory("More businesses renew their software contracts", 1),
+    majorStory("Businesses delay planned software upgrades", -1),
+    minorStory("A large technology client cancels a software project", -1),
   ],
   Energy: [
-    { type: "major", headline: "Energy companies report higher profits", direction: 1, severity: 1.7 },
-    { type: "major", headline: "Energy companies report lower profits", direction: -1, severity: 1.7 },
+    majorStory("Higher demand lifts sales across power and fuel companies", 1),
+    minorStory("Energy companies win new power and fuel supply contracts", 1),
+    majorStory("Production delays reduce power and fuel sales", -1),
   ],
   Telecommunications: [
-    { type: "major", headline: "More people sign up for mobile plans", direction: 1, severity: 1.7 },
-    { type: "major", headline: "Mobile companies lose customers this month", direction: -1, severity: 1.7 },
+    majorStory("More customers sign up for mobile plans", 1),
+    majorStory("Customers leave after repeated mobile network outages", -1),
+    minorStory("Mobile companies cut prices to keep their customers", -1),
   ],
   Consumer: [
-    { type: "major", headline: "Shoppers buy more everyday products", direction: 1, severity: 1.7 },
-    { type: "major", headline: "Shoppers cut back on everyday products", direction: -1, severity: 1.7 },
+    majorStory("Shoppers spend more at consumer brands and stores", 1),
+    minorStory("Consumer companies receive larger retail orders", 1),
+    majorStory("Shoppers cut back on consumer goods and store purchases", -1),
   ],
   Industrial: [
-    { type: "major", headline: "Builders place more orders with manufacturers", direction: 1, severity: 1.75 },
-    { type: "major", headline: "New building projects are delayed", direction: -1, severity: 1.7 },
+    majorStory("Builders and factories place more orders with industrial firms", 1),
+    majorStory("Builders and factories cut orders from industrial firms", -1),
+    minorStory("Construction delays hold back industrial orders", -1),
   ],
   Auto: [
-    { type: "major", headline: "Car and two-wheeler sales rise", direction: 1, severity: 1.75 },
-    { type: "major", headline: "Car and two-wheeler sales fall", direction: -1, severity: 1.75 },
+    majorStory("More customers book cars and two-wheelers", 1),
+    minorStory("Auto makers receive larger dealer orders", 1),
+    majorStory("Parts shortages slow vehicle production", -1),
   ],
   Healthcare: [
-    { type: "major", headline: "Healthcare companies report higher sales", direction: 1, severity: 1.7 },
-    { type: "major", headline: "Healthcare companies report lower sales", direction: -1, severity: 1.75 },
+    majorStory("Demand rises for hospital care and medicines", 1),
+    majorStory("Demand falls for hospital care and medicines", -1),
+    minorStory("Medicine and medical supply deliveries are delayed", -1),
   ],
 };
 
-const stockStories: Record<string, { up: string; down: string }> = {
-  RELIANCE: { up: "Reliance earns more from its refineries", down: "Reliance earns less from its refineries" },
-  TCS: { up: "TCS wins a large software contract", down: "A major TCS client cancels its software contract" },
-  HDFCBANK: { up: "More HDFC Bank borrowers repay their loans", down: "More HDFC Bank borrowers miss loan payments" },
-  INFY: { up: "Infosys wins a large software contract", down: "An Infosys client cancels a large project" },
-  ICICIBANK: { up: "More ICICI Bank borrowers repay their loans", down: "More ICICI Bank borrowers miss loan payments" },
-  BHARTIARTL: { up: "Bharti Airtel adds many new mobile customers", down: "A network outage disrupts Bharti Airtel service" },
-  ITC: { up: "ITC sells more of its everyday products", down: "ITC sales fall after a product recall" },
-  LT: { up: "Larsen & Toubro wins a large construction order", down: "A Larsen & Toubro project is delayed" },
-  SBIN: { up: "More State Bank of India borrowers repay loans", down: "More State Bank of India borrowers miss payments" },
-  HINDUNILVR: { up: "Hindustan Unilever sells more household goods", down: "Hindustan Unilever pays more for ingredients" },
-  TATAMOTORS: { up: "Tata Motors receives more vehicle orders", down: "A parts shortage slows Tata Motors production" },
-  MARUTI: { up: "Maruti Suzuki receives more car bookings", down: "A factory delay holds up Maruti Suzuki cars" },
-  SUNPHARMA: { up: "Sun Pharma gets approval for a new medicine", down: "A safety review delays a Sun Pharma medicine" },
-  CIPLA: { up: "Cipla wins approval to sell a new medicine", down: "A safety review delays a Cipla medicine" },
-  BAJFINANCE: { up: "More Bajaj Finance customers repay loans", down: "More Bajaj Finance customers miss payments" },
-  AXISBANK: { up: "Axis Bank adds many new savings customers", down: "Axis Bank loses savings customers this month" },
-  WIPRO: { up: "Wipro wins a large technology contract", down: "A Wipro client cancels a technology project" },
-  ADANIPORTS: { up: "Adani Ports handles more cargo", down: "A delay slows cargo at Adani Ports" },
-  NTPC: { up: "NTPC sells more electricity as demand rises", down: "A fuel shortage slows electricity production at NTPC" },
-  ONGC: { up: "ONGC finds a new oil and gas field", down: "ONGC reports a fall in oil and gas output" },
-  "M&M": { up: "Mahindra receives more vehicle orders", down: "A parts shortage slows Mahindra vehicle production" },
-  TITAN: { up: "Titan sells more jewellery and watches", down: "Titan sells fewer jewellery and watches" },
-  ULTRACEMCO: { up: "UltraTech receives more cement orders", down: "A fuel shortage slows UltraTech cement production" },
-  DRREDDY: { up: "Dr. Reddy's gets approval for a new medicine", down: "A safety review delays a Dr. Reddy's medicine" },
-  KOTAKBANK: { up: "More Kotak Bank borrowers repay their loans", down: "More Kotak Bank borrowers miss loan payments" },
-  TATASTEEL: { up: "Tata Steel wins new steel orders", down: "Lower steel prices cut Tata Steel income" },
-  TATACONSUM: { up: "Tata Consumer sells more food and drinks", down: "Tata Consumer pays more for ingredients" },
-  APOLLOHOSP: { up: "Apollo Hospitals treats many more patients", down: "Apollo Hospitals treats fewer patients this month" },
+const stockStories: Record<string, Story> = {
+  RELIANCE: majorStory("Reliance reports higher output from its oil and gas business", 1),
+  TCS: majorStory("TCS wins a large software services contract", 1),
+  HDFCBANK: minorStory("HDFC Bank adds more small-business customers", 1),
+  INFY: majorStory("A large Infosys client cancels a software project", -1),
+  ICICIBANK: minorStory("More ICICI Bank customers fall behind on repayments", -1),
+  BHARTIARTL: majorStory("A network outage interrupts Bharti Airtel service", -1),
+  ITC: minorStory("ITC sells more packaged food and household products", 1),
+  LT: majorStory("A delay holds up a large Larsen & Toubro project", -1),
+  SBIN: minorStory("State Bank of India reports more late loan repayments", -1),
+  HINDUNILVR: majorStory("Higher ingredient costs squeeze Hindustan Unilever", -1),
+  TATAMOTORS: majorStory("Parts delays slow Tata Motors vehicle production", -1),
+  MARUTI: minorStory("Maruti Suzuki receives more car bookings", 1),
+  SUNPHARMA: majorStory("Sun Pharma gets approval to sell a new medicine", 1),
+  CIPLA: minorStory("A factory delay slows Cipla medicine deliveries", -1),
+  BAJFINANCE: minorStory("Bajaj Finance adds more customers who repay on time", 1),
+  AXISBANK: majorStory("Axis Bank adds more savings account customers", 1),
+  WIPRO: majorStory("A Wipro client cancels a technology project", -1),
+  ADANIPORTS: minorStory("Adani Ports handles more cargo than last month", 1),
+  NTPC: majorStory("A fuel shortage slows electricity production at NTPC", -1),
+  ONGC: minorStory("ONGC reports higher oil and gas production", 1),
+  "M&M": minorStory("Mahindra receives fewer vehicle orders", -1),
+  TITAN: majorStory("Titan reports lower sales of jewellery and watches", -1),
+  ULTRACEMCO: minorStory("UltraTech wins more cement orders from builders", 1),
+  DRREDDY: minorStory("Dr. Reddy's receives more pharmacy orders", 1),
+  APOLLOHOSP: majorStory("Apollo Hospitals sees fewer patient bookings", -1),
 };
 
-const majorStockStories = new Set(["RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "LT", "TATAMOTORS", "SUNPHARMA", "BAJFINANCE", "NTPC", "ONGC", "ADANIPORTS", "MARUTI", "ITC"]);
 const preset = (story: Story, scope: News["scope"], sector: string, symbols?: string[]): NewsPreset => ({
   ...story,
   scope,
@@ -150,19 +159,8 @@ export const NEWS_PRESETS: NewsPreset[] = [
   ...Object.entries(sectorStories).flatMap(([sector, stories]) => stories.map(story => preset(story, "sector", sector))),
   ...rows.flatMap(([symbol, , sector]) => {
     const story = stockStories[symbol];
-    if (!story) throw new Error(`Missing news for ${symbol}`);
-    const major = majorStockStories.has(symbol);
-    const type = major ? "major" : "minor";
-    const severity = major ? 1.8 : .62;
-    return [
-      preset({ type, headline: story.up, direction: 1, severity }, "stock", sector, [symbol]),
-      preset({ type, headline: story.down, direction: -1, severity }, "stock", sector, [symbol]),
-    ];
+    return story ? [preset(story, "stock", sector, [symbol])] : [];
   }),
 ];
 
-// Historical headlines stay in the batch record. New sessions only use the
-// curated catalog above; old stories are not guessed onto unrelated presets.
-export const LEGACY_NEWS_PRESETS = new Map<string, NewsPreset>();
-
-export const makeNews = (seed: number) => NEWS_PRESETS.map((news, index) => ({ ...news, id: `${seed}-${index}`, createdAt: 0 }));
+export const makeNews = (seed: number) => NEWS_PRESETS.map((news, index) => ({ ...news, id: `news-v${NEWS_CATALOG_VERSION}-${seed}-${index}`, createdAt: 0 }));

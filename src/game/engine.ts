@@ -1,12 +1,35 @@
-import { INDEX_WEIGHTS, LEGACY_NEWS_PRESETS, makeNews, makeStocks, NEWS_PRESETS } from "./catalog";
+import { INDEX_WEIGHTS, makeNews, makeStocks, NEWS_CATALOG_VERSION } from "./catalog";
 import type { Mode, News, Player, PublicWorld, Trade, World } from "./types";
 
 export const START_CASH = 1_000_000;
+export const VIRTUAL_BOT_COUNT = 128;
+const MARKET_RULES_VERSION = 1;
+const MIN_VOLATILITY = 12.8;
+const MAX_VOLATILITY = 85;
+const BOT_PERSONALITIES = [
+  { name: "Trend Rider", momentum: 1.45, reversion: .32, news: .55, flow: .75, noise: .00013 },
+  { name: "Value Hunter", momentum: .34, reversion: 1.55, news: .35, flow: .9, noise: .0001 },
+  { name: "News Chaser", momentum: .72, reversion: .45, news: 1.45, flow: .55, noise: .0002 },
+  { name: "Contrarian", momentum: .25, reversion: 1.22, news: -.48, flow: 1.4, noise: .00012 },
+  { name: "Breakout Scout", momentum: 1.72, reversion: .18, news: .7, flow: .4, noise: .0002 },
+  { name: "Steady Hand", momentum: .65, reversion: .72, news: .5, flow: .65, noise: .000035 },
+  { name: "Quick Scalper", momentum: .7, reversion: .8, news: .3, flow: 1.1, noise: .00028 },
+  { name: "Sector Surfer", momentum: 1.05, reversion: .45, news: .82, flow: .65, noise: .00011 },
+  { name: "Dip Buyer", momentum: .2, reversion: 1.45, news: .4, flow: 1.22, noise: .0001 },
+  { name: "Risk Taker", momentum: 1.22, reversion: .35, news: 1.08, flow: .8, noise: .0003 },
+  { name: "Patient Planner", momentum: .72, reversion: .9, news: .72, flow: .5, noise: .000025 },
+  { name: "Herd Follower", momentum: 1.3, reversion: .22, news: 1.05, flow: .45, noise: .00018 },
+  { name: "Swing Trader", momentum: 1.05, reversion: .88, news: .52, flow: .55, noise: .0001 },
+  { name: "Cautious Closer", momentum: .45, reversion: 1.05, news: .3, flow: 1.35, noise: .000045 },
+  { name: "Opportunity Seeker", momentum: .92, reversion: .62, news: .88, flow: .95, noise: .00016 },
+  { name: "Market Maker", momentum: .28, reversion: .92, news: .18, flow: 1.65, noise: .00008 },
+] as const;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const rand = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 const textSeed = (text: string) => [...text].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 7) % 1_000_003;
 const id = () => crypto.randomUUID();
+const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">): NonNullable<News["scope"]> => news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
 const NEWS_IMPACT_SCALE: Record<News["type"], number> = { major: 3.8, minor: 3.5 };
 const NEWS_IMPACT_VARIATION = .1;
 export function newsImpactRange(news: Pick<News, "type" | "severity">) {
@@ -21,8 +44,8 @@ export function freshWorld(mode: Mode, now = Date.now(), batch = 1): World {
   return {
     mode, batch: test ? batch : 0, status: test ? "countdown" : "ready", duration: 6 * 60, remaining: 6 * 60,
     startedAt, lastTickAt: now, tick: 0, testRulesVersion: test ? 2 : undefined,
-    controls: { scenario: "Sideways", volatility: 48, bots: 58, tickRate: 1, marketBias: 50, paused: false, majorAuto: 1, minorAuto: 2, newsSpacing: 65, newsEnabled: true, activeNews: 0 },
-    stocks, news: makeNews(test ? batch : 1), headlines: [], sessions: {}, hostNotes: [], latestNewsId: null, latestNewsIds: [], newsNextAt: test ? startedAt + 65_000 : now + 75_000, error: null, version: 1, scheduledInterventions: [], scheduledNews: [],
+    controls: { scenario: "Sideways", volatility: 48 * .85, bots: 58, tickRate: 1, marketBias: 50, paused: false, majorAuto: 1, minorAuto: 2, newsSpacing: 65, newsEnabled: true, activeNews: 0 },
+    stocks, news: makeNews(test ? batch : 1), newsCatalogVersion: NEWS_CATALOG_VERSION, marketRulesVersion: MARKET_RULES_VERSION, headlines: [], sessions: {}, hostNotes: [], latestNewsId: null, latestNewsIds: [], newsNextAt: test ? startedAt + 65_000 : now + 75_000, error: null, version: 1, scheduledInterventions: [], scheduledNews: [],
   };
 }
 
@@ -51,7 +74,7 @@ function pushHeadline(world: World, presetIndex?: number, at = Date.now()) {
   world.headlines.unshift(news);
   if (world.headlines.length > 80) world.headlines.pop();
   for (const stock of world.stocks) {
-    const scope = news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
+    const scope = newsScope(news);
     const applies = scope === "stock" ? Boolean(news.symbols?.includes(stock.symbol)) : scope === "economy" || news.sector === stock.sector;
     if (!applies) continue;
     const impact = ((range.low + rand(world.tick + textSeed(stock.symbol) * 71) * (range.high - range.low)) / 100) * news.direction;
@@ -95,33 +118,27 @@ export function advance(world: World, now = Date.now()): World {
   if (!Array.isArray(world.hostNotes)) { world.hostNotes = []; world.version++; }
   if (typeof world.controls.activeNews !== "number") { world.controls.activeNews = 0; world.version++; }
   if (!Array.isArray(world.latestNewsIds)) { world.latestNewsIds = world.latestNewsId ? [world.latestNewsId] : []; world.version++; }
+  if (world.marketRulesVersion !== MARKET_RULES_VERSION) {
+    world.controls.volatility = clamp(Math.round(world.controls.volatility * .85 * 10) / 10, MIN_VOLATILITY, MAX_VOLATILITY);
+    world.marketRulesVersion = MARKET_RULES_VERSION;
+    world.version++;
+  }
+  if (world.newsCatalogVersion !== NEWS_CATALOG_VERSION) {
+    const nextNews = makeNews(world.batch || 1);
+    // Retain queued stories only when the exact headline still exists in the new catalog.
+    world.scheduledNews = world.scheduledNews.flatMap(event => {
+      const previous = world.news[event.index];
+      const index = previous ? nextNews.findIndex(news => news.headline === previous.headline && newsScope(news) === newsScope(previous) && news.sector === previous.sector && news.direction === previous.direction && JSON.stringify(news.symbols ?? []) === JSON.stringify(previous.symbols ?? [])) : -1;
+      return index < 0 ? [] : [{ ...event, index }];
+    });
+    world.news = nextNews;
+    world.newsCatalogVersion = NEWS_CATALOG_VERSION;
+    world.version++;
+  }
   for (const player of Object.values(world.sessions)) {
     if (player.accountingVersion === 2) continue;
     player.cash -= Object.values(player.shorts).reduce((sum, position) => sum + position.qty * position.avg, 0);
     player.accountingVersion = 2;
-    world.version++;
-  }
-  for (const item of world.news) {
-    const presetIndex = Number(item.id.slice(item.id.lastIndexOf("-") + 1));
-    const preset = Number.isInteger(presetIndex) ? NEWS_PRESETS[presetIndex] : undefined;
-    if (!preset) continue;
-    if (item.headline !== preset.headline || item.direction !== preset.direction || item.sector !== preset.sector || item.scope !== preset.scope || item.severity !== preset.severity || JSON.stringify(item.symbols) !== JSON.stringify(preset.symbols)) {
-      Object.assign(item, preset);
-      world.version++;
-    }
-  }
-  for (const item of world.headlines) {
-    const preset = NEWS_PRESETS.find(candidate => candidate.headline === item.headline) ?? LEGACY_NEWS_PRESETS.get(item.headline);
-    if (!preset) continue;
-    if (item.type !== preset.type || item.headline !== preset.headline || item.direction !== preset.direction || item.sector !== preset.sector || item.scope !== preset.scope || item.severity !== preset.severity || JSON.stringify(item.symbols) !== JSON.stringify(preset.symbols)) {
-      Object.assign(item, preset);
-      world.version++;
-    }
-  }
-  const existingHeadlines = new Set(world.news.map(item => item.headline));
-  const missingPresets = NEWS_PRESETS.filter(item => !existingHeadlines.has(item.headline));
-  if (missingPresets.length) {
-    world.news.push(...missingPresets.map(item => ({ ...item, id: `catalog-${NEWS_PRESETS.indexOf(item)}`, createdAt: 0 })));
     world.version++;
   }
   if (world.mode === "test" && !world.testRulesVersion) {
@@ -163,8 +180,7 @@ export function advance(world: World, now = Date.now()): World {
       world.latestNewsIds = world.headlines.slice(0, dueNews.length).map(news => news.id);
     }
     const vol = world.controls.volatility / 25;
-    const botFleet = 80 + world.controls.bots * 2.8;
-    const botParticipation = world.controls.bots === 0 ? 0 : Math.sqrt(botFleet / 240) * (world.controls.bots / 58);
+    const botParticipation = world.controls.bots === 0 ? 0 : Math.sqrt(VIRTUAL_BOT_COUNT / 128) * (world.controls.bots / 58);
     const scenarioDrift = world.controls.scenario === "Bullish" ? .000035 : world.controls.scenario === "Bearish" ? -.000035 : 0;
     const bias = (world.controls.marketBias - 50) * .0000018;
     const sectorPulse = new Map<string, number>();
@@ -180,17 +196,17 @@ export function advance(world: World, now = Date.now()): World {
       const meanRevert = ((stock.previousClose - stock.price) / stock.previousClose) * .009;
       const newsTrend = stock.newsBias ?? 0;
       const sectorMove = (sectorPulse.get(stock.sector) ?? 0) * (rand(symbolSeed + 3) < .76 ? 1 : -.42);
-      // Hundreds of virtual books are represented as six independent strategy flows per name.
-      const botOrders = (
-        momentum * (.35 + rand(symbolSeed + 5) * .45) +
-        meanRevert * (.45 + rand(symbolSeed + 7) * .65) +
-        (rand(symbolSeed + 13) - .5) * .00018 +
-        (rand(symbolSeed + 17) - .5) * .00012 -
-        stock.flow / 10000 * .012
-      ) * botParticipation;
+      const flowSignal = -stock.flow / 10000 * .012;
+      let botOrders = 0;
+      for (let agent = 0; agent < VIRTUAL_BOT_COUNT; agent++) {
+        const personality = BOT_PERSONALITIES[agent % BOT_PERSONALITIES.length];
+        const agentSeed = symbolSeed + agent * 97 + 19;
+        botOrders += momentum * personality.momentum + meanRevert * personality.reversion + newsTrend * personality.news + flowSignal * personality.flow + (rand(agentSeed) - .5) * personality.noise;
+      }
+      botOrders = botOrders / VIRTUAL_BOT_COUNT * botParticipation;
       const institutional = (rand(Math.floor(world.tick / 11) + textSeed(stock.symbol) * 3) - .5) * .00009 * (world.controls.bots / 50);
       const returnRate = clamp(scenarioDrift + bias + sectorMove + momentum + meanRevert + noise + botOrders + institutional + stock.flow / 10000 * .02 + newsTrend, -.009 * vol, .009 * vol);
-      const botVolume = Math.round((300 + rand(world.tick + stock.base) * 5_800) * (botFleet / 100));
+      const botVolume = Math.round((300 + rand(world.tick + stock.base) * 5_800) * (VIRTUAL_BOT_COUNT / 100));
       applyMove(world, stock, returnRate, botVolume, at);
       if (stock.newsBias) {
         stock.newsBias *= .94;
@@ -312,22 +328,26 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (world.status === "live" || world.status === "countdown") throw new Error("The batch is already starting or running.");
     world.batch++;
     world.stocks = makeStocks(world.batch);
-    world.news = makeNews(world.batch); world.headlines = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0;
+    world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0;
     world.status = "countdown"; world.controls.paused = false; world.remaining = world.duration; world.tick = 0;
     if (world.mode === "test") { world.testRulesVersion = 2; world.controls.majorAuto = 1; world.controls.minorAuto = 2; world.controls.newsEnabled = true; }
     world.startedAt = at + 3000; world.lastTickAt = at; world.newsNextAt = world.startedAt + world.controls.newsSpacing * 1000;
     world.scheduledNews = []; world.scheduledInterventions = [];
     for (const player of Object.values(world.sessions)) if (player.included) {
-      const next = newPlayer(player.id, world.batch, at, true, player.terminalNumber); world.sessions[player.id] = next;
+      const next = newPlayer(player.id, world.batch, at, true, player.terminalNumber);
+      // Starting a batch resets the portfolio, not the device's heartbeat. Stamping
+      // every stored session as active here makes stale/offline terminals look online.
+      next.lastSeenAt = player.lastSeenAt;
+      world.sessions[player.id] = next;
     }
   } else if (action === "pause") { world.controls.paused = true; world.lastTickAt = at; }
   else if (action === "resume") { world.controls.paused = false; world.lastTickAt = at; }
   else if (action === "end") endWorld(world, at);
-  else if (action === "reset") { world.status = "ready"; world.controls.paused = true; world.remaining = world.duration; world.sessions = {}; world.stocks = makeStocks(world.batch + Date.now()); world.news = makeNews(world.batch); world.headlines = []; world.scheduledNews = []; world.scheduledInterventions = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0; world.lastTickAt = at; }
+  else if (action === "reset") { world.status = "ready"; world.controls.paused = true; world.remaining = world.duration; world.sessions = {}; world.stocks = makeStocks(world.batch); world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; world.scheduledNews = []; world.scheduledInterventions = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0; world.lastTickAt = at; }
   else if (action === "scenario") world.controls.scenario = payload.value as World["controls"]["scenario"];
   else if (action === "controls") {
     const c = world.controls;
-    if (typeof payload.volatility === "number") c.volatility = clamp(payload.volatility, 15, 100);
+    if (typeof payload.volatility === "number") c.volatility = clamp(payload.volatility, MIN_VOLATILITY, MAX_VOLATILITY);
     if (typeof payload.bots === "number") c.bots = clamp(payload.bots, 0, 100);
     if (payload.tickRate === .5 || payload.tickRate === 1) c.tickRate = payload.tickRate;
     if (typeof payload.marketBias === "number") c.marketBias = clamp(payload.marketBias, 0, 100);
