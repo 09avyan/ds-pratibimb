@@ -68,7 +68,7 @@ on conflict (id) do update
 set market_signing_secret = excluded.market_signing_secret;
 ```
 
-Keep the signing secret and host password out of source control. The Supabase publishable key is designed to be public, but this app still keeps it server-side. For Vercel and Netlify, configure `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `MARKET_SIGNING_SECRET`, and `HOST_PASSWORD` as environment variables, then redeploy. Netlify needs the database values in the Production context with both Builds and Functions scopes so its Next.js server handler can read and write the shared game state. Trigger a new production deploy after changing them. `vercel.json` selects the Mumbai (`bom1`) region.
+Keep the signing secret and host password out of source control. The Supabase publishable key is designed to be public, but this app still keeps it server-side. For Vercel and Netlify, configure `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `MARKET_SIGNING_SECRET`, and `HOST_PASSWORD` as environment variables, then redeploy. Netlify needs the database values in the Production context with both Builds and Functions scopes so its Next.js server handler can read and write the shared game state. The host-console login also reads `HOST_PASSWORD` server-side; update it in the host's environment settings to reset that password. Trigger a new production deploy after changing any of these values. `vercel.json` selects the Mumbai (`bom1`) region.
 
 ## Project layout
 
