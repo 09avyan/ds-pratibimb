@@ -3,6 +3,7 @@ import type { Mode, News, Player, PublicWorld, Trade, World } from "./types";
 
 export const START_CASH = 1_000_000;
 export const VIRTUAL_BOT_COUNT = 128;
+export const TERMINAL_ACTIVE_WINDOW_MS = 30_000;
 const MARKET_RULES_VERSION = 1;
 const MIN_VOLATILITY = 12.8;
 const MAX_VOLATILITY = 85;
@@ -333,12 +334,18 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (world.mode === "test") { world.testRulesVersion = 2; world.controls.majorAuto = 1; world.controls.minorAuto = 2; world.controls.newsEnabled = true; }
     world.startedAt = at + 3000; world.lastTickAt = at; world.newsNextAt = world.startedAt + world.controls.newsSpacing * 1000;
     world.scheduledNews = []; world.scheduledInterventions = [];
-    for (const player of Object.values(world.sessions)) if (player.included) {
-      const next = newPlayer(player.id, world.batch, at, true, player.terminalNumber);
-      // Starting a batch resets the portfolio, not the device's heartbeat. Stamping
-      // every stored session as active here makes stale/offline terminals look online.
-      next.lastSeenAt = player.lastSeenAt;
-      world.sessions[player.id] = next;
+    for (const player of Object.values(world.sessions)) {
+      if (!player.included) continue;
+      const lastSeenAt = player.lastSeenAt ?? player.joinedAt;
+      if (at - lastSeenAt < TERMINAL_ACTIVE_WINDOW_MS) {
+        const next = newPlayer(player.id, world.batch, at, true, player.terminalNumber);
+        // A connected device joins the new batch with a fresh portfolio.
+        // Offline records stay closed until that device checks in again.
+        next.lastSeenAt = player.lastSeenAt;
+        world.sessions[player.id] = next;
+      } else if (!player.ended) {
+        player.ended = true;
+      }
     }
   } else if (action === "pause") { world.controls.paused = true; world.lastTickAt = at; }
   else if (action === "resume") { world.controls.paused = false; world.lastTickAt = at; }

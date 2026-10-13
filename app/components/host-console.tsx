@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { HostNote, World } from "@/game/types";
-import { equity, newsImpactRange, previewNewsImpact, VIRTUAL_BOT_COUNT } from "@/game/engine";
+import { equity, newsImpactRange, previewNewsImpact, TERMINAL_ACTIVE_WINDOW_MS, VIRTUAL_BOT_COUNT } from "@/game/engine";
 import { DalaalMark } from "@/components/trader-parts";
 import { groupTerminalSessions, type ParticipantGroup } from "@/game/host-sessions";
 
@@ -185,7 +185,7 @@ export function HostConsole() {
     if (editingNoteId === noteId) { setEditingNoteId(null); setNoteDraft(""); }
   }
   const players = useMemo<ParticipantGroup[]>(() => {
-    return groupTerminalSessions(world?.sessions ?? {});
+    return groupTerminalSessions(world?.sessions ?? {}, Date.now(), TERMINAL_ACTIVE_WINDOW_MS);
   }, [world?.sessions]);
   const inspectedPlayer = players.find(player => player.sessionIds.includes(inspectId ?? "")) ?? null;
   const inspectedPositions = useMemo(() => {
@@ -194,7 +194,7 @@ export function HostConsole() {
     return [...Object.entries(inspectedPlayer.holdings).map(([symbol, p]) => position(symbol, p.qty, p.avg, "Long")), ...Object.entries(inspectedPlayer.shorts).map(([symbol, p]) => position(symbol, p.qty, p.avg, "Short"))];
   }, [world, inspectedPlayer]);
   const inspectedEquity = inspectedPlayer && world ? equity(world, inspectedPlayer) : 0;
-  const connected = (player: ParticipantGroup) => player.sessionIds.some(id => Date.now() - (world?.sessions[id]?.lastSeenAt ?? 0) < 30_000);
+  const connected = (player: ParticipantGroup) => player.sessionIds.some(id => Date.now() - (world?.sessions[id]?.lastSeenAt ?? 0) < TERMINAL_ACTIVE_WINDOW_MS);
   const connectedCount = players.filter(connected).length;
   const newsOptions = world?.news ?? [];
   const selectedNews = newsOptions.filter(news => selectedNewsIds.includes(news.id));

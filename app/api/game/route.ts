@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { advance, executeTrade, hostAction, newPlayer, toPublic } from "@/game/engine";
 import { mutate } from "@/game/store";
-import type { Mode } from "@/game/types";
+import type { Mode, World } from "@/game/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +14,24 @@ const readTerminal = (value: unknown): number | undefined => {
   return terminal;
 };
 const errorResponse = (error: unknown, status = 400) => NextResponse.json({ error: error instanceof Error ? error.message : "Something went wrong." }, { status, headers: { "Cache-Control": "no-store" } });
+function touchSession(state: World, sessionId: string, terminalNumber?: number) {
+  const now = Date.now();
+  let player = state.sessions[sessionId];
+  if (!player) {
+    player = newPlayer(sessionId, state.batch, now, true, terminalNumber);
+    state.sessions[sessionId] = player;
+    state.version++;
+  } else {
+    if (player.batch !== state.batch && (state.status === "countdown" || state.status === "live")) {
+      player = newPlayer(sessionId, state.batch, now, player.included, terminalNumber ?? player.terminalNumber);
+      state.sessions[sessionId] = player;
+      state.version++;
+    }
+    if (terminalNumber && player.terminalNumber !== terminalNumber) { player.terminalNumber = terminalNumber; state.version++; }
+    if (now - (player.lastSeenAt ?? 0) >= 10_000) { player.lastSeenAt = now; state.version++; }
+  }
+  return player;
+}
 
 export async function GET(request: NextRequest) {
   const mode = modeOf(request.nextUrl.searchParams.get("mode"));
@@ -33,10 +51,7 @@ export async function GET(request: NextRequest) {
   try {
     const { world } = await mutate(mode, state => {
       advance(state);
-      if (sessionId && !state.sessions[sessionId]) { state.sessions[sessionId] = newPlayer(sessionId, state.batch, Date.now(), true, terminalNumber); state.version++; }
-      const player = sessionId ? state.sessions[sessionId] : null;
-      if (player && terminalNumber && player.terminalNumber !== terminalNumber) { player.terminalNumber = terminalNumber; state.version++; }
-      if (player && Date.now() - (player.lastSeenAt ?? 0) >= 10_000) { player.lastSeenAt = Date.now(); state.version++; }
+      if (sessionId) touchSession(state, sessionId, terminalNumber);
     }, localPreview);
     if (knownRevision === world.version) return new NextResponse(null, { status: 304, headers: { "Cache-Control": "no-store, max-age=0" } });
     return NextResponse.json(toPublic(world, sessionId, selectedStock, { includeCandles, candlesSince }), { headers: { "Cache-Control": "no-store, max-age=0" } });
@@ -57,9 +72,7 @@ export async function POST(request: NextRequest) {
     if (action === "trade" && !["Buy", "Sell", "Short"].includes(body.side)) return errorResponse(new Error("Choose Buy, Sell or Short."));
     const { world, result } = await mutate(mode, state => {
       advance(state);
-      if (!state.sessions[sessionId]) { state.sessions[sessionId] = newPlayer(sessionId, state.batch, Date.now(), true, terminalNumber); state.version++; }
-      const player = state.sessions[sessionId];
-      if (terminalNumber && player.terminalNumber !== terminalNumber) { player.terminalNumber = terminalNumber; state.version++; }
+      const player = touchSession(state, sessionId, terminalNumber);
       if (action === "trade") {
         const existing = requestId ? player.history.find(trade => trade.requestId === requestId) : null;
         if (existing) {
