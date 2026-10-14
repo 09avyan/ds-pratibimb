@@ -8,7 +8,7 @@ import { UI_OPTIONS, type UiVariant } from "@/ui-options";
 
 type Props = { mode?: Mode; audienceOnly?: boolean; terminal?: number; uiVariant?: UiVariant; preview?: boolean };
 type TradeSide = "Buy" | "Sell" | "Short";
-type FreshStockTheme = Extract<UiVariant, "canopy" | "bluecurrent" | "moonshot" | "cloudtop">;
+type FreshStockTheme = Extract<UiVariant, "canopy" | "bluecurrent" | "doordarshan" | "schooldays">;
 const money = (n: number, digits = 2) => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 const changePct = (s: Stock) => (s.price / s.previousClose - 1) * 100;
 const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">) => {
@@ -94,18 +94,79 @@ function FreshStockTile({ variant, stock, selected, position, onSelect }: { vari
       {company}
       <div className="current-stock-badges">{sector}{holding}</div>
     </>}
-    {variant === "moonshot" && <>
-      <div className="moonshot-stock-orbit"><span className="moonshot-stock-planet">{mark}</span><b>{stock.symbol}</b>{quote}</div>
+    {variant === "doordarshan" && <>
+      <div className="broadcast-stock-heading"><span className="broadcast-station">CH.{stock.symbol.slice(0, 2)}</span><span className="broadcast-logo">{mark}</span><span className="broadcast-live">● ON AIR</span></div>
       {company}
-      <div className="moonshot-stock-signal">{miniChart}<span>{move}{sector}</span></div>
-      <div className="moonshot-stock-position">{holding}</div>
+      <div className="broadcast-stock-quote"><span>{stock.symbol}</span>{quote}{move}</div>
+      <div className="broadcast-stock-signal">{miniChart}</div>
+      <div className="broadcast-stock-footer">{sector}{holding}</div>
     </>}
-    {variant === "cloudtop" && <>
-      <div className="cloudtop-stock-name">{company}{mark}</div>
-      <div className="cloudtop-stock-price">{quote}{move}</div>
-      <div className="cloudtop-stock-flight"><b>{stock.symbol}</b>{sector}{holding}</div>
-      <div className="cloudtop-stock-trail">{miniChart}</div>
+    {variant === "schooldays" && <>
+      <div className="school-stock-register"><span className="school-stock-roll">ROLL</span><b>{stock.symbol}</b><span className="school-stock-mark">{mark}</span></div>
+      {company}
+      <div className="school-stock-score"><span>LAST PRICE</span>{quote}{move}</div>
+      <div className="school-stock-chalk">{miniChart}</div>
+      <div className="school-stock-foot">{sector}{holding}</div>
     </>}
+  </button>;
+}
+
+function StockTile({ variant, stock, selected, position, onSelect }: { variant?: UiVariant; stock: Stock; selected: boolean; position: string; onSelect: () => void }) {
+  if (variant === "canopy" || variant === "bluecurrent" || variant === "doordarshan" || variant === "schooldays") {
+    return <FreshStockTile variant={variant} stock={stock} selected={selected} position={position} onSelect={onSelect}/>;
+  }
+
+  const change = changePct(stock);
+  const changeText = `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
+  const move = <span className={`stock-change ${change >= 0 ? "positive" : "negative"}`}>{changeText}</span>;
+  const mark = <Logo stock={stock} compact/>;
+  const chart = <MiniChart stock={stock}/>;
+  const classes = `stock-card stock-card-${variant ?? "default"}${selected ? " selected" : ""}`;
+  const accessible = `Select ${stock.name}, ${money(stock.price)}, ${changeText}, ${stock.sector}, ${position}`;
+
+  if (variant === "blockcraft") return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
+    <div className="block-stock-cap"><span className="block-stock-logo">{mark}</span><span><small>MARKET BLOCK</small><b>{stock.symbol}</b></span><strong>{money(stock.price)}</strong></div>
+    <span className="block-stock-name">{stock.name}</span>
+    <div className="block-stock-trend">{chart}{move}</div>
+    <div className="block-stock-meta"><span>{stock.sector}</span><b>{position}</b></div>
+  </button>;
+
+  if (variant === "arcade") return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
+    <div className="mash-stock-header"><span className="mash-stock-symbol">{stock.symbol}</span>{mark}<span className="mash-stock-sector">{stock.sector}</span></div>
+    <span className="mash-stock-name">{stock.name}</span>
+    <div className="mash-stock-price"><strong>{money(stock.price)}</strong>{move}</div>
+    <div className="mash-stock-trend">{chart}<small>LIVE MOVE</small></div>
+    <span className="mash-stock-position">{position}</span>
+  </button>;
+
+  if (variant === "paper") return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
+    <div className="paper-stock-kicker"><span>MARKET QUOTE · NSE</span>{move}</div>
+    <div className="paper-stock-heading"><b>{stock.symbol}</b>{mark}</div>
+    <span className="paper-stock-name">{stock.name}</span>
+    <div className="paper-stock-price"><small>LAST TRADED</small><strong>{money(stock.price)}</strong></div>
+    <div className="paper-stock-trend">{chart}</div>
+    <div className="paper-stock-footer"><span>{stock.sector}</span><b>{position}</b></div>
+  </button>;
+
+  if (variant === "pacman") return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
+    <div className="maze-stock-path"><span className="maze-pellets">● · ● · ●</span>{mark}<span className="maze-pellets">● · ●</span></div>
+    <div className="maze-stock-heading"><b>{stock.symbol}</b>{move}</div>
+    <span className="maze-stock-name">{stock.name}</span>
+    <div className="maze-stock-price"><strong>{money(stock.price)}</strong>{chart}</div>
+    <div className="maze-stock-footer"><span>{stock.sector}</span><b>{position}</b></div>
+  </button>;
+
+  if (variant === "aurora") return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
+    <div className="score-stock-header"><span>MARKET SCORE</span><b>{stock.symbol}</b></div>
+    <div className="score-stock-main">{mark}<span><small>{stock.name}</small><strong>{money(stock.price)}</strong></span>{move}</div>
+    <div className="score-stock-readout">{chart}<span>{change >= 0 ? "UP RUN" : "DOWN RUN"}</span></div>
+    <div className="score-stock-footer"><span>{stock.sector}</span><b>{position}</b></div>
+  </button>;
+
+  return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
+    <div className="stock-card-top">{mark}<div className="stock-id"><strong>{stock.symbol}</strong><span>{stock.name}</span></div></div>
+    <div className="stock-card-bottom"><strong>{money(stock.price)}</strong>{move}</div>{chart}
+    <div className="stock-card-foot"><span>{stock.sector}</span><span>{position}</span></div>
   </button>;
 }
 
@@ -194,8 +255,6 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const [clockNow, setClockNow] = useState(Date.now);
   const [menu, setMenu] = useState(false);
   const [drawer, setDrawer] = useState(false);
-  const [tradeOpen, setTradeOpen] = useState(false);
-  const tradeDialogRef = useRef<HTMLDialogElement>(null);
   const lastNews = useRef<string | null>(null);
   const inFlight = useRef(false);
   const submitting = useRef(false);
@@ -287,12 +346,6 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     if (themeReady) window.localStorage.setItem("ds-theme", theme);
     return () => { delete document.documentElement.dataset.theme; };
   }, [theme, themeReady]);
-  useEffect(() => {
-    const dialog = tradeDialogRef.current;
-    if (!dialog) return;
-    if (tradeOpen && !dialog.open) dialog.showModal();
-    if (!tradeOpen && dialog.open) dialog.close();
-  }, [tradeOpen]);
   useEffect(() => { if (view === "portfolio") setMenu(false); }, [view]);
   useEffect(() => { if (player?.ended && (world?.mode === "test" || world?.status === "closed")) setView("report"); }, [world?.mode, world?.status, player?.ended]);
 
@@ -330,14 +383,13 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const isTest = mode === "test";
   const activeNews = world?.headlines.find(n => n.id === world.latestNewsId);
   const previewOption = uiVariant ? UI_OPTIONS.find(option => option.slug === uiVariant) : null;
-  const inlineTrade = uiVariant === "arcade";
-  const freshStockTheme: FreshStockTheme | null = uiVariant === "canopy" || uiVariant === "bluecurrent" || uiVariant === "moonshot" || uiVariant === "cloudtop" ? uiVariant : null;
-  const orderTicket = stock && <div className="order-card"><div className="order-title"><div><span className="eyebrow">ORDER TICKET · {stock.symbol}</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
+  const freshStockTheme: FreshStockTheme | null = uiVariant === "canopy" || uiVariant === "bluecurrent" || uiVariant === "doordarshan" || uiVariant === "schooldays" ? uiVariant : null;
+  const orderTicket = stock && <div className="order-card order-controls"><div className="order-title"><div><span className="eyebrow">ORDER TICKET · {stock.symbol}</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
     <div className="side-switch">{(["Buy", "Sell", "Short"] as const).map(t => <button key={t} onClick={() => setSide(t)} className={`${side === t ? `active ${t.toLowerCase()}` : ""}`} disabled={t === "Sell" && !ownedQty}>{t}</button>)}</div>
     {side === "Sell" && <div className="context-hint">You hold {ownedQty} {selected} shares. Sell closes owned shares only.</div>}
     {side === "Short" && <div className="context-hint short-hint">Short exposure is capped at 30% of your starting portfolio. A buy covers open shorts first.</div>}
     {side === "Buy" && shortQty > 0 && <div className="context-hint cover-hint">Your buy will cover up to {shortQty} open short shares first.</div>}
-    <div className="quantity-row"><label><span>QUANTITY</span><div><input autoFocus={!inlineTrade} inputMode="numeric" type="number" min="1" step="1" value={quantity} onChange={e => { setQuantity(e.target.value); setAmount(""); }}/><span>SHARES</span></div></label><label><span>ORDER VALUE</span><div><span className="currency-prefix">₹</span><input inputMode="decimal" type="number" min="0" step="1" value={amount || (calculatedAmount ? calculatedAmount.toFixed(2) : "")} onChange={e => { setAmount(e.target.value); setQuantity(String(Math.floor((Number(e.target.value) || 0) / stock.price))); }}/></div></label></div>
+    <div className="quantity-row"><label><span>QUANTITY</span><div><input inputMode="numeric" type="number" min="1" step="1" value={quantity} onChange={e => { setQuantity(e.target.value); setAmount(""); }}/><span>SHARES</span></div></label><label><span>ORDER VALUE</span><div><span className="currency-prefix">₹</span><input inputMode="decimal" type="number" min="0" step="1" value={amount || (calculatedAmount ? calculatedAmount.toFixed(2) : "")} onChange={e => { setAmount(e.target.value); setQuantity(String(Math.floor((Number(e.target.value) || 0) / stock.price))); }}/></div></label></div>
     <div className="order-estimate"><span>Est. order value</span><b>{money(calculatedAmount)}</b></div>
     <button className={`execute-button ${side.toLowerCase()}`} disabled={blocked || qty < 1 || (side === "Sell" && qty > ownedQty)} onClick={() => void send("trade", { side, symbol: stock.symbol, quantity: qty })}>{busy ? "Submitting order…" : blocked ? world?.status === "closed" ? "Market closed" : "Waiting for the batch" : `${side} ${qty || "—"} ${stock.symbol}`}</button>
     <div className="available-row"><span>Available cash</span><b>{money(player?.cash ?? 1_000_000, 0)}</b></div>
@@ -346,7 +398,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     {preview && previewOption && <div className="ui-preview-strip"><a className="preview-back" href="/ui-preview">← Compare all</a><div className="preview-option-title"><b>VERSION {previewOption.number} · {previewOption.name}</b><small>{previewOption.tagline}</small></div><span className="preview-sandbox">ISOLATED PREVIEW MARKET · NO LIVE TRADES</span><nav className="preview-switcher" aria-label="Switch design preview">{UI_OPTIONS.map(option => <a key={option.slug} aria-current={option.slug === uiVariant ? "page" : undefined} href={`/ui-preview/${option.slug}/play/${String(terminal ?? 1).padStart(2, "0")}`}>V{option.number}</a>)}<a href={`/ui-preview/${uiVariant}/audience`}>Audience</a></nav></div>}
     <Header world={world} player={player} clockNow={clockNow} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />
     <nav className="terminal-tabs" aria-label="Primary navigation">
-      {([ ["markets", "Markets"], ["portfolio", "Portfolio"], ["news", "News desk"] ] as const).map(([key, label]) => <button key={key} onClick={() => { if (key === "portfolio") setMenu(false); setTradeOpen(false); setView(key); }} aria-current={view === key ? "page" : undefined} className={view === key ? "active" : ""}>{label}{key === "news" && Boolean(world?.headlines.length) && <span>{world!.headlines.length}</span>}</button>)}
+      {([ ["markets", "Markets"], ["portfolio", "Portfolio"], ["news", "News desk"] ] as const).map(([key, label]) => <button key={key} onClick={() => { if (key === "portfolio") setMenu(false); setView(key); }} aria-current={view === key ? "page" : undefined} className={view === key ? "active" : ""}>{label}{key === "news" && Boolean(world?.headlines.length) && <span>{world!.headlines.length}</span>}</button>)}
       <span className="terminal-context">{terminal ? `TERMINAL ${String(terminal).padStart(2, "0")}` : isTest ? "TEST MARKET" : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</span>
     </nav>
 
@@ -355,35 +407,31 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       {world && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - clockNow) / 1000))} seconds` : world.status === "closed" ? isTest ? "Practice round complete" : "The batch has ended" : isTest ? "Practice round ready" : "The market is ready"}<span>{world.status === "countdown" ? "The market is starting on every device." : world.status === "closed" ? isTest ? "Start another isolated practice round when you’re ready." : "Review your report to return to the ready state." : isTest ? "Your isolated practice market is ready." : "The host will start the shared batch shortly."}</span>{isTest && (world.status === "closed" || world.status === "ready") && <button type="button" className="outline-button" disabled={busy} onClick={() => void send("sandbox-start")}>Start practice round</button>}</div>}
       {view === "markets" && stock && <>
         {breaking && activeNews && <div className="breaking-alert" role="status"><div className="breaking-mark">!</div><div><small>{activeNews.type.toUpperCase()} NEWS · {newsScope(activeNews)} · JUST NOW</small><strong>{activeNews.headline}</strong></div><button onClick={() => setBreaking(false)} aria-label="Minimize headline">×</button><span className="breaking-progress"/></div>}
-        <div className={`trading-grid${freshStockTheme ? " trading-grid-stocks-right" : ""}`}>
+        <div className={`trading-grid${freshStockTheme ? " trading-grid-stocks-right" : ""}${uiVariant ? ` trading-grid-${uiVariant}` : " trading-grid-default"}`}>
           <section className="watch-area">
             <div className="watch-controls"><div className="sector-scroll">{sectors.map(s => <button key={s} className={`filter-chip ${sector === s ? "active" : ""}`} onClick={() => setSector(s)}>{s}</button>)}</div><label className="search-field"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search companies" aria-label="Search stocks"/><kbd>⌘ K</kbd></label></div>
-            <div className={`stock-grid${freshStockTheme ? ` stock-grid-${freshStockTheme}` : ""}`}>{shownStocks.map(s => {
+            <div className={`stock-grid${uiVariant ? ` stock-grid-${uiVariant}` : " stock-grid-default"}`}>{shownStocks.map(s => {
               const longQty = player?.holdings[s.symbol]?.qty ?? 0;
               const shortQty = player?.shorts[s.symbol]?.qty ?? 0;
               const position = longQty > 0 ? `${longQty} shares` : shortQty > 0 ? `${shortQty} short` : "No position";
-              const onSelect = () => { setSelected(s.symbol); setQuantity("10"); setAmount(""); if (!inlineTrade) setTradeOpen(true); };
-              return freshStockTheme
-                ? <FreshStockTile key={s.symbol} variant={freshStockTheme} stock={s} selected={selected === s.symbol} position={position} onSelect={onSelect}/>
-                : <button key={s.symbol} type="button" className={`stock-card ${selected === s.symbol ? "selected" : ""}`} onClick={onSelect} aria-label={`Select ${s.name}${inlineTrade ? " for the inline order panel" : " and open its trade panel"}`}>
-                  <div className="stock-card-top"><Logo stock={s}/><div className="stock-id"><strong>{s.symbol}</strong><span>{s.name}</span></div></div>
-                  <div className="stock-card-bottom"><strong>{money(s.price)}</strong><span className={`stock-change ${changePct(s) >= 0 ? "positive" : "negative"}`}>{changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</span></div>
-                  <MiniChart stock={s}/>
-                  <div className="stock-card-foot"><span>{s.sector}</span><span>{position}</span></div>
-                </button>;
+              const onSelect = () => { setSelected(s.symbol); setQuantity("10"); setAmount(""); };
+              return <StockTile key={s.symbol} variant={uiVariant} stock={s} selected={selected === s.symbol} position={position} onSelect={onSelect}/>;
             })}</div>
             {!shownStocks.length && <div className="empty-state">No companies match that search.</div>}
             {activeNews && <div className="latest-brief"><span className="brief-icon">◉</span><span><small>LATEST BULLETIN · {newsScope(activeNews)}</small><b>{activeNews.headline}</b></span><button onClick={() => setView("news")}>News desk →</button></div>}
           </section>
 
-          <aside className="trade-column">
-            <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="focus-trade-button" onClick={() => inlineTrade ? document.getElementById("inline-order-ticket")?.scrollIntoView({ behavior: "smooth", block: "nearest" }) : setTradeOpen(true)}>Trade {stock.symbol}</button><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
+          <aside className={`trade-column trade-column-${uiVariant ?? "default"}`}>
+            <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
               <div className="focus-price-row"><strong>{money(stock.price)}</strong><span className={`stock-change ${changePct(stock) >= 0 ? "positive" : "negative"}`}>{changePct(stock) >= 0 ? "+" : ""}{changePct(stock).toFixed(2)}%</span><small>SESSION</small></div>
-              <MainChart key={stock.symbol} stock={stock} kind={chartType} trades={world?.player?.history ?? []}/>
-              <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.tickRate ?? 1} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
-              <div className="chart-foot"><span><i/> Open <b>{money(stock.candles[0]?.open ?? stock.price)}</b></span><span>High <b>{money(Math.max(stock.price, ...stock.candles.map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(stock.price, ...stock.candles.map(c => c.low)))}</b></span></div>
+              <div className="focus-workbench">
+                <div className="chart-workspace"><MainChart key={stock.symbol} stock={stock} kind={chartType} trades={world?.player?.history ?? []}/>
+                  <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.tickRate ?? 1} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
+                  <div className="chart-foot"><span><i/> Open <b>{money(stock.candles[0]?.open ?? stock.price)}</b></span><span>High <b>{money(Math.max(stock.price, ...stock.candles.map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(stock.price, ...stock.candles.map(c => c.low)))}</b></span></div>
+                </div>
+                <div id="integrated-order-ticket" className="integrated-order-ticket">{orderTicket}</div>
+              </div>
             </div>
-            {inlineTrade && <section id="inline-order-ticket" className="inline-order-ticket"><div className="inline-order-heading"><span className="eyebrow">TRADE {stock.symbol} · {stock.sector.toUpperCase()}</span><small>ORDER PANEL</small></div>{orderTicket}</section>}
             <div className="holdings-card"><div><span className="eyebrow">YOUR HOLDINGS</span><button onClick={() => setView("portfolio")}>Portfolio →</button></div>
               {invested.length + shorts.length === 0 ? <p>Build your first position from the watchlist.</p> : [...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].slice(0, 4).map(p => {
                 const found = world?.stocks.find(s => s.symbol === p.symbol); const val = (found?.price ?? 0) * p.qty;
@@ -408,12 +456,6 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       </section>}
       <footer className="workspace-footer"><span>SIMULATED MARKET · FICTIONAL PRICES · NO REAL TRADES</span><span>© PULSE / DALAA<span>L</span> STREET</span></footer>
     </main>
-    {tradeOpen && stock && !inlineTrade && <dialog ref={tradeDialogRef} className={`trade-dialog${uiVariant ? ` ui-${uiVariant}` : ""}`} aria-labelledby="trade-dialog-title" onCancel={event => { event.preventDefault(); setTradeOpen(false); }} onClick={event => { if (event.target === event.currentTarget) setTradeOpen(false); }}>
-      <div className="trade-dialog-panel">
-        <header className="trade-dialog-heading"><div><span className="eyebrow">QUICK TRADE · {stock?.sector?.toUpperCase()}</span><h2 id="trade-dialog-title">{stock?.symbol} <span>{stock?.name}</span></h2><p>{stock ? money(stock.price) : "—"} <b className={stock && changePct(stock) >= 0 ? "positive" : "negative"}>{stock ? `${changePct(stock) >= 0 ? "+" : ""}${changePct(stock).toFixed(2)}%` : ""}</b></p></div><button className="trade-dialog-close" type="button" onClick={() => setTradeOpen(false)} aria-label="Close quick trade panel">×</button></header>
-        {orderTicket}
-      </div>
-    </dialog>}
     {!audienceOnly && world?.status === "live" && player && !player.ended && <button className="end-session" onClick={() => { if (window.confirm("End your trading session now? Open shorts will be settled at the current simulated price.")) void send("end"); }}>Finish session <span>↗</span></button>}
     {toast && <div className="toast-message" role="status"><span>✓</span>{toast}<button onClick={() => setToast("")}>×</button></div>}
     {drawer && <div className="drawer-backdrop" onClick={() => setDrawer(false)}><section className="news-drawer" onClick={e => e.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">MARKET BULLETINS</span><h2>News desk</h2></div><button onClick={() => setDrawer(false)}>×</button></div>{world?.headlines.slice(0, 12).map(n => <article key={n.id}><small className={`news-tag ${n.type}`}>{n.type}</small><b>{n.headline}</b><span>{newsScope(n)}</span></article>)}</section></div>}

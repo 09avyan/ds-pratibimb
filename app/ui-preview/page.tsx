@@ -11,8 +11,8 @@ const artLabels: Record<string, string> = {
   "6": "NEON NIGHTS",
   "7": "GARDEN GLOW",
   "8": "SEA LEVEL LIVE",
-  "9": "ORBITAL MARKET",
-  "10": "CLOUDTOP CARNIVAL",
+  "9": "SUNDAY BROADCAST",
+  "10": "SCHOOL RECESS ’92",
 };
 
 export default function UiPreviewPage() {
