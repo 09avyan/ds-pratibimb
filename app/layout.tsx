@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./new-ui-themes.css";
 
 export const metadata: Metadata = {
   title: "Dalaal Street — The Fintech Floor",
