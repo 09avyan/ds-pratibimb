@@ -37,7 +37,10 @@ assert.equal(world.status, 'closed');
 assert.equal(world.remaining, 0);
 assert.equal(player.ended, true);
 assert.deepEqual(player.shorts, {});
-const nextBatch = hostAction(world, 'start', {}, world.startedAt + world.duration * 1000 + 2);
+const nextBatchAt = world.startedAt + world.duration * 1000 + 2;
+// Simulate the participant polling the finished batch just before the next starts.
+player.lastSeenAt = nextBatchAt - 1;
+const nextBatch = hostAction(world, 'start', {}, nextBatchAt);
 assert.equal(nextBatch.batch, 2);
 assert.equal(nextBatch.status, 'countdown');
 assert.equal(nextBatch.remaining, nextBatch.duration);
