@@ -324,13 +324,13 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
           </section>
 
           <aside className="trade-column">
-            <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="focus-trade-button" onClick={() => document.getElementById("inline-order-ticket")?.scrollIntoView({ behavior: "smooth", block: "nearest" })}>Trade {stock.symbol}</button><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
+            <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
               <div className="focus-price-row"><strong>{money(stock.price)}</strong><span className={`stock-change ${changePct(stock) >= 0 ? "positive" : "negative"}`}>{changePct(stock) >= 0 ? "+" : ""}{changePct(stock).toFixed(2)}%</span><small>SESSION</small></div>
               <MainChart key={stock.symbol} stock={stock} kind={chartType} trades={world?.player?.history ?? []}/>
               <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.tickRate ?? 1} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
               <div className="chart-foot"><span><i/> Open <b>{money(stock.candles[0]?.open ?? stock.price)}</b></span><span>High <b>{money(Math.max(stock.price, ...stock.candles.map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(stock.price, ...stock.candles.map(c => c.low)))}</b></span></div>
+              <section id="inline-order-ticket" className="inline-order-ticket"><div className="inline-order-heading"><span className="eyebrow">TRADE {stock.symbol} · {stock.sector.toUpperCase()}</span><small>ORDER PANEL</small></div>{orderTicket}</section>
             </div>
-            <section id="inline-order-ticket" className="inline-order-ticket"><div className="inline-order-heading"><span className="eyebrow">TRADE {stock.symbol} · {stock.sector.toUpperCase()}</span><small>ORDER PANEL</small></div>{orderTicket}</section>
             <div className="holdings-card"><div><span className="eyebrow">YOUR HOLDINGS</span><button onClick={() => setView("portfolio")}>Portfolio →</button></div>
               {invested.length + shorts.length === 0 ? <p>Build your first position from the watchlist.</p> : [...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].slice(0, 4).map(p => {
                 const found = world?.stocks.find(s => s.symbol === p.symbol); const val = (found?.price ?? 0) * p.qty;
@@ -365,31 +365,16 @@ function Metric({ label, value, note }: { label: string; value: string; note?: s
 
 function Audience({ world, uiVariant, preview, theme, onTheme }: { world: PublicWorld | null; uiVariant?: UiVariant; preview?: boolean; theme: "light" | "dark"; onTheme: () => void }) {
   const [fullscreen, setFullscreen] = useState(false);
-  const latestItems = world ? (world.latestNewsIds?.length ? world.latestNewsIds : world.latestNewsId ? [world.latestNewsId] : [])
+  const newsItems = world ? (world.latestNewsIds?.length ? world.latestNewsIds : world.latestNewsId ? [world.latestNewsId] : [])
     .map(id => world.headlines.find(news => news.id === id))
     .filter((news): news is PublicWorld["headlines"][number] => Boolean(news)) : [];
+  const latestNews = (newsItems.length ? newsItems : [...(world?.headlines ?? [])].sort((a, b) => b.createdAt - a.createdAt)).slice(0, 3);
   const stocks = world?.stocks ?? [];
-  const batchHeadlines = [...(world?.headlines ?? [])].sort((a, b) => b.createdAt - a.createdAt);
-  const rankedStocks = useMemo(() => [...stocks].sort((a, b) => changePct(b) - changePct(a)), [stocks]);
-  const bestStock = rankedStocks[0];
-  const worstStock = rankedStocks.at(-1);
-  const rising = stocks.filter(stock => changePct(stock) > 0).length;
-  const falling = stocks.filter(stock => changePct(stock) < 0).length;
   const returnPct = world?.indexChange ?? 0;
   const isClosed = world?.status === "closed";
   const statusText = world?.status === "live" && !world.controls.paused ? "MARKET LIVE" : isClosed ? "MARKET CLOSED" : "MARKET READY";
   const signReturn = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
   const indexText = world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00";
-  const indexTakeaway = isClosed
-    ? `closed at ${indexText}, returning ${signReturn(returnPct)} for the batch`
-    : world?.status === "live"
-      ? `is at ${indexText}, returning ${signReturn(returnPct)} so far`
-      : `opens at ${indexText}, the 10,000-point reference`;
-  const learningNotes = [
-    `The Dalaal-10 ${indexTakeaway}.`,
-    `${rising} of ${stocks.length || 28} companies are up${falling ? `, while ${falling} are down` : ""}. This shows whether the move was broad across the market.`,
-    bestStock && worstStock ? `${bestStock.symbol} is the strongest mover (${signReturn(changePct(bestStock))}); ${worstStock.symbol} is the weakest (${signReturn(changePct(worstStock))}). Single stocks can move differently from the index.` : "Compare individual stock moves with the index to see how one company can differ from the wider market.",
-  ];
   useEffect(() => { const done = () => setFullscreen(Boolean(document.fullscreenElement)); document.addEventListener("fullscreenchange", done); return () => document.removeEventListener("fullscreenchange", done); }, []);
   return <main className={`audience-wall ui-${uiVariant ?? "default"}`}>
     <header className="wall-header">
@@ -398,18 +383,13 @@ function Audience({ world, uiVariant, preview, theme, onTheme }: { world: Public
       <button className="theme-button wall-theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
       <button className="wall-fullscreen" onClick={() => document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen()}>{fullscreen ? "Exit full screen" : "Full screen"} ↗</button>
     </header>
-    <section className="wall-overview" aria-label="Batch market summary">
-      <article className="wall-index-card"><div><small>DALAAL-10 · {isClosed ? "CLOSING LEVEL" : world?.status === "live" ? "LIVE LEVEL" : "REFERENCE LEVEL"}</small><span>{isClosed ? "BATCH CLOSE" : isClosed === false && world?.status === "live" ? "SO FAR" : "BATCH START"}</span></div><strong>{indexText}</strong><b className={returnPct >= 0 ? "positive" : "negative"}>{signReturn(returnPct)} <small>RETURN</small></b><p>Return from the 10,000-point reference</p></article>
-      <article className="wall-mover-card best"><span className="mover-label">{isClosed ? "BEST STOCK" : "BEST SO FAR"}</span>{bestStock ? <><div className="mover-company"><Logo stock={bestStock} compact/><b>{bestStock.symbol}</b><small>{bestStock.name}</small></div><strong>{signReturn(changePct(bestStock))}</strong></> : <p>Stock data will appear when the market loads.</p>}</article>
-      <article className="wall-mover-card worst"><span className="mover-label">{isClosed ? "WORST STOCK" : "WORST SO FAR"}</span>{worstStock ? <><div className="mover-company"><Logo stock={worstStock} compact/><b>{worstStock.symbol}</b><small>{worstStock.name}</small></div><strong>{signReturn(changePct(worstStock))}</strong></> : <p>Stock data will appear when the market loads.</p>}</article>
-      <article className="wall-breadth-card"><span className="mover-label">MARKET BREADTH</span><strong><i className="positive">{rising} up</i><i className="negative">{falling} down</i></strong><small>{world?.participants ?? 0} participants · {stocks.length || 28} companies</small></article>
+    <section className="wall-hero" aria-label="Dalaal-10 price and latest news">
+      <article className="wall-index-card"><div className="wall-index-label"><small>DALAAL-10 · {isClosed ? "CLOSING LEVEL" : world?.status === "live" ? "LIVE LEVEL" : "REFERENCE LEVEL"}</small><span>{statusText}</span></div><div className="wall-index-value"><strong>{indexText}</strong><b className={returnPct >= 0 ? "positive" : "negative"}>{signReturn(returnPct)}</b></div></article>
+      <section className="wall-news" aria-label="Latest news"><header className="wall-news-heading"><span className="wall-news-label">LATEST NEWS</span><span>{latestNews.length ? `${latestNews.length} ${latestNews.length === 1 ? "headline" : "headlines"}` : "No headlines yet"}</span></header><div className="wall-news-headlines">{latestNews.length ? latestNews.map(item => <article key={item.id}><div><span className={`news-tag ${item.type}`}>{item.type}</span><span>{newsScope(item)}</span><time>{new Date(item.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><strong>{item.headline}</strong></article>) : <article className="wall-news-empty">News released during the batch will appear here.</article>}</div></section>
     </section>
-    <div className="wall-news"><div className={`wall-news-label ${latestItems.some(item => item.type === "major") ? "major" : ""}`}>{latestItems.length > 1 ? `${latestItems.length} NEW HEADLINES` : latestItems[0]?.type === "major" ? "MAJOR NEWS" : "LATEST NEWS"}</div><div className="wall-news-headlines">{latestItems.length ? latestItems.map(item => <strong key={item.id}>{item.headline}</strong>) : <strong>The opening bell is close. Markets are ready for the next batch.</strong>}</div><small>{latestItems.length ? [...new Set(latestItems.map(newsScope))].join(" · ").toUpperCase() : "DALAA L STREET"}</small></div>
-    <section className="wall-market-section"><div className="wall-section-heading"><div><span className="eyebrow">BATCH {String(world?.batch || 1).padStart(2, "0")} · MARKET BOARD</span><h1>Every stock, at a glance<span>.</span></h1></div><span>Prices and returns are measured against the previous close</span></div>
+    <section className="wall-market-section"><header className="wall-section-heading"><div><span className="eyebrow">MARKET BOARD</span><h1>All stocks<span>.</span></h1></div></header>
       <section className="wall-grid" aria-label="All listed stocks">{stocks.map(stock => <article className="wall-stock" key={stock.symbol}><div className="wall-stock-top"><Logo stock={stock} compact/><span><b>{stock.symbol}</b><small>{stock.name}</small></span></div><div className="wall-price"><strong>{money(stock.price, stock.price < 100 ? 2 : 0)}</strong><span className={changePct(stock) >= 0 ? "positive" : "negative"}>{signReturn(changePct(stock))}</span></div></article>)}</section>
     </section>
-    <section className="wall-learning"><div className="wall-section-heading"><div><span className="eyebrow">QUICK TAKEAWAYS · BATCH {String(world?.batch || 1).padStart(2, "0")}</span><h2>What the market showed</h2></div><span>Observed moves, without guessing what caused them</span></div><div className="wall-learning-grid">{learningNotes.map((note, index) => <article key={index}><i>{String(index + 1).padStart(2, "0")}</i><p>{note}</p></article>)}</div></section>
-    <section className="wall-news-archive"><div className="wall-section-heading"><div><span className="eyebrow">BATCH {String(world?.batch || 1).padStart(2, "0")} · FULL NEWS FEED</span><h2>Every headline this batch</h2></div><span>{batchHeadlines.length} headlines · newest first</span></div><div className="wall-news-list">{batchHeadlines.length ? batchHeadlines.map((news, index) => <article className={index === 0 ? "current" : ""} key={news.id}><div><span className={`news-tag ${news.type}`}>{news.type}</span><small>{newsScope(news)}</small><time>{new Date(news.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><strong>{news.headline}</strong></article>) : <div className="wall-news-empty">No headlines have been released in this batch yet.</div>}</div></section>
-    <footer className="wall-footer"><span>{preview && uiVariant && <><a href="/ui-preview">PREVIEW V{uiVariant.toUpperCase()} · COMPARE ALL</a> · </>}FICTIONAL PRICES · LEARNING EXPERIENCE · NO REAL TRADES</span><span>{stocks.length || 28} LISTED COMPANIES</span></footer>
+    <footer className="wall-footer"><span>{preview && uiVariant && <><a href="/ui-preview">PREVIEW V{uiVariant.toUpperCase()} · COMPARE ALL</a> · </>}FICTIONAL PRICE MOVEMENTS · NO REAL TRADES</span></footer>
   </main>;
 }

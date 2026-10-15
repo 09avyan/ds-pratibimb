@@ -892,3 +892,54 @@
 @media (prefers-reduced-motion: reduce) {
   .terminal.ui-orbit *, .audience-wall.ui-orbit * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Orbits stay in the page margins, clear of prices and chart labels. */
+.terminal.ui-orbit {
+  background-image:
+    radial-gradient(ellipse at 93% 3%, rgba(193, 175, 132, .24), transparent 23%),
+    radial-gradient(circle at 92% 5%, transparent 0 82px, rgba(79, 108, 122, .12) 83px 84px, transparent 85px 132px, rgba(79, 108, 122, .08) 133px 134px, transparent 135px),
+    radial-gradient(ellipse at 4% 83%, rgba(121, 153, 155, .10), transparent 21%),
+    linear-gradient(145deg, #f5f6f2, var(--page) 54%, #e7ece9);
+  background-size: auto;
+  background-attachment: scroll;
+}
+.terminal.ui-orbit::before {
+  opacity: .36;
+  background-image: radial-gradient(circle at 92% 5%, transparent 0 5px, rgba(154, 121, 63, .24) 5.5px 6px, transparent 6.5px);
+  background-size: 100% 100%;
+}
+.terminal.ui-orbit .focus-card {
+  overflow: hidden;
+  border-color: #c9d3d0;
+  border-radius: 20px;
+  background: linear-gradient(155deg, #fff, #f7f9f6 65%, #eef2ef);
+}
+.terminal.ui-orbit .inline-order-ticket {
+  margin: 15px 0 0 !important;
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid #ccd6d2;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.terminal.ui-orbit .inline-order-heading { margin: 0 2px 9px; }
+.terminal.ui-orbit .inline-order-ticket .order-card {
+  padding: 13px;
+  border: 1px solid #d6dfdc;
+  border-radius: 15px;
+  background: #edf2ef;
+}
+.terminal.ui-orbit .focus-trade-button { display: none; }
+.terminal.ui-orbit .stock-card:nth-child(3n+1) { border-radius: 17px 23px 17px 23px; }
+.terminal.ui-orbit .stock-card:nth-child(3n+2) { border-radius: 23px 17px 23px 17px; }
+:root[data-theme="dark"] .terminal.ui-orbit {
+  background-image:
+    radial-gradient(ellipse at 93% 3%, rgba(174, 153, 111, .16), transparent 23%),
+    radial-gradient(circle at 92% 5%, transparent 0 82px, rgba(185, 198, 193, .13) 83px 84px, transparent 85px 132px, rgba(185, 198, 193, .09) 133px 134px, transparent 135px),
+    radial-gradient(ellipse at 4% 83%, rgba(103, 145, 140, .12), transparent 21%),
+    linear-gradient(145deg, #25333b, var(--page) 54%, #1d2b32);
+}
+:root[data-theme="dark"] .terminal.ui-orbit .focus-card { border-color: #50636a; background: linear-gradient(155deg, #2d414b, #263a43 65%, #22353d); }
+:root[data-theme="dark"] .terminal.ui-orbit .inline-order-ticket { border-color: #52666c; }
+:root[data-theme="dark"] .terminal.ui-orbit .inline-order-ticket .order-card { border-color: #53676d; background: #233941; }

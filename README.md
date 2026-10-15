@@ -11,7 +11,7 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 - A new batch reset restores the market's starting stock prices as well as clearing its terminal sessions and published headlines.
 - Host presence uses each device's last-seen heartbeat. A new batch resets participant portfolios without marking previously offline terminals as connected.
 - Price movement is driven by 128 simulated traders with 16 distinct trading styles. The baseline volatility is 15% lower than the previous engine setting; hosts can still adjust volatility for an event.
-- The audience wall shows the shared market without creating a participant account.
+- The audience wall shows the Dalaal-10 level and change, all stock prices and changes, and the latest batch headlines without creating a participant account.
 - The game includes an isolated practice market with the same three-second countdown, six-minute rounds, trading rules, news flow, settlement, and session report as a hosted game.
 - Each player’s round report includes short, activity-based learning notes, badges tied to their choices, and their best and toughest realized closed trades.
 - Host notes are stored with the shared game state and are available after sign-in from another device.
@@ -26,8 +26,8 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 | `/v1/play/01` through `/v1/play/12` | Numbered terminals in the original appearance |
 | `/v2` and `/v2/play/01` through `/v2/play/12` | Orbit Exchange, a calm observatory-inspired market floor |
 | `/v3` and `/v3/play/01` through `/v3/play/12` | Clay Market, a soft sculpted interface |
-| `/v4` and `/v4/play/01` through `/v4/play/12` | Premiere Exchange, a cinema-inspired market |
-| `/v5` and `/v5/play/01` through `/v5/play/12` | Platform Exchange, a train departure board |
+| `/v4` and `/v4/play/01` through `/v4/play/12` | Chroma Current, an expressive flowing-color interface |
+| `/v5` and `/v5/play/01` through `/v5/play/12` | Signal Station, a precise operations-board interface |
 | `/v6` and `/v6/play/01` through `/v6/play/12` | Vinyl Exchange, a record-store market |
 | `/v7` and `/v7/play/01` through `/v7/play/12` | Tangram Exchange, an angular cut-paper market |
 | `/v1/audience` through `/v7/audience` | Audience wall styled to match each UI version |
@@ -54,7 +54,9 @@ Open `http://localhost:3000`. Configure the environment values before using the 
 - `MARKET_SIGNING_SECRET`: a long random secret used by the server to authorize market-state RPC calls.
 - `HOST_PASSWORD`: password for `/host`.
 
-The unversioned `/play` and `/audience` routes keep the original appearance; `/v1` is an alias for that look. V2 is an observatory, V3 uses claymorphism, V4 is a cinema, V5 is a train station, V6 is a record store, and V7 uses cut-paper geometry. Every version uses the same market engine, company data, and trade rules. Trading screens adapt their stock columns to screen size and browser zoom; stocks stay on the left, with the selected stock's chart and Buy, Sell, and Short controls on the right and the order panel below the chart. Chart markers and hover details show trades from the current terminal's individual session. Audience versions show the Dalaal-10 closing level and return, strongest and weakest stocks, market breadth, short factual takeaways, the batch news feed, and all stock prices.
+The unversioned `/play` and `/audience` routes keep the original appearance; `/v1` is an alias for that look. V2 is an observatory, V3 uses claymorphism, V4 uses expressive flowing forms, V5 is a restrained signal board, V6 is a record store, and V7 uses cut-paper geometry. Every version uses the same market engine, company data, and trade rules. Trading screens adapt their stock columns to screen size and browser zoom; stocks stay on the left, with the selected stock's chart and Buy, Sell, and Short controls together on the right, directly below the chart. Chart markers and hover details show trades from the current terminal's individual session. Audience versions show the Dalaal-10 level and change, the full stock list with each price and change, and the latest batch headlines.
+
+Starting stock prices use rounded whole-rupee reference closes from NSE India's market page dated 15 October 2026 (15:30 IST); Wipro's close for the same date uses Yahoo Finance historical data. These are opening references for a fictional game and are not live quotes. The initial daily move percentages are preserved to reflect that dated market snapshot.
 
 The practice market uses the same price and curated news simulation as a live round, but has its own state. It starts with a short countdown, runs for six minutes, closes positions at the end, and offers a new practice round. `/test/01` to `/test/12` use their own terminal logins. Legacy autonomous practice sessions are closed safely the first time the updated engine reads them.
 

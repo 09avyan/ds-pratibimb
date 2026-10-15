@@ -398,3 +398,30 @@
   .audience-wall.ui-arcade .wall-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); }
   .audience-wall.ui-arcade .wall-stock:nth-child(n) { min-height: 82px; padding: 10px; }
 }
+
+/* V3 clay finish: visibly molded, cushioned surfaces and tactile controls. */
+.terminal.ui-arcade {
+  background-image:radial-gradient(ellipse at 4% 5%,#d7cbbb 0,transparent 29%),radial-gradient(ellipse at 94% 95%,#ddcbc0 0,transparent 28%),linear-gradient(145deg,#eae4da,#e1ddd5 62%,#e9e1d8);
+}
+.terminal.ui-arcade .topbar {background:linear-gradient(180deg,#f2ece2,#e9e2d7);border-bottom:1px solid #d2c8ba;box-shadow:0 8px 18px #82766724;}
+.terminal.ui-arcade .market-ribbon,.terminal.ui-arcade .terminal-tabs,.terminal.ui-arcade .theme-button {border:1px solid #f6f0e7;border-radius:18px;background:linear-gradient(145deg,#f4eee5,#e6ded2);box-shadow:7px 8px 15px #aaa08f78,-6px -6px 13px #fffdf6c4;}
+.terminal.ui-arcade .workspace {max-width:none;padding-inline:clamp(16px,2.3vw,38px);}
+.terminal.ui-arcade .stock-card,.terminal.ui-arcade .stock-card:nth-child(n) {position:relative;overflow:hidden;border:1px solid #faf6ef;border-radius:25px 19px 24px 18px;background:linear-gradient(145deg,#f8f2e9,#e9e2d7);box-shadow:8px 9px 17px #a79c8b78,-6px -6px 13px #fffdf7c4,inset 1px 1px 0 #fff;}
+.terminal.ui-arcade .stock-card:nth-child(3n+2) {border-radius:19px 27px 18px 25px;}
+.terminal.ui-arcade .stock-card::before {position:absolute;content:"";width:90px;height:90px;right:-54px;top:-60px;border-radius:50%;background:linear-gradient(145deg,#fff9efaa,#dbc8b640);pointer-events:none;}
+.terminal.ui-arcade .stock-card:hover {transform:translateY(-3px);box-shadow:10px 12px 18px #a79c8b78,-7px -7px 14px #fffdf7c9;}
+.terminal.ui-arcade .stock-card.selected,.terminal.ui-arcade .stock-card.selected:nth-child(n) {border-color:#c88c78;background:linear-gradient(145deg,#f8e8dd,#ead1c3);outline:2px solid #c88c78;outline-offset:-4px;box-shadow:inset 3px 3px 8px #b58d7d77,inset -3px -3px 8px #fff5e9b0,6px 7px 13px #a8918170;}
+.terminal.ui-arcade .focus-card {border:1px solid #faf6ed;border-radius:28px;background:linear-gradient(145deg,#f4eee5,#eae2d7);box-shadow:9px 11px 20px #a79c8b70,-7px -7px 15px #fffdf7be;}
+.terminal.ui-arcade .inline-order-ticket {margin-top:14px!important;padding:16px;border:1px solid #f9f2e9;border-radius:23px;background:linear-gradient(145deg,#eee6da,#e7ded2);box-shadow:inset 4px 4px 8px #b4a89670,inset -4px -4px 8px #fffaf1b0;}
+.terminal.ui-arcade .inline-order-ticket .order-card {border-radius:18px;background:#eee7dc;box-shadow:inset 3px 3px 6px #b8ac9b80,inset -3px -3px 6px #fffaf2b5;}
+.terminal.ui-arcade .price-chart-frame {overflow:hidden;border:1px solid #f9f4e9;border-radius:19px;background:linear-gradient(145deg,#f8f4ec,#e8e2d9);box-shadow:inset 3px 3px 7px #b8ad9c80,inset -3px -3px 7px #fffaf2b5;}
+.terminal.ui-arcade .chart-toggle,.terminal.ui-arcade .side-switch,.terminal.ui-arcade .quantity-row label>div {border:1px solid #f8f1e7;border-radius:15px;background:#e8e1d6;box-shadow:inset 3px 3px 6px #b5aa9a80,inset -3px -3px 6px #fffaf2b5;}
+.terminal.ui-arcade .holdings-card {border-radius:22px;background:linear-gradient(145deg,#f4eee5,#e9e1d7);box-shadow:7px 8px 16px #a79c8b68,-5px -5px 12px #fffdf7b5;}
+:root[data-theme="dark"] .terminal.ui-arcade {background-image:radial-gradient(ellipse at 4% 5%,#48413d 0,transparent 30%),radial-gradient(ellipse at 94% 95%,#483c39 0,transparent 28%),linear-gradient(145deg,#292c30,#303336 62%,#292c30);}
+:root[data-theme="dark"] .terminal.ui-arcade .topbar {background:linear-gradient(180deg,#383c40,#303437);border-color:#4b5053;}
+:root[data-theme="dark"] .terminal.ui-arcade .market-ribbon,:root[data-theme="dark"] .terminal.ui-arcade .terminal-tabs,:root[data-theme="dark"] .terminal.ui-arcade .theme-button {border-color:#4a5053;background:linear-gradient(145deg,#3d4245,#303538);box-shadow:7px 8px 15px #171a1d9c,-5px -5px 12px #4a50547a;}
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card,:root[data-theme="dark"] .terminal.ui-arcade .stock-card:nth-child(n) {border-color:#505457;background:linear-gradient(145deg,#3d4144,#303437);box-shadow:8px 9px 17px #15181a9c,-5px -5px 12px #4a50547a,inset 1px 1px 0 #606568;}
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card.selected,:root[data-theme="dark"] .terminal.ui-arcade .stock-card.selected:nth-child(n) {border-color:#d79b84;background:linear-gradient(145deg,#594942,#463c39);box-shadow:inset 3px 3px 8px #201d1c9c,inset -3px -3px 8px #80675b66,6px 7px 13px #1517199c;}
+:root[data-theme="dark"] .terminal.ui-arcade .focus-card,:root[data-theme="dark"] .terminal.ui-arcade .holdings-card {border-color:#4c5154;background:linear-gradient(145deg,#3a3e41,#303437);box-shadow:9px 11px 20px #15171999,-6px -6px 13px #4a505473;}
+:root[data-theme="dark"] .terminal.ui-arcade .inline-order-ticket {border-color:#525659;background:linear-gradient(145deg,#33383b,#2e3235);box-shadow:inset 4px 4px 8px #1b1e209c,inset -4px -4px 8px #4a50547a;}
+:root[data-theme="dark"] .terminal.ui-arcade .inline-order-ticket .order-card,:root[data-theme="dark"] .terminal.ui-arcade .price-chart-frame,:root[data-theme="dark"] .terminal.ui-arcade .chart-toggle,:root[data-theme="dark"] .terminal.ui-arcade .side-switch,:root[data-theme="dark"] .terminal.ui-arcade .quantity-row label>div {border-color:#4c5255;background:#303538;box-shadow:inset 3px 3px 6px #1b1e209c,inset -3px -3px 6px #4c525580;}
