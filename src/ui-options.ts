@@ -69,6 +69,26 @@ export const UI_OPTIONS = [
     highlights: ["Porthole-inspired stock cards keep each logo, price, move, sector, and position visible", "A deep-sea chart console with sonar details", "An underwater audience reef in both light and dark mode"],
     palette: "bluecurrent",
   },
+  {
+    number: "9",
+    slug: "railway",
+    version: "v9",
+    name: "Platform One",
+    title: "A lively market at the old railway station",
+    tagline: "Deep green station signs, brass platform clocks, route markers, and a bustling arrival board bring the familiar charm of an Indian rail journey to the market.",
+    highlights: ["Company quotes styled as colorful platform indicators", "A station-chart display with Buy, Sell, and Short beside it", "A matching station announcement wall in light and dark mode"],
+    palette: "railway",
+  },
+  {
+    number: "10",
+    slug: "picturehouse",
+    version: "v10",
+    name: "Picture Palace",
+    title: "A matinee at the neighborhood cinema",
+    tagline: "A glowing hand-lettered marquee, bold movie-poster stock panels, velvet-red controls, and a big-screen market chart celebrate the neighborhood picture house.",
+    highlights: ["Stock information presented like lively cinema posters", "A big-screen chart and trade controls in one cinema-inspired space", "A matching marquee audience wall in light and dark mode"],
+    palette: "picturehouse",
+  },
 ] as const;
 
 export type UiVariant = (typeof UI_OPTIONS)[number]["slug"];

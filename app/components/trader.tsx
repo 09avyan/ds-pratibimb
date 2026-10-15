@@ -8,7 +8,7 @@ import { UI_OPTIONS, type UiVariant } from "@/ui-options";
 
 type Props = { mode?: Mode; audienceOnly?: boolean; terminal?: number; uiVariant?: UiVariant; preview?: boolean };
 type TradeSide = "Buy" | "Sell" | "Short";
-type FreshStockTheme = Extract<UiVariant, "canopy" | "bluecurrent">;
+type FreshStockTheme = Extract<UiVariant, "canopy" | "bluecurrent" | "railway" | "picturehouse">;
 const money = (n: number, digits = 2) => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 const changePct = (s: Stock) => (s.price / s.previousClose - 1) * 100;
 const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">) => {
@@ -94,11 +94,24 @@ function FreshStockTile({ variant, stock, selected, position, onSelect }: { vari
       {company}
       <div className="current-stock-badges">{sector}{holding}</div>
     </>}
+    {variant === "railway" && <>
+      <div className="platform-stock-sign"><span className="platform-stock-logo">{mark}</span><span className="platform-stock-route"><b>{stock.symbol}</b><small>MARKET PLATFORM</small></span><span className="platform-stock-signal" aria-hidden="true">●</span></div>
+      {company}
+      <div className="platform-stock-board"><span>LAST PRICE</span>{quote}{move}{miniChart}</div>
+      <div className="platform-stock-footer">{sector}{holding}</div>
+    </>}
+    {variant === "picturehouse" && <>
+      <div className="picturehouse-poster-top"><span className="picturehouse-logo">{mark}</span><b>{stock.symbol}</b><span className="picturehouse-premiere">✦ NOW SHOWING</span></div>
+      {company}
+      <div className="picturehouse-billing">{quote}{move}</div>
+      <div className="picturehouse-screen">{miniChart}<span>MARKET TRAILER</span></div>
+      <div className="picturehouse-poster-foot">{sector}{holding}</div>
+    </>}
   </button>;
 }
 
 function StockTile({ variant, stock, selected, position, onSelect }: { variant?: UiVariant; stock: Stock; selected: boolean; position: string; onSelect: () => void }) {
-  if (variant === "canopy" || variant === "bluecurrent") {
+  if (variant === "canopy" || variant === "bluecurrent" || variant === "railway" || variant === "picturehouse") {
     return <FreshStockTile variant={variant} stock={stock} selected={selected} position={position} onSelect={onSelect}/>;
   }
 
@@ -369,7 +382,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const isTest = mode === "test";
   const activeNews = world?.headlines.find(n => n.id === world.latestNewsId);
   const previewOption = uiVariant ? UI_OPTIONS.find(option => option.slug === uiVariant) : null;
-  const freshStockTheme: FreshStockTheme | null = uiVariant === "canopy" || uiVariant === "bluecurrent" ? uiVariant : null;
+  const freshStockTheme: FreshStockTheme | null = uiVariant === "canopy" || uiVariant === "bluecurrent" || uiVariant === "railway" || uiVariant === "picturehouse" ? uiVariant : null;
   const orderTicket = stock && <div className="order-card order-controls"><div className="order-title"><div><span className="eyebrow">ORDER TICKET · {stock.symbol}</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
     <div className="side-switch">{(["Buy", "Sell", "Short"] as const).map(t => <button key={t} onClick={() => setSide(t)} className={`${side === t ? `active ${t.toLowerCase()}` : ""}`} disabled={t === "Sell" && !ownedQty}>{t}</button>)}</div>
     {side === "Sell" && <div className="context-hint">You hold {ownedQty} {selected} shares. Sell closes owned shares only.</div>}
