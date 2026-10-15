@@ -223,12 +223,12 @@ export function advance(world: World, now = Date.now()): World {
       const minorLeft = Math.max(0, world.controls.minorAuto);
       if ((major && majorLeft) || (!minorLeft && majorLeft)) {
         const choice = world.news.filter(n => n.type === "major");
-        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick) * choice.length)]), at);
+        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick + world.batch * 991) * choice.length)]), at);
         world.latestNewsIds = [world.latestNewsId!];
         world.controls.majorAuto--;
       } else if (minorLeft) {
         const choice = world.news.filter(n => n.type === "minor");
-        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick) * choice.length)]), at);
+        pushHeadline(world, world.news.indexOf(choice[Math.floor(rand(world.tick + world.batch * 991) * choice.length)]), at);
         world.latestNewsIds = [world.latestNewsId!];
         world.controls.minorAuto--;
       }

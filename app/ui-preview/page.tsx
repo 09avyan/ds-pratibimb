@@ -11,8 +11,6 @@ const artLabels: Record<string, string> = {
   "6": "NEON NIGHTS",
   "7": "GARDEN GLOW",
   "8": "SEA LEVEL LIVE",
-  "9": "PLATFORM ARRIVALS",
-  "10": "PICTURE PALACE",
 };
 
 export default function UiPreviewPage() {
@@ -34,6 +32,6 @@ export default function UiPreviewPage() {
         <div className="choice-copy"><div className="choice-title"><span>OPTION {option.number}</span><h2>{option.name}</h2></div><p>{option.tagline}</p><ul>{option.highlights.map(item => <li key={item}>{item}</li>)}</ul><div className="choice-actions"><Link className="choice-open" href={`/ui-preview/${option.slug}/play/01`}>Trading screen <span aria-hidden="true">↗</span></Link><Link className="choice-audience-open" href={`/ui-preview/${option.slug}/audience`}>Audience screen <span aria-hidden="true">↗</span></Link></div></div>
       </article>)}
     </section>
-    <footer className="preview-home-footer"><span>PREVIEW ONLY · SAME GAME RULES · SEPARATE DEMO SESSION</span><span>Original look: <code>/play</code> or <code>/v1</code>; themed layouts: <code>/v2</code> through <code>/v10</code>.</span></footer>
+    <footer className="preview-home-footer"><span>PREVIEW ONLY · SAME GAME RULES · SEPARATE DEMO SESSION</span><span>Original look: <code>/play</code> or <code>/v1</code>; themed layouts: <code>/v2</code> through <code>/v8</code>.</span></footer>
   </main>;
 }
