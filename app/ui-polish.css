@@ -344,11 +344,11 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
+  overflow: hidden;
 }
 .terminal .order-card .side-switch > button {
   display: flex;
   box-sizing: border-box;
-  width: 100%;
   min-width: 0;
   min-height: 36px;
   margin: 0;
