@@ -89,7 +89,7 @@ function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Cand
   const activeHover = hoveredIndex === null ? null : Math.max(0, Math.min(data.length - 1, hoveredIndex));
   const hoveredTrades = activeHover === null ? [] : visibleTrades.filter(item => item.index === activeHover);
   const formatTime = (time: number) => new Date(time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  return <><div className="price-chart-frame"><svg className="price-chart" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${stock.name} ${kind.toLowerCase()} price chart with this terminal's own trades. Hover over the chart for timestamp, OHLC, volume, and trade details.`} onPointerMove={event => {
+  return <><div className="price-chart-frame"><svg className="price-chart" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label={`${stock.name} ${kind.toLowerCase()} price chart with this terminal's own trades. Hover over the chart for timestamp, OHLC, volume, and trade details.`} onPointerMove={event => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const chartX = (event.clientX - bounds.left) / bounds.width * w;
     const nearest = Math.round((chartX - pad.l) / plotWidth * (data.length - 1));

@@ -25,16 +25,17 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 | `/v1` and `/v1/play` | Original appearance, also available at the unversioned routes |
 | `/v1/play/01` through `/v1/play/12` | Numbered terminals in the original appearance |
 | `/v2` and `/v2/play/01` through `/v2/play/12` | Orbit Exchange, a calm observatory-inspired market floor |
-| `/v3` and `/v3/play/01` through `/v3/play/12` | Market Mash, a playful board-game layout |
-| `/v4` and `/v4/play/01` through `/v4/play/12` | Gallery Floor, an architectural exhibition-inspired market |
-| `/v5` and `/v5/play/01` through `/v5/play/12` | Studio Exchange, a live radio-broadcast market desk |
-| `/v6` and `/v6/play/01` through `/v6/play/12` | Greenhouse Exchange, a botanical market setting |
-| `/v1/audience`, `/v2/audience`, `/v3/audience`, `/v4/audience`, `/v5/audience`, and `/v6/audience` | Audience wall styled to match each UI version |
+| `/v3` and `/v3/play/01` through `/v3/play/12` | Clay Market, a soft sculpted interface |
+| `/v4` and `/v4/play/01` through `/v4/play/12` | Premiere Exchange, a cinema-inspired market |
+| `/v5` and `/v5/play/01` through `/v5/play/12` | Platform Exchange, a train departure board |
+| `/v6` and `/v6/play/01` through `/v6/play/12` | Vinyl Exchange, a record-store market |
+| `/v7` and `/v7/play/01` through `/v7/play/12` | Tangram Exchange, an angular cut-paper market |
+| `/v1/audience` through `/v7/audience` | Audience wall styled to match each UI version |
 | `/host` | Host console with Quick Access, shared private notes, news studio, market controls and participant sessions (requires the configured host password) |
 | `/audience` | Read-only audience wall |
 | `/test` | Isolated six-minute practice market |
 | `/test/01` through `/test/12` | Numbered practice terminals, separate from live terminals |
-| `/ui-preview` | Local-only comparison of the original interface and V3; unavailable in production |
+| `/ui-preview` | Local-only comparison of all seven interfaces; unavailable in production |
 
 ## Run locally
 
@@ -53,11 +54,11 @@ Open `http://localhost:3000`. Configure the environment values before using the 
 - `MARKET_SIGNING_SECRET`: a long random secret used by the server to authorize market-state RPC calls.
 - `HOST_PASSWORD`: password for `/host`.
 
-The unversioned `/play` and `/audience` routes keep the original appearance; `/v1` is an alias for that look. `/v2`, `/v4`, `/v5`, and `/v6` each offer a different visual world, and `/v3` remains Market Mash. Every version uses the same market engine, company data, and trade rules. Trading screens adapt to screen size and browser zoom; stock cards stay on the left, with the selected stock's chart and Buy, Sell, and Short controls on the right and the order panel below the chart. Chart markers and hover details show trades from the current terminal's individual session. Audience versions show the Dalaal-10 closing level and return, strongest and weakest stocks, market breadth, short factual takeaways, the batch news feed, and all stock prices.
+The unversioned `/play` and `/audience` routes keep the original appearance; `/v1` is an alias for that look. V2 is an observatory, V3 uses claymorphism, V4 is a cinema, V5 is a train station, V6 is a record store, and V7 uses cut-paper geometry. Every version uses the same market engine, company data, and trade rules. Trading screens adapt their stock columns to screen size and browser zoom; stocks stay on the left, with the selected stock's chart and Buy, Sell, and Short controls on the right and the order panel below the chart. Chart markers and hover details show trades from the current terminal's individual session. Audience versions show the Dalaal-10 closing level and return, strongest and weakest stocks, market breadth, short factual takeaways, the batch news feed, and all stock prices.
 
 The practice market uses the same price and curated news simulation as a live round, but has its own state. It starts with a short countdown, runs for six minutes, closes positions at the end, and offers a new practice round. `/test/01` to `/test/12` use their own terminal logins. Legacy autonomous practice sessions are closed safely the first time the updated engine reads them.
 
-During local development, open `http://localhost:3000/ui-preview` to compare the original interface and all five themed versions. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
+During local development, open `http://localhost:3000/ui-preview` to compare the original interface and all six themed versions. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
 
 ## Supabase setup
 
@@ -89,4 +90,4 @@ The market state is stored as JSONB and shared across app instances through Supa
 
 ## Network behavior
 
-The market keeps its one-second update rhythm and price rules unchanged. Unchanged snapshots return a small `304` response, charts send only new candles after their initial history load, inactive screens stop requesting chart candles, and host snapshots omit chart history. Company marks try to load small, lazy company favicon images and fall back to local initials if an image is unavailable; screens use system fonts. Disconnected or hidden terminals stop polling; transient request failures back off automatically before retrying.
+The market keeps its one-second update rhythm and price rules unchanged. Unchanged snapshots return a small `304` response, charts send only new candles after their initial history load, inactive screens stop requesting chart candles, and host snapshots omit chart history. All 28 company marks load from small local SVG assets, with a sector glyph fallback if an asset cannot load; screens use system fonts. Disconnected or hidden terminals stop polling; transient request failures back off automatically before retrying.

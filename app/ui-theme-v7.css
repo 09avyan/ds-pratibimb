@@ -1,0 +1,109 @@
+/* V7: Tangram. Angular cut-paper modules, never the observatory's circular instruments. */
+.terminal.ui-tangram {
+  --page:#eeeae2;--card:#fffdf7;--secondary:#e7e7df;--input:#fffdf7;
+  --ink:#213350;--muted:#596577;--faint:#76808d;--line:#bcc5c9;
+  --accent:#245b93;--accent-soft:#dce9f4;--nav:#203c63;
+  --up:#247966;--down:#b35248;--up-soft:#e4f1eb;--down-soft:#f8e7e2;
+  --shadow:3px 4px 0 #253c5420;--r:3px;
+  color:var(--ink);background:#eeeae2;
+  background-image:linear-gradient(136deg,transparent 0 65%,#d9dcd8 65% 69%,transparent 69%),linear-gradient(45deg,transparent 0 87%,#ddba77 87% 90%,transparent 90%);
+  background-size:450px 440px,590px 540px;
+}
+.terminal.ui-tangram .topbar {background:#223e66;color:#fffdf4;border-bottom:4px solid #d2a45d;box-shadow:none}
+.terminal.ui-tangram .topbar-brand,.terminal.ui-tangram .topbar-brand>span:last-child,.terminal.ui-tangram .topbar-metrics b,.terminal.ui-tangram .market-ribbon strong{color:#fffdf4}
+.terminal.ui-tangram .topbar-brand>span:last-child span,.terminal.ui-tangram .timer-value{color:#ecc779!important}
+.terminal.ui-tangram .topbar-metrics small,.terminal.ui-tangram .ribbon-label{color:#b8cbdc}
+.terminal.ui-tangram .market-ribbon{border:1px solid #7890ab;border-radius:0;background:#33557c;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%)}
+.terminal.ui-tangram .theme-button{border-radius:2px;border-color:#8aa1ba;background:#33557c;color:#fffdf4}
+.terminal.ui-tangram .terminal-tabs{background:#f8f6ef;border-bottom:2px solid #bdc6c8}
+.terminal.ui-tangram .terminal-tabs>button{font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#627287}
+.terminal.ui-tangram .terminal-tabs>button.active{color:#245b93}
+.terminal.ui-tangram .terminal-tabs>button.active:after{height:4px;background:#c97156;clip-path:polygon(0 100%,10px 0,100% 0,100% 100%)}
+.terminal.ui-tangram .terminal-context{color:#596b7d}
+.terminal.ui-tangram .workspace{max-width:1920px}
+.terminal.ui-tangram .section-heading h1{font-weight:900;letter-spacing:-.05em;color:#203e66}
+.terminal.ui-tangram .eyebrow{color:#a65946;font-weight:900;letter-spacing:.13em}
+.terminal.ui-tangram .heading-period{color:#c97156}
+.terminal.ui-tangram .trading-grid{grid-template-columns:minmax(0,1fr) minmax(340px,min(36vw,550px))!important;gap:clamp(12px,1.5vw,24px)!important}
+.terminal.ui-tangram .watch-area,.terminal.ui-tangram .trade-column{min-width:0}
+.terminal.ui-tangram .trade-column{overflow-y:auto!important;overflow-x:hidden;display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+.terminal.ui-tangram .stock-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,165px),1fr));gap:9px}
+.terminal.ui-tangram .stock-card{position:relative;isolation:isolate;overflow:hidden;border:2px solid #b9c4c9;border-radius:2px;background:#fffdf7;padding:10px 11px 8px;box-shadow:2px 3px 0 #32527516;transition:transform .16s,border-color .16s,box-shadow .16s}
+.terminal.ui-tangram .stock-card:before{content:"";position:absolute;right:0;top:0;border-top:18px solid #d3a665;border-left:18px solid transparent;opacity:.85;z-index:-1}
+.terminal.ui-tangram .stock-card:nth-child(3n+2):before{border-top-color:#c87d64}
+.terminal.ui-tangram .stock-card:nth-child(3n):before{border-top-color:#6f9a95}
+.terminal.ui-tangram .stock-card:hover{transform:translateY(-2px);border-color:#6f879e;box-shadow:3px 5px 0 #32527525}
+.terminal.ui-tangram .stock-card.selected{padding-left:11px;border:2px solid #245b93;box-shadow:4px 5px 0 #245b933b}
+.terminal.ui-tangram .stock-card.selected:after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#c97156}
+.terminal.ui-tangram .stock-card .company-mark,.terminal.ui-tangram .focus-company .company-mark{border:1px solid #c6d0d2;border-radius:2px;background:#f6f2e9}
+.terminal.ui-tangram .stock-id strong{color:#203e66;font-weight:900}
+.terminal.ui-tangram .stock-id span,.terminal.ui-tangram .stock-card-foot{color:#5d6a77}
+.terminal.ui-tangram .stock-card-bottom>strong{font-size:15px;color:#203e66}
+.terminal.ui-tangram .stock-card-foot{border-color:#dce0dc}
+.terminal.ui-tangram .filter-chip,.terminal.ui-tangram .search-field{border:1px solid #afbdc5;border-radius:2px;background:#fffdf7;color:#546679}
+.terminal.ui-tangram .filter-chip.active{background:#245b93;border-color:#245b93;color:#fff}
+.terminal.ui-tangram .search-field input{color:#213350}
+.terminal.ui-tangram .market-state-banner,.terminal.ui-tangram .autonomous-band,.terminal.ui-tangram .breaking-alert,.terminal.ui-tangram .latest-brief{border-radius:2px;border-left:4px solid #c97156;background:#fff9ee}
+.terminal.ui-tangram .focus-card,.terminal.ui-tangram .inline-order-ticket,.terminal.ui-tangram .holdings-card{border:2px solid #b9c4c9;border-radius:2px;background:#fffdf7;box-shadow:4px 5px 0 #32527520}
+.terminal.ui-tangram .focus-card{border-top:5px solid #245b93}
+.terminal.ui-tangram .focus-company b,.terminal.ui-tangram .focus-price-row strong,.terminal.ui-tangram .order-title h2{color:#203e66}
+.terminal.ui-tangram .focus-trade-button,.terminal.ui-tangram .ellipsis,.terminal.ui-tangram .chart-toggle,.terminal.ui-tangram .side-switch{border-radius:2px}
+.terminal.ui-tangram .price-chart{display:block!important;visibility:visible!important;min-height:170px!important;height:clamp(170px,23vh,280px)!important;overflow:visible;background:linear-gradient(90deg,#b6c8d32a 1px,transparent 1px),linear-gradient(#b6c8d32a 1px,transparent 1px),#f7f8f2;background-size:34px 34px;border:1px solid #d1d9d6;border-radius:2px}
+.terminal.ui-tangram .price-chart svg{display:block;width:100%;height:100%;overflow:visible}
+.terminal.ui-tangram .inline-order-ticket{padding:12px;border-top:5px solid #c97156}
+.terminal.ui-tangram .order-card{background:#fffdf7;border-color:#c5ced0;border-radius:2px}
+.terminal.ui-tangram .side-switch button.active.buy,.terminal.ui-tangram .execute-button.buy{background:#247966;color:white}
+.terminal.ui-tangram .side-switch button.active.sell,.terminal.ui-tangram .execute-button.sell{background:#b35248;color:white}
+.terminal.ui-tangram .side-switch button.active.short,.terminal.ui-tangram .execute-button.short{background:#7b5577;color:white}
+.terminal.ui-tangram .execute-button{border-radius:2px;clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,0 100%)}
+.terminal.ui-tangram .quantity-row label>div{border-radius:2px;background:#fff}
+.terminal.ui-tangram .portfolio-summary>div,.terminal.ui-tangram .table-card,.terminal.ui-tangram .report-panel,.terminal.ui-tangram .report-trade-card{border-radius:2px;border:2px solid #bcc6c9;background:#fffdf7;box-shadow:3px 4px 0 #3252751c}
+.terminal.ui-tangram .news-tag,.terminal.ui-tangram .position-pill{border-radius:2px}
+
+.audience-wall.ui-tangram{--up:#247966;--down:#b35248;color:#213350;background:#eeeae2;background-image:linear-gradient(145deg,transparent 0 85%,#dbd0bd 85% 90%,transparent 90%);background-size:390px 350px}
+.audience-wall.ui-tangram .wall-brand b,.audience-wall.ui-tangram .wall-status b{color:#203e66}
+.audience-wall.ui-tangram .wall-brand b span,.audience-wall.ui-tangram .wall-footer a{color:#c97156}
+.audience-wall.ui-tangram .wall-brand small,.audience-wall.ui-tangram .wall-status,.audience-wall.ui-tangram .wall-footer{color:#596b7d}
+.audience-wall.ui-tangram .brand-glyph{border-radius:2px;background:#245b93;color:#fffdf4;clip-path:polygon(0 0,100% 0,100% 75%,75% 100%,0 100%)}
+.audience-wall.ui-tangram .wall-fullscreen{border-radius:2px;border:1px solid #acbbc4;background:#fffdf7;color:#203e66}
+.audience-wall.ui-tangram .wall-overview>article,.audience-wall.ui-tangram .wall-learning-grid>article,.audience-wall.ui-tangram .wall-news-list>article{border-radius:2px;border:1px solid #bac5c7;background:#fffdf7;box-shadow:3px 4px 0 #32527520}
+.audience-wall.ui-tangram .wall-index-card{border-top:5px solid #245b93!important}
+.audience-wall.ui-tangram .wall-mover-card.best{border-top:5px solid #247966!important}
+.audience-wall.ui-tangram .wall-mover-card.worst{border-top:5px solid #b35248!important}
+.audience-wall.ui-tangram .wall-breadth-card{border-top:5px solid #d3a665!important}
+.audience-wall.ui-tangram .wall-news{border-radius:2px;background:#203e66;border-left:7px solid #c97156;box-shadow:4px 5px 0 #3252752b}
+.audience-wall.ui-tangram .wall-news-label{color:#ecc779}
+.audience-wall.ui-tangram .wall-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));grid-template-rows:none;grid-auto-rows:minmax(78px,1fr);overflow:auto;gap:8px}
+.audience-wall.ui-tangram .wall-stock{position:relative;overflow:hidden;border:1px solid #bcc8cc;border-radius:2px;background:#fffdf7;box-shadow:2px 3px 0 #32527520}
+.audience-wall.ui-tangram .wall-stock:before{content:"";position:absolute;right:0;top:0;border-top:13px solid #d3a665;border-left:13px solid transparent}
+.audience-wall.ui-tangram .wall-stock:nth-child(3n+2):before{border-top-color:#c97156}
+.audience-wall.ui-tangram .wall-stock:nth-child(3n):before{border-top-color:#6f9a95}
+.audience-wall.ui-tangram .wall-stock-top b{color:#203e66}
+.audience-wall.ui-tangram .wall-stock-top small{color:#596b7d}
+.audience-wall.ui-tangram .wall-section-heading h1,.audience-wall.ui-tangram .wall-section-heading h2{color:#203e66;font-weight:900}
+.audience-wall.ui-tangram .wall-section-heading h1 span{color:#c97156}
+
+:root[data-theme="dark"] .terminal.ui-tangram{--page:#182232;--card:#243248;--secondary:#2d3d50;--input:#26354a;--ink:#f0eadf;--muted:#bcc9d2;--faint:#9eacb9;--line:#526276;--accent:#a9c7ec;--accent-soft:#314a6c;--nav:#111d2f;--up:#89d2bb;--down:#eea496;--up-soft:#25473f;--down-soft:#533d41;--shadow:3px 4px 0 #0d14247a;background-color:#182232;background-image:linear-gradient(136deg,transparent 0 65%,#26364b 65% 69%,transparent 69%),linear-gradient(45deg,transparent 0 87%,#554d45 87% 90%,transparent 90%)}
+:root[data-theme="dark"] .terminal.ui-tangram .terminal-tabs,:root[data-theme="dark"] .terminal.ui-tangram .stock-card,:root[data-theme="dark"] .terminal.ui-tangram .filter-chip,:root[data-theme="dark"] .terminal.ui-tangram .search-field,:root[data-theme="dark"] .terminal.ui-tangram .focus-card,:root[data-theme="dark"] .terminal.ui-tangram .inline-order-ticket,:root[data-theme="dark"] .terminal.ui-tangram .holdings-card,:root[data-theme="dark"] .terminal.ui-tangram .order-card,:root[data-theme="dark"] .terminal.ui-tangram .portfolio-summary>div,:root[data-theme="dark"] .terminal.ui-tangram .table-card,:root[data-theme="dark"] .terminal.ui-tangram .report-panel{background:#243248;border-color:#526276;color:#f0eadf}
+:root[data-theme="dark"] .terminal.ui-tangram .section-heading h1,:root[data-theme="dark"] .terminal.ui-tangram .stock-id strong,:root[data-theme="dark"] .terminal.ui-tangram .stock-card-bottom>strong,:root[data-theme="dark"] .terminal.ui-tangram .focus-company b,:root[data-theme="dark"] .terminal.ui-tangram .focus-price-row strong,:root[data-theme="dark"] .terminal.ui-tangram .order-title h2,:root[data-theme="dark"] .terminal.ui-tangram .search-field input{color:#f0eadf}
+:root[data-theme="dark"] .terminal.ui-tangram .stock-id span,:root[data-theme="dark"] .terminal.ui-tangram .stock-card-foot,:root[data-theme="dark"] .terminal.ui-tangram .terminal-context{color:#bac7d2}
+:root[data-theme="dark"] .terminal.ui-tangram .price-chart{background-color:#1c2b3f;border-color:#526276}
+:root[data-theme="dark"] .terminal.ui-tangram .market-state-banner,:root[data-theme="dark"] .terminal.ui-tangram .autonomous-band,:root[data-theme="dark"] .terminal.ui-tangram .breaking-alert,:root[data-theme="dark"] .terminal.ui-tangram .latest-brief{background:#324051;color:#f0eadf}
+:root[data-theme="dark"] .terminal.ui-tangram .company-mark{background:#e8edf0}
+:root[data-theme="dark"] .audience-wall.ui-tangram{color:#f0eadf;background-color:#182232;background-image:linear-gradient(145deg,transparent 0 85%,#26364b 85% 90%,transparent 90%)}
+:root[data-theme="dark"] .audience-wall.ui-tangram .wall-overview>article,:root[data-theme="dark"] .audience-wall.ui-tangram .wall-learning-grid>article,:root[data-theme="dark"] .audience-wall.ui-tangram .wall-news-list>article,:root[data-theme="dark"] .audience-wall.ui-tangram .wall-stock{background:#243248;border-color:#526276;color:#f0eadf}
+:root[data-theme="dark"] .audience-wall.ui-tangram .wall-brand b,:root[data-theme="dark"] .audience-wall.ui-tangram .wall-status b,:root[data-theme="dark"] .audience-wall.ui-tangram .wall-stock-top b,:root[data-theme="dark"] .audience-wall.ui-tangram .wall-section-heading h1,:root[data-theme="dark"] .audience-wall.ui-tangram .wall-section-heading h2{color:#f0eadf}
+:root[data-theme="dark"] .audience-wall.ui-tangram .wall-fullscreen{background:#243248;border-color:#526276;color:#f0eadf}
+
+.preview-choice.choice-tangram{--preview-a:#245b93;--preview-b:#c97156;border-color:#b6c4cb;border-radius:2px;background:#fffdf7;box-shadow:5px 6px 0 #32527525}
+.preview-choice.choice-tangram .choice-art{background:linear-gradient(140deg,transparent 0 68%,#c97156 68% 75%,transparent 75%),linear-gradient(45deg,#d3a665 0 16%,transparent 16%),#e8e8df}
+.preview-choice.choice-tangram .choice-art-header{background:#203e66;color:#fffdf7}
+.preview-choice.choice-tangram .choice-art-list,.preview-choice.choice-tangram .choice-art-chart,.preview-choice.choice-tangram .choice-art-ticket{border-radius:2px;border:1px solid #b9c4c9;background:#fffdf7}
+.preview-choice.choice-tangram .choice-art-chart{background:linear-gradient(135deg,transparent 0 66%,#c9715630 66% 76%,transparent 76%),#fffdf7}
+.preview-choice.choice-tangram .choice-art-chart>span{background:#247966}
+.preview-choice.choice-tangram .choice-art-chart>span:nth-child(even){background:#b35248}
+.preview-choice.choice-tangram .choice-copy{background:#fffdf7;color:#203e66}
+.preview-choice.choice-tangram .choice-open{background:#245b93;color:white}
+
+@media(max-width:1000px){.terminal.ui-tangram .trading-grid{grid-template-columns:minmax(0,1fr)!important}.terminal.ui-tangram .watch-area,.terminal.ui-tangram .trade-column{overflow:visible!important}.terminal.ui-tangram .stock-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,155px),1fr))}}
+@media(max-width:600px){.terminal.ui-tangram .stock-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,142px),1fr))}.terminal.ui-tangram .stock-card{padding:9px}.terminal.ui-tangram .stock-card.selected{padding-left:9px}.terminal.ui-tangram .price-chart{min-height:170px!important}.audience-wall.ui-tangram{height:auto;min-height:100svh;overflow:auto}.audience-wall.ui-tangram .wall-grid{flex:none;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));grid-auto-rows:minmax(78px,auto)}}

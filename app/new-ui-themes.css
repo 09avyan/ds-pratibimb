@@ -1,7 +1,8 @@
 /* Keep the terminal's stock watch on the left and its chart and order flow together on the right. */
 .terminal .trading-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(320px,min(38vw,520px))!important;grid-template-rows:minmax(0,1fr)!important;grid-template-areas:none!important;align-items:stretch;gap:16px!important}
 .terminal .watch-area,.terminal .trade-column{display:block!important;min-width:0;min-height:0}
-.terminal .watch-area{overflow-y:auto!important;overscroll-behavior:contain;scrollbar-width:none}
+.terminal .watch-area{overflow-y:auto!important;overscroll-behavior:contain;scrollbar-width:none;container-type:inline-size}
+.terminal .stock-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,154px),1fr))}
 .terminal .trade-column{position:static!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-content:start;gap:11px!important;overflow-y:auto!important;overscroll-behavior:contain;scrollbar-width:none;padding-bottom:18px}
 .terminal .trade-column>.focus-card,.terminal .trade-column>.inline-order-ticket,.terminal .trade-column>.holdings-card{grid-area:auto!important;min-width:0}
 .terminal .trade-column>div+div{margin-top:0!important}
@@ -9,6 +10,8 @@
 .terminal .inline-order-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 8px}
 .terminal .inline-order-heading small{color:var(--muted);font-size:8px;font-weight:800;letter-spacing:.14em}
 .terminal .inline-order-ticket .order-card{box-shadow:none}
+.terminal .price-chart-frame{min-height:185px}
+.terminal .price-chart{width:100%;height:clamp(185px,23vh,260px);min-height:185px}
 
 @media(max-width:1000px){
   .terminal{height:auto!important;min-height:100svh;overflow:visible!important}

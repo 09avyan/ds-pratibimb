@@ -5,6 +5,14 @@ import type { Stock } from "@/game/types";
 
 const colors: Record<string, string> = { Energy: "gold", Technology: "blue", Banking: "violet", Consumer: "coral", Industrial: "teal", Auto: "slate", Healthcare: "green" };
 
+// These symbols correspond to verified, self-hosted brand assets in public/logos.
+const brandedSymbols = new Set([
+  "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "BHARTIARTL", "ITC", "LT",
+  "SBIN", "HINDUNILVR", "TATAMOTORS", "MARUTI", "SUNPHARMA", "CIPLA", "BAJFINANCE",
+  "AXISBANK", "WIPRO", "ADANIPORTS", "NTPC", "ONGC", "M&M", "TITAN", "ULTRACEMCO",
+  "DRREDDY", "KOTAKBANK", "TATASTEEL", "TATACONSUM", "APOLLOHOSP",
+]);
+
 export function DalaalMark({ className = "" }: { className?: string }) {
   return <svg className={`dalaal-mark ${className}`} viewBox="0 0 40 40" aria-hidden="true" focusable="false">
     <path d="M7 5h15c8.3 0 14 5.9 14 15S30.3 35 22 35H7z" fill="currentColor" opacity=".16"/>
@@ -29,10 +37,10 @@ function CompanyGlyph({ sector }: { sector: string }) {
 export function Logo({ stock, compact = false }: { stock: Stock; compact?: boolean }) {
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [failedFor, setFailedFor] = useState<string | null>(null);
-  const logoUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(stock.domain)}&sz=64`;
-  const logoReady = loadedFor === stock.symbol && failedFor !== stock.symbol;
-  return <span className={`company-mark ${colors[stock.sector] || "blue"} ${compact ? "compact" : ""} ${logoReady ? "logo-loaded" : ""}`} role="img" aria-label={`${stock.name} logo`}>
-    {failedFor !== stock.symbol && <img key={stock.symbol} src={logoUrl} alt="" aria-hidden="true" loading="lazy" decoding="async" referrerPolicy="no-referrer" onLoad={() => setLoadedFor(stock.symbol)} onError={() => setFailedFor(stock.symbol)} />}
+  const hasLogo = brandedSymbols.has(stock.symbol);
+  const logoReady = hasLogo && loadedFor === stock.symbol && failedFor !== stock.symbol;
+  return <span className={`company-mark ${colors[stock.sector] || "blue"} ${compact ? "compact" : ""} ${logoReady ? "logo-loaded" : ""}`} role="img" aria-label={logoReady ? `${stock.name} logo` : `${stock.name} mark`}>
+    {hasLogo && failedFor !== stock.symbol && <img key={stock.symbol} src={`/logos/${encodeURIComponent(stock.symbol)}.svg`} alt="" aria-hidden="true" loading="lazy" decoding="async" onLoad={() => setLoadedFor(stock.symbol)} onError={() => setFailedFor(stock.symbol)} />}
     <span aria-hidden="true"><CompanyGlyph sector={stock.sector}/></span>
   </span>;
 }

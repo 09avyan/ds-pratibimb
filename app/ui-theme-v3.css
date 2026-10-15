@@ -1,0 +1,400 @@
+/* V3 Clay Studio: soft, molded surfaces without patterned backgrounds. */
+.terminal.ui-arcade,
+.audience-wall.ui-arcade {
+  --page: #e9e4db;
+  --card: #f6f1e8;
+  --secondary: #ddd5c9;
+  --input: #ebe5db;
+  --ink: #393a38;
+  --muted: #64635e;
+  --faint: #77746f;
+  --line: #d3c9bb;
+  --accent: #ab665a;
+  --accent-soft: #f1d7cf;
+  --nav: #b5b1a5;
+  --up: #327965;
+  --down: #a84745;
+  --up-soft: #d9e9dd;
+  --down-soft: #f3d9d5;
+  --shadow: 8px 10px 20px #9e978652, -6px -7px 16px #ffffffbf;
+  --clay-shadow: 6px 8px 16px #a59b8973, -5px -6px 13px #ffffffb8;
+  --clay-inset: inset 3px 3px 7px #b7ac9b88, inset -3px -3px 7px #fffdf7bb;
+  color: var(--ink);
+  background: #e9e4db;
+  background-image: none;
+  background-size: auto;
+}
+.terminal.ui-arcade .topbar {
+  background: #eee8de;
+  border: 0;
+  border-bottom: 1px solid #d8cfc2;
+  box-shadow: 0 4px 13px #b4a99755;
+}
+.terminal.ui-arcade .topbar-brand > span:last-child,
+.terminal.ui-arcade .topbar-brand .dalaal-mark { color: #9b5b50; }
+.terminal.ui-arcade .market-ribbon {
+  border: 0;
+  border-radius: 20px;
+  background: #eee8df;
+  box-shadow: var(--clay-inset);
+}
+.terminal.ui-arcade .theme-button,
+.terminal.ui-arcade .terminal-tabs {
+  border: 0;
+  background: #eee8df;
+  box-shadow: var(--clay-shadow);
+}
+.terminal.ui-arcade .theme-button { border-radius: 12px; color: var(--ink); }
+.terminal.ui-arcade .terminal-tabs {
+  height: 44px;
+  min-height: 44px;
+  margin: 8px 18px 0;
+  padding: 0 15px;
+  border-radius: 16px;
+}
+.terminal.ui-arcade .terminal-tabs > button { color: var(--muted); }
+.terminal.ui-arcade .terminal-tabs > button.active { color: #92564d; }
+.terminal.ui-arcade .terminal-tabs > button.active::after {
+  height: 3px;
+  border-radius: 3px;
+  background: #ae7062;
+}
+.terminal.ui-arcade .terminal-tabs > button > span {
+  border-radius: 8px;
+  background: var(--secondary);
+}
+.terminal.ui-arcade .workspace-markets { overflow: hidden; padding: 15px 22px 0; }
+.terminal.ui-arcade .section-heading h1 { color: #3b3b37; font-weight: 800; }
+.terminal.ui-arcade .heading-period { color: #a76458; }
+.terminal.ui-arcade .trading-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(345px, min(36vw, 495px)) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  grid-template-areas: none !important;
+  gap: 17px !important;
+  align-items: stretch;
+}
+.terminal.ui-arcade .watch-area,
+.terminal.ui-arcade .trade-column { display: block !important; min-height: 0; min-width: 0; }
+.terminal.ui-arcade .watch-area { overflow-y: auto !important; padding: 5px 7px 22px 5px; }
+.terminal.ui-arcade .trade-column {
+  position: static !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-content: start;
+  gap: 14px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  padding: 5px 8px 22px 5px;
+}
+.terminal.ui-arcade .watch-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.terminal.ui-arcade .sector-scroll { gap: 8px; padding: 5px 3px 7px; }
+.terminal.ui-arcade .filter-chip,
+.terminal.ui-arcade .search-field {
+  border: 0;
+  background: #eee8df;
+  box-shadow: var(--clay-shadow);
+}
+.terminal.ui-arcade .filter-chip { padding: 8px 12px; border-radius: 14px; font-weight: 700; }
+.terminal.ui-arcade .filter-chip.active {
+  color: #62443f;
+  background: #e8c4b6;
+  box-shadow: var(--clay-inset);
+}
+.terminal.ui-arcade .search-field { max-width: none; border-radius: 13px; }
+.terminal.ui-arcade .search-field:focus-within { outline: 2px solid #ab665a; outline-offset: 2px; }
+.terminal.ui-arcade .stock-grid {
+  display: grid;
+  grid-area: auto;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 172px), 1fr));
+  grid-template-rows: none;
+  align-content: start;
+  gap: 14px;
+  padding: 4px 5px 14px;
+}
+.terminal.ui-arcade .stock-card,
+.terminal.ui-arcade .stock-card:nth-child(n) {
+  min-height: 105px;
+  padding: 10px 11px 9px;
+  border: 1px solid #f8f3e9;
+  border-radius: 20px;
+  background: #eee8df;
+  outline: 0;
+  box-shadow: var(--clay-shadow);
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.terminal.ui-arcade .stock-card:hover { transform: translateY(-2px); }
+.terminal.ui-arcade .stock-card.selected,
+.terminal.ui-arcade .stock-card.selected:nth-child(n) {
+  padding-left: 11px;
+  border: 1px solid #bf8b78;
+  background: #f2dfd4;
+  outline: 2px solid #bb8977;
+  outline-offset: -4px;
+  box-shadow: 7px 8px 16px #b0928090, -5px -5px 12px #fffdf7bd;
+}
+.terminal.ui-arcade .stock-card-top { gap: 8px; }
+.terminal.ui-arcade .stock-card-top .company-mark { width: 29px; height: 29px; border: 0; border-radius: 10px; }
+.terminal.ui-arcade .stock-card-top .company-mark.logo-loaded { background: #fffaf1; }
+.terminal.ui-arcade .stock-id strong { font-size: 10px; }
+.terminal.ui-arcade .stock-id span { font-size: 9px; }
+.terminal.ui-arcade .stock-card-bottom { margin: 8px 0 4px; }
+.terminal.ui-arcade .stock-card-bottom > strong { font-size: 14px; }
+.terminal.ui-arcade .stock-card > .mini-chart { display: block; width: 100%; height: 27px; margin-bottom: 4px; }
+.terminal.ui-arcade .stock-card-foot { padding-top: 5px; border-color: #d6cabe; }
+.terminal.ui-arcade .focus-card,
+.terminal.ui-arcade .inline-order-ticket,
+.terminal.ui-arcade .holdings-card {
+  grid-area: auto;
+  min-width: 0;
+  margin: 0 !important;
+  border: 1px solid #faf6ed;
+  border-radius: 23px;
+  background: #f0eae0;
+  box-shadow: var(--clay-shadow);
+}
+.terminal.ui-arcade .focus-card { padding: 17px 17px 13px; }
+.terminal.ui-arcade .focus-company .company-mark { border: 0; border-radius: 11px; }
+.terminal.ui-arcade .focus-price-row > strong { font-size: 29px; font-weight: 800; }
+.terminal.ui-arcade .price-chart {
+  display: block;
+  width: 100%;
+  height: clamp(170px, 25vh, 235px);
+  min-height: 170px;
+  overflow: visible;
+}
+.terminal.ui-arcade .chart-toggle,
+.terminal.ui-arcade .side-switch {
+  border: 0;
+  border-radius: 14px;
+  background: #ddd5c9;
+  box-shadow: var(--clay-inset);
+}
+.terminal.ui-arcade .chart-toggle button.active { color: #543d39; background: #f1ddd2; box-shadow: 2px 2px 5px #b6aa9b, -2px -2px 5px #fff7ec; }
+.terminal.ui-arcade .inline-order-ticket { padding: 15px; }
+.terminal.ui-arcade .inline-order-heading small { color: #8f5d53; }
+.terminal.ui-arcade .inline-order-ticket .order-card {
+  padding: 13px;
+  border: 0;
+  border-radius: 17px;
+  background: #e8e0d5;
+  box-shadow: var(--clay-inset);
+}
+.terminal.ui-arcade .inline-order-ticket .order-title h2 { font-size: 17px; }
+.terminal.ui-arcade .quantity-row label > div {
+  border: 0;
+  border-radius: 11px;
+  background: #f1ebe2;
+  box-shadow: var(--clay-inset);
+}
+.terminal.ui-arcade .inline-order-ticket .side-switch button { border-radius: 11px; }
+.terminal.ui-arcade .side-switch button.active.buy { background: #b7d6bd; color: #205b49; }
+.terminal.ui-arcade .side-switch button.active.sell { background: #ead1bd; color: #845027; }
+.terminal.ui-arcade .side-switch button.active.short { background: #e7bcb9; color: #872e31; }
+.terminal.ui-arcade .execute-button,
+.terminal.ui-arcade .inline-order-ticket .execute-button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 13px;
+  color: #fff;
+  box-shadow: 4px 5px 8px #aaa090;
+  font-weight: 800;
+}
+.terminal.ui-arcade .execute-button.buy { background: #347d65; }
+.terminal.ui-arcade .execute-button.sell { background: #a27042; }
+.terminal.ui-arcade .execute-button.short { background: #a94e51; }
+.terminal.ui-arcade .focus-trade-button,
+.terminal.ui-arcade .ellipsis {
+  border: 0;
+  border-radius: 11px;
+  background: #dfc8bb;
+  color: #5c413b;
+  box-shadow: 3px 4px 8px #bcae9e, -2px -2px 6px #fffaf1;
+}
+.terminal.ui-arcade .holdings-card { padding: 14px; }
+.terminal.ui-arcade .latest-brief {
+  grid-area: auto;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 16px;
+  background: #dfd3c4;
+  box-shadow: var(--clay-inset);
+}
+.terminal.ui-arcade .brief-icon { border: 0; border-radius: 11px; background: #f4e5d7; color: #9a5d51; }
+.terminal.ui-arcade .breaking-alert {
+  border: 1px solid #f7e6d6;
+  border-radius: 18px;
+  background: #ead2bd;
+  box-shadow: var(--clay-shadow);
+}
+.terminal.ui-arcade .breaking-mark { border-radius: 11px; background: #b36f58; color: #fff; }
+.terminal.ui-arcade .workspace-footer { color: #706b66; }
+
+/* Audience screen uses the same sculpted language, with denser market tiles. */
+.audience-wall.ui-arcade { overflow: auto; background: #e9e4db; background-image: none; }
+.audience-wall.ui-arcade .wall-brand b { color: var(--ink); }
+.audience-wall.ui-arcade .wall-brand b span,
+.audience-wall.ui-arcade .wall-footer a { color: #9d5d52; }
+.audience-wall.ui-arcade .wall-brand small,
+.audience-wall.ui-arcade .wall-footer,
+.audience-wall.ui-arcade .wall-status { color: var(--muted); }
+.audience-wall.ui-arcade .brand-glyph {
+  border: 0;
+  border-radius: 14px;
+  background: #e5c7b7;
+  color: #765049;
+  box-shadow: var(--clay-shadow);
+}
+.audience-wall.ui-arcade .wall-status b { color: var(--ink); border-color: var(--line); }
+.audience-wall.ui-arcade .wall-fullscreen,
+.audience-wall.ui-arcade .wall-theme-button {
+  border: 0;
+  border-radius: 11px;
+  background: #eee8df;
+  color: var(--ink);
+  box-shadow: var(--clay-shadow);
+}
+.audience-wall.ui-arcade .wall-overview { gap: 14px; }
+.audience-wall.ui-arcade .wall-index-card,
+.audience-wall.ui-arcade .wall-mover-card,
+.audience-wall.ui-arcade .wall-breadth-card,
+.audience-wall.ui-arcade .wall-learning-grid article,
+.audience-wall.ui-arcade .wall-news-list article,
+.audience-wall.ui-arcade .wall-stock {
+  border: 1px solid #f8f3eb;
+  border-radius: 19px;
+  background: #f0eae0;
+  box-shadow: var(--clay-shadow);
+}
+.audience-wall.ui-arcade .wall-index-card::after { content: none; display: none; }
+.audience-wall.ui-arcade .wall-news {
+  border: 0;
+  border-radius: 19px;
+  background: #b47869;
+  color: #fffaf4;
+  box-shadow: var(--clay-shadow);
+}
+.audience-wall.ui-arcade .wall-news-label { color: #fff2dd; }
+.audience-wall.ui-arcade .wall-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr));
+  grid-template-rows: none;
+  align-content: start;
+  gap: 12px;
+}
+.audience-wall.ui-arcade .wall-stock,
+.audience-wall.ui-arcade .wall-stock:nth-child(n) {
+  display: flex;
+  min-height: 89px;
+  padding: 11px 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  background: #f0eae0;
+}
+.audience-wall.ui-arcade .wall-stock-top { gap: 8px; }
+.audience-wall.ui-arcade .wall-stock-top b { font-size: 11px; }
+.audience-wall.ui-arcade .wall-stock-top small { color: var(--muted); font-size: 9px; }
+.audience-wall.ui-arcade .wall-price { display: flex; align-items: baseline; justify-content: space-between; gap: 5px; }
+.audience-wall.ui-arcade .wall-price strong { color: var(--ink); font-size: clamp(13px, 1.1vw, 18px); }
+.audience-wall.ui-arcade .wall-price > span { display: inline; font-size: 10px; }
+.audience-wall.ui-arcade .wall-news-archive,
+.audience-wall.ui-arcade .wall-learning { color: var(--ink); }
+
+/* Both modes keep readable surfaces and remove the old dot texture. */
+:root[data-theme="dark"] .terminal.ui-arcade,
+:root[data-theme="dark"] .audience-wall.ui-arcade {
+  --page: #292c30;
+  --card: #363a3d;
+  --secondary: #41464a;
+  --input: #32363a;
+  --ink: #f2eee7;
+  --muted: #c4beb5;
+  --faint: #a8a49c;
+  --line: #52565a;
+  --accent: #e7a38b;
+  --accent-soft: #5c4843;
+  --up: #83ceb1;
+  --down: #ef9992;
+  --up-soft: #36584f;
+  --down-soft: #5c4242;
+  --shadow: 7px 9px 18px #15181b9c, -4px -5px 11px #4c525475;
+  --clay-shadow: 6px 8px 15px #111417aa, -5px -6px 12px #495056aa;
+  --clay-inset: inset 3px 3px 7px #1115189c, inset -3px -3px 7px #4c52548c;
+  color: var(--ink);
+  background: #292c30;
+  background-image: none;
+  background-size: auto;
+}
+:root[data-theme="dark"] .terminal.ui-arcade .topbar,
+:root[data-theme="dark"] .terminal.ui-arcade .terminal-tabs,
+:root[data-theme="dark"] .terminal.ui-arcade .theme-button,
+:root[data-theme="dark"] .terminal.ui-arcade .market-ribbon,
+:root[data-theme="dark"] .terminal.ui-arcade .filter-chip,
+:root[data-theme="dark"] .terminal.ui-arcade .search-field,
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-fullscreen,
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-theme-button { background: #383d40; border-color: #4d5356; color: var(--ink); }
+:root[data-theme="dark"] .terminal.ui-arcade .terminal-tabs > button.active,
+:root[data-theme="dark"] .terminal.ui-arcade .topbar-brand > span:last-child { color: #ebb29e; }
+:root[data-theme="dark"] .terminal.ui-arcade .filter-chip.active { background: #835d55; color: #fff7ec; }
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card:nth-child(n),
+:root[data-theme="dark"] .terminal.ui-arcade .focus-card,
+:root[data-theme="dark"] .terminal.ui-arcade .inline-order-ticket,
+:root[data-theme="dark"] .terminal.ui-arcade .holdings-card,
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-index-card,
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-mover-card,
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-breadth-card,
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-learning-grid article,
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-news-list article,
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-stock:nth-child(n) {
+  border-color: #474d51;
+  background: #383d40;
+  color: var(--ink);
+}
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card.selected,
+:root[data-theme="dark"] .terminal.ui-arcade .stock-card.selected:nth-child(n) { border-color: #d69d88; background: #544742; outline-color: #d69d88; }
+:root[data-theme="dark"] .terminal.ui-arcade .inline-order-ticket .order-card,
+:root[data-theme="dark"] .terminal.ui-arcade .chart-toggle,
+:root[data-theme="dark"] .terminal.ui-arcade .side-switch,
+:root[data-theme="dark"] .terminal.ui-arcade .quantity-row label > div,
+:root[data-theme="dark"] .terminal.ui-arcade .latest-brief { border: 0; background: #31363a; color: var(--ink); }
+:root[data-theme="dark"] .terminal.ui-arcade .chart-toggle button.active { background: #60534d; color: #fff1e5; }
+:root[data-theme="dark"] .terminal.ui-arcade .focus-trade-button,
+:root[data-theme="dark"] .terminal.ui-arcade .ellipsis { background: #67554e; color: #fff4e7; }
+:root[data-theme="dark"] .terminal.ui-arcade .breaking-alert,
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-news { background: #674d47; color: #fff3e6; border-color: #805f54; }
+:root[data-theme="dark"] .audience-wall.ui-arcade .brand-glyph { background: #77574d; color: #fff3e8; }
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-brand b,
+:root[data-theme="dark"] .audience-wall.ui-arcade .wall-stock .wall-price strong { color: var(--ink); }
+
+@media (min-width: 1500px) {
+  .terminal.ui-arcade .watch-controls { flex-direction: row; align-items: center; }
+  .terminal.ui-arcade .sector-scroll { flex: 1; min-width: 0; }
+  .terminal.ui-arcade .search-field { width: min(235px, 26%); }
+}
+@media (max-width: 1100px) {
+  .terminal.ui-arcade .stock-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr)); }
+}
+@media (max-width: 1000px) {
+  .terminal.ui-arcade .workspace-markets { overflow: visible; padding: 15px clamp(12px, 3vw, 24px); }
+  .terminal.ui-arcade .trading-grid { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: auto !important; }
+  .terminal.ui-arcade .watch-area,
+  .terminal.ui-arcade .trade-column { overflow: visible !important; padding: 5px 5px 14px; }
+  .terminal.ui-arcade .trade-column { display: grid !important; grid-template-columns: minmax(0, 1fr) !important; }
+  .terminal.ui-arcade .price-chart { height: 210px; }
+}
+@media (max-width: 620px) {
+  .terminal.ui-arcade .terminal-tabs { margin: 6px 9px 0; padding-inline: 8px; }
+  .terminal.ui-arcade .stock-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 148px), 1fr)); gap: 10px; }
+  .terminal.ui-arcade .stock-card { min-height: 106px; }
+  .terminal.ui-arcade .focus-card,
+  .terminal.ui-arcade .inline-order-ticket,
+  .terminal.ui-arcade .holdings-card { border-radius: 17px; }
+  .audience-wall.ui-arcade .wall-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); }
+  .audience-wall.ui-arcade .wall-stock:nth-child(n) { min-height: 82px; padding: 10px; }
+}

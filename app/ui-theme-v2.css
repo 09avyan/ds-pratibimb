@@ -184,7 +184,7 @@
 }
 .terminal.ui-orbit .search-field kbd { border-radius: 3px; }
 .terminal.ui-orbit .stock-grid {
-  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 162px), 1fr));
   gap: 9px;
 }
 .terminal.ui-orbit .stock-card {
@@ -201,15 +201,16 @@
 .terminal.ui-orbit .stock-card::before {
   position: absolute;
   content: "";
-  top: -24px;
-  right: -21px;
-  width: 68px;
-  height: 68px;
-  border: 1px solid rgba(74, 98, 113, .13);
+  bottom: -29px;
+  right: -24px;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(74, 98, 113, .09);
   border-radius: 50%;
-  box-shadow: 0 0 0 7px rgba(74, 98, 113, .035), 0 0 0 14px rgba(74, 98, 113, .025);
+  box-shadow: 0 0 0 7px rgba(74, 98, 113, .022), 0 0 0 14px rgba(74, 98, 113, .014);
   pointer-events: none;
 }
+.terminal.ui-orbit .stock-card > * { position: relative; z-index: 1; }
 .terminal.ui-orbit .stock-card:nth-child(3n + 2) { background: linear-gradient(145deg, #fbfcf8, #edf2ef); }
 .terminal.ui-orbit .stock-card:hover,
 .terminal.ui-orbit .stock-card.selected {
@@ -275,9 +276,7 @@
   overflow: hidden;
   padding: 16px 17px 12px;
   border-top: 3px solid #a48b57;
-  background:
-    radial-gradient(circle at 98% 4%, transparent 0 51px, rgba(81, 103, 117, .08) 52px 53px, transparent 54px 78px, rgba(81, 103, 117, .055) 79px 80px, transparent 81px),
-    rgba(251, 252, 249, .97);
+  background: rgba(251, 252, 249, .97);
 }
 .terminal.ui-orbit .focus-company,
 .terminal.ui-orbit .focus-price-row,
@@ -307,11 +306,8 @@
   border: 1px solid #ccd4d1;
   border-radius: 3px 13px 3px 13px;
   background-color: #f6f8f4;
-  background-image:
-    radial-gradient(circle at 50% 50%, transparent 0 56px, rgba(89, 109, 119, .055) 57px 58px, transparent 59px 110px, rgba(89, 109, 119, .04) 111px 112px, transparent 113px),
-    linear-gradient(rgba(98, 117, 124, .04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(98, 117, 124, .04) 1px, transparent 1px);
-  background-size: auto, 44px 44px, 44px 44px;
+  background-image: linear-gradient(rgba(98, 117, 124, .025) 1px, transparent 1px);
+  background-size: 100% 44px;
   box-shadow: inset 0 0 26px rgba(44, 69, 83, .035);
 }
 .terminal.ui-orbit .price-chart { min-height: 220px; }
@@ -566,16 +562,17 @@
 }
 .audience-wall.ui-orbit .wall-stock::after {
   position: absolute;
-  top: -23px;
-  right: -18px;
-  width: 59px;
-  height: 59px;
-  border: 1px solid rgba(74, 98, 113, .14);
+  bottom: -24px;
+  right: -19px;
+  width: 55px;
+  height: 55px;
+  border: 1px solid rgba(74, 98, 113, .08);
   border-radius: 50%;
-  box-shadow: 0 0 0 7px rgba(74, 98, 113, .03);
+  box-shadow: 0 0 0 7px rgba(74, 98, 113, .018);
   content: "";
   pointer-events: none;
 }
+.audience-wall.ui-orbit .wall-stock > * { position: relative; z-index: 1; }
 .audience-wall.ui-orbit .wall-stock-top .company-mark { border: 1px solid #c7d1cc; border-radius: 50%; }
 .audience-wall.ui-orbit .wall-stock-top b { color: #344d60; font-family: var(--mono); letter-spacing: .03em; }
 .audience-wall.ui-orbit .wall-stock-top small { color: #758187; }
@@ -714,7 +711,7 @@
 :root[data-theme="dark"] .terminal.ui-orbit .report-panel {
   border-color: #4a6068;
   background-color: #223844;
-  background-image: radial-gradient(circle at 98% 4%, transparent 0 51px, rgba(188, 201, 199, .1) 52px 53px, transparent 54px 78px, rgba(188, 201, 199, .06) 79px 80px, transparent 81px);
+  background-image: none;
 }
 :root[data-theme="dark"] .terminal.ui-orbit .focus-trade-button,
 :root[data-theme="dark"] .terminal.ui-orbit .ellipsis,
@@ -722,7 +719,7 @@
 :root[data-theme="dark"] .terminal.ui-orbit .price-chart-frame {
   border-color: #4b6067;
   background-color: #1e333f;
-  background-image: radial-gradient(circle at 50% 50%, transparent 0 56px, rgba(188, 201, 199, .07) 57px 58px, transparent 59px 110px, rgba(188, 201, 199, .045) 111px 112px, transparent 113px), linear-gradient(rgba(188, 201, 199, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(188, 201, 199, .045) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(188, 201, 199, .025) 1px, transparent 1px);
 }
 :root[data-theme="dark"] .terminal.ui-orbit .price-chart path[stroke="#087c66"] { stroke: #8db5a2; }
 :root[data-theme="dark"] .terminal.ui-orbit .chart-toolbar > span,
@@ -820,18 +817,18 @@
 :root[data-theme="dark"] .audience-wall.ui-orbit .wall-news-list .news-tag.major { background: #4b4535; color: #e3d09f; }
 :root[data-theme="dark"] .audience-wall.ui-orbit .wall-footer { border-color: #465b65; }
 @media (min-width: 1500px) {
-  .terminal.ui-orbit .stock-grid { grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); }
+  .terminal.ui-orbit .stock-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); }
 }
 @media (max-width: 1180px) {
   .terminal.ui-orbit .trading-grid { grid-template-columns: minmax(0, 1.15fr) minmax(330px, .9fr) !important; }
-  .terminal.ui-orbit .stock-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .terminal.ui-orbit .stock-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
   .audience-wall.ui-orbit .wall-overview { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .audience-wall.ui-orbit .wall-index-card { grid-column: span 2; }
 }
 @media (max-width: 1000px) {
   .terminal.ui-orbit .trading-grid { grid-template-columns: minmax(0, 1fr) !important; }
   .terminal.ui-orbit .trade-column { margin-top: 2px; }
-  .terminal.ui-orbit .stock-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .terminal.ui-orbit .stock-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 166px), 1fr)); }
   .audience-wall.ui-orbit .wall-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .audience-wall.ui-orbit .wall-index-card { grid-column: span 2; }
   .audience-wall.ui-orbit .wall-news { grid-template-columns: 95px minmax(0, 1fr); }
@@ -845,7 +842,7 @@
   .terminal.ui-orbit .terminal-tabs { gap: 17px; padding: 0 13px; }
   .terminal.ui-orbit .terminal-context { margin-left: auto; }
   .terminal.ui-orbit .trading-grid { display: grid !important; grid-template-columns: minmax(0, 1fr) !important; gap: 13px !important; }
-  .terminal.ui-orbit .stock-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .terminal.ui-orbit .stock-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 152px), 1fr)); gap: 7px; }
   .terminal.ui-orbit .stock-card { min-height: 112px; padding: 9px 8px; }
   .terminal.ui-orbit .stock-card.selected { padding-left: 6px; }
   .terminal.ui-orbit .stock-card-bottom > strong { font-size: 12px; }
