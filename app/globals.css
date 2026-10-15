@@ -746,7 +746,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   .preview-choice .choice-copy { min-height: 0; }
 }
 
-/* Legacy theme styles; Market Mash (v3) is the only versioned UI currently exposed. */
+/* Older inactive palette rules are kept scoped away from the current version classes. */
 .terminal.ui-atlas {
   --page: #edf3f8; --card: #fbfdff; --secondary: #e1ebf3; --input: #fff;
   --ink: #1a2e43; --muted: #64788b; --faint: #8799a8; --line: #cbd9e4;

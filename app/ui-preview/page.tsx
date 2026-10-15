@@ -4,7 +4,11 @@ import { UI_OPTIONS } from "@/ui-options";
 import { DalaalMark } from "@/components/trader-parts";
 
 const artLabels: Record<string, string> = {
+  "2": "OBSERVATORY",
   "3": "YOUR MOVE",
+  "4": "ON VIEW",
+  "5": "ON AIR",
+  "6": "IN BLOOM",
 };
 
 export default function UiPreviewPage() {
@@ -13,9 +17,9 @@ export default function UiPreviewPage() {
   return <main className="ui-preview-home">
     <header className="preview-home-header"><a className="preview-wordmark" href="/play"><DalaalMark/> Dalaal Street</a><span className="preview-sandbox">LOCAL DESIGN REVIEW</span></header>
     <section className="preview-home-hero">
-      <span className="preview-kicker">V3 DESIGN · ONE SHARED MARKET</span>
+      <span className="preview-kicker">SIX DISTINCT VIEWS · ONE SHARED MARKET</span>
       <h1>{versionCount} ways to<br/>play the market.</h1>
-      <p>Compare the original interface with Market Mash. Both use the same market and rules; preview trades stay separate from the live event.</p>
+      <p>Compare the original with four new visual worlds and Market Mash. Every version uses the same market and trading rules; preview trades stay separate from the live event.</p>
     </section>
     <section className="preview-option-grid" aria-label={`${UI_OPTIONS.length} themed UI previews`}>
       {UI_OPTIONS.map(option => <article className={`preview-choice choice-${option.palette}`} key={option.slug}>
@@ -26,6 +30,6 @@ export default function UiPreviewPage() {
         <div className="choice-copy"><div className="choice-title"><span>OPTION {option.number}</span><h2>{option.name}</h2></div><p>{option.tagline}</p><ul>{option.highlights.map(item => <li key={item}>{item}</li>)}</ul><div className="choice-actions"><Link className="choice-open" href={`/ui-preview/${option.slug}/play/01`}>Trading screen <span aria-hidden="true">↗</span></Link><Link className="choice-audience-open" href={`/ui-preview/${option.slug}/audience`}>Audience screen <span aria-hidden="true">↗</span></Link></div></div>
       </article>)}
     </section>
-    <footer className="preview-home-footer"><span>PREVIEW ONLY · SAME GAME RULES · SEPARATE DEMO SESSION</span><span>Original look: <code>/play</code> or <code>/v1</code>; Market Mash: <code>/v3</code>.</span></footer>
+    <footer className="preview-home-footer"><span>PREVIEW ONLY · SAME GAME RULES · SEPARATE DEMO SESSION</span><span>Original look: <code>/play</code> or <code>/v1</code>; new worlds: <code>/v2</code>, <code>/v4</code>, <code>/v5</code>, <code>/v6</code>.</span></footer>
   </main>;
 }
