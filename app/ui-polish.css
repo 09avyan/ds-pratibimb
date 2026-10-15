@@ -1,18 +1,54 @@
-/* Audience layout refinement. V4 keeps its existing material treatment. */
-.audience-wall:not(.ui-gallery) .wall-hero {
+/* Keep the index visually connected to the full-width audience sections. */
+.audience-wall[class*="ui-"] .wall-hero {
   display: block;
   flex: 0 0 auto;
+  width: 100%;
   min-width: 0;
 }
-.audience-wall:not(.ui-gallery) .wall-index-card {
-  width: min(100%, 430px);
+.audience-wall[class*="ui-"] .wall-index-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
   min-height: 0;
-  gap: 8px;
-  padding: clamp(11px, 1.2vw, 17px);
-  border-radius: 17px;
+  gap: 16px;
+  padding: clamp(12px, 1.35vw, 18px) clamp(15px, 1.8vw, 24px);
+}
+.audience-wall[class*="ui-"] .wall-index-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  justify-content: start;
+  gap: 6px;
+}
+.audience-wall[class*="ui-"] .wall-index-value {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+.audience-wall[class*="ui-"] .wall-index-value strong {
+  font-size: clamp(25px, 3.1vw, 40px);
+}
+.audience-wall:not(.ui-gallery) .wall-index-card {
+  border: 1px solid var(--wall-line);
+  border-left: 3px solid var(--wall-accent);
+  border-radius: 16px;
+  color: var(--wall-ink);
+  background: var(--wall-surface);
+  box-shadow: var(--wall-shadow);
+}
+.audience-wall:not(.ui-gallery) .wall-index-label small,
+.audience-wall:not(.ui-gallery) .wall-index-label span {
+  color: var(--wall-muted);
 }
 .audience-wall:not(.ui-gallery) .wall-index-value strong {
-  font-size: clamp(26px, 2.6vw, 39px);
+  color: var(--wall-ink);
+}
+.audience-wall:not(.ui-gallery) .wall-index-value b {
+  background: var(--wall-raised);
+  color: var(--wall-accent);
 }
 .audience-wall:not(.ui-gallery) .wall-news {
   width: 100%;
@@ -49,8 +85,14 @@
 .audience-wall.ui-broadcast .wall-stock .mini-chart { grid-column: 1 / -1; }
 /* V4 keeps its existing index, stock, color and typography rules. */
 .audience-wall.ui-gallery .wall-hero { display: flex; }
-.audience-wall.ui-gallery .wall-index-card { flex: 0 1 36%; }
+.audience-wall.ui-gallery .wall-index-card { flex: 0 1 auto; }
 .audience-wall.ui-gallery .wall-news { width: 100%; min-height: 0; }
+
+/* Brand SVGs keep their proportions, while their corners follow the round mark. */
+.company-mark > img {
+  border-radius: 50%;
+  object-fit: contain;
+}
 
 /* One chart and order surface in every terminal theme. */
 .terminal .trade-column { overflow-y: auto !important; overflow-x: hidden; }
@@ -109,11 +151,17 @@
 
 @media (max-width: 1000px) {
   .terminal .trade-column { overflow: visible !important; }
-  .audience-wall.ui-gallery .wall-index-card { flex-basis: min(100%, 450px); }
 }
 @media (max-width: 620px) {
-  .audience-wall:not(.ui-gallery) .wall-index-card { width: 100%; }
+  .audience-wall[class*="ui-"] .wall-index-card { gap: 10px; }
+  .audience-wall[class*="ui-"] .wall-index-label { gap: 4px; }
+  .audience-wall[class*="ui-"] .wall-index-value { gap: 6px; }
+  .audience-wall[class*="ui-"] .wall-index-value strong { font-size: clamp(19px, 5.2vw, 27px); }
+  .audience-wall[class*="ui-"] .wall-index-value b { padding: 5px 7px; font-size: 10px; }
   .audience-wall:not(.ui-gallery) .wall-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 142px), 1fr)); }
   .audience-wall:not(.ui-gallery) .wall-stock { min-height: 105px; }
-  .audience-wall.ui-gallery .wall-index-card { flex-basis: 100%; }
+}
+@media (max-width: 390px) {
+  .audience-wall[class*="ui-"] .wall-index-card { align-items: flex-start; flex-direction: column; }
+  .audience-wall[class*="ui-"] .wall-index-value { width: 100%; justify-content: space-between; }
 }
