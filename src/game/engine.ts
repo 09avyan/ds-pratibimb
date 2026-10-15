@@ -257,7 +257,8 @@ function endWorld(world: World, at: number) {
   for (const player of Object.values(world.sessions)) settle(world, player, at);
 }
 
-function settle(world: World, player: Player, at: number) {
+export function settle(world: World, player: Player, at: number) {
+  if (player.ended && !Object.keys(player.holdings).length && !Object.keys(player.shorts).length) return;
   if (player.accountingVersion !== 2) {
     player.cash -= shortBasis(player);
     player.accountingVersion = 2;
@@ -268,6 +269,13 @@ function settle(world: World, player: Player, at: number) {
     player.cash += realized;
     player.history.unshift({ id: id(), symbol, side: "Auto-cover", qty: p.qty, price, time: at, realized, note: "Short settled at the session close" });
   }
+  for (const [symbol, p] of Object.entries(player.holdings)) {
+    const price = world.stocks.find(s => s.symbol === symbol)?.price ?? p.avg;
+    const realized = (price - p.avg) * p.qty;
+    player.cash += price * p.qty;
+    player.history.unshift({ id: id(), symbol, side: "Auto-sell", qty: p.qty, price, time: at, realized, note: "Long settled at the session close" });
+  }
+  player.holdings = {};
   player.shorts = {};
   player.ended = true;
 }
@@ -280,10 +288,11 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
   const stock = world.stocks.find(s => s.symbol === symbol);
   if (!stock) throw new Error("That company is no longer available.");
   const px = stock.price, notional = quantity * px;
-  let realized = 0, note: string | undefined;
+  let realized = 0, note: string | undefined, coveredQty = 0;
   if (action === "Buy") {
     const short = player.shorts[symbol];
     const covered = Math.min(quantity, short?.qty ?? 0);
+    coveredQty = covered;
     const newLong = quantity - covered;
     const coverRealized = covered && short ? (short.avg - px) * covered : 0;
     const requiredCash = newLong * px - coverRealized;
@@ -314,7 +323,7 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
     const old = player.shorts[symbol] ?? { qty: 0, avg: 0 };
     player.shorts[symbol] = { qty: old.qty + quantity, avg: (old.qty * old.avg + quantity * px) / (old.qty + quantity) };
   }
-  const trade: Trade = { id: id(), symbol, side: action, qty: quantity, price: px, time: at, realized, note };
+  const trade: Trade = { id: id(), symbol, side: action, qty: quantity, coveredQty, price: px, time: at, realized, note };
   player.history.unshift(trade);
   const direction = action === "Buy" ? 1 : -1;
   const impact = clamp(quantity / Math.max(30_000, stock.base * 80) * .018, .000015, .0008) * direction;
@@ -414,11 +423,10 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
 
 export function performance(world: World, player: Player) {
   const value = equity(world, player), pnl = value - player.initialCash;
-  const trades = player.history.filter(t => t.side !== "Auto-cover");
-  const closedTrades = player.history.filter(t => t.realized !== 0);
+  const trades = player.history.filter(t => t.side !== "Auto-cover" && t.side !== "Auto-sell");
+  const closedTrades = player.history.filter(t => t.side === "Sell" || t.side === "Auto-sell" || t.side === "Auto-cover" || (t.side === "Buy" && (t.coveredQty ?? (t.note?.startsWith("Covered") ? 1 : 0)) > 0));
+  const manualClosedTrades = closedTrades.filter(t => t.side !== "Auto-cover" && t.side !== "Auto-sell");
   const winners = closedTrades.filter(t => t.realized > 0).length, losers = closedTrades.filter(t => t.realized < 0).length;
-  const symbols = new Set([...Object.keys(player.holdings), ...Object.keys(player.shorts)]);
-  const sectors = new Set([...Object.keys(player.holdings), ...Object.keys(player.shorts)].map(symbol => world.stocks.find(s => s.symbol === symbol)?.sector).filter(Boolean));
   const symbolsTraded = new Set(trades.map(trade => trade.symbol));
   const sectorsTraded = new Set(trades.map(trade => world.stocks.find(stock => stock.symbol === trade.symbol)?.sector).filter(Boolean));
   const manualShortCover = trades.some(trade => trade.side === "Buy" && trade.note?.includes("Covered"));
@@ -430,8 +438,8 @@ export function performance(world: World, player: Player) {
     ["First Trade", "You placed an order in this round", trades.length >= 1],
     ["Stock Explorer", "You traded at least four different companies", symbolsTraded.size >= 4],
     ["Sector Hopper", "You traded across at least three sectors", sectorsTraded.size >= 3],
-    ["Green Exit", "At least one closed trade finished in profit", closedTrades.some(trade => trade.realized > 0)],
-    ["Two Winners", "You closed at least two trades in profit", winners >= 2],
+    ["Green Exit", "At least one trade you closed finished in profit", manualClosedTrades.some(trade => trade.realized > 0)],
+    ["Two Winners", "You closed at least two trades in profit", manualClosedTrades.filter(trade => trade.realized > 0).length >= 2],
     ["Short Seller", "You opened a short position", openedShort],
     ["Short Cover", "You chose to buy back a short position", manualShortCover],
     ["Opening Bell", "You placed an order within the first minute", earlyTrade],
@@ -445,7 +453,7 @@ export function performance(world: World, player: Player) {
         ? `You explored ${sectorsTraded.size} sectors. A move in one industry did not define every company you traded.`
         : "You focused on a small part of the market. Comparing another sector can show how news affects different companies.",
     closedTrades.length
-      ? `You closed ${winners} trade${winners === 1 ? "" : "s"} in profit and ${losers} at a loss. Compare the size and timing of those exits.`
+      ? `${winners} position close${winners === 1 ? "" : "s"} finished in profit and ${losers} at a loss, including any automatic batch settlement. Compare the size and timing of those exits.`
       : "No trade was closed for a realised result. An open position can still change in value as prices move.",
     openedShort
       ? "You tried short selling. A short can gain when its price falls, and its loss can grow when the price rises."
@@ -454,5 +462,5 @@ export function performance(world: World, player: Player) {
       ? `You placed ${trades.length} orders. A quick pause between moves can help you check the latest price and your available cash.`
       : "News can affect the whole market, one sector, or a single company. Check a story’s target before reacting.",
   ];
-  return { value, cash: player.cash, pnl, returnPct: pnl / player.initialCash * 100, holdings: player.holdings, shorts: player.shorts, trades: player.history, tradeCount: trades.length, winners, losers, bestTrade: sortedClosedTrades[0] ?? null, worstTrade: sortedClosedTrades.at(-1) ?? null, badges, sectors: sectors.size, symbols: symbols.size, lessons };
+  return { value, cash: player.cash, pnl, returnPct: pnl / player.initialCash * 100, holdings: player.holdings, shorts: player.shorts, trades: player.history, tradeCount: trades.length, winners, losers, bestTrade: sortedClosedTrades[0] ?? null, worstTrade: sortedClosedTrades.at(-1) ?? null, badges, sectors: sectorsTraded.size, symbols: symbolsTraded.size, lessons };
 }

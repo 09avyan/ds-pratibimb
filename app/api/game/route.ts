@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { advance, executeTrade, hostAction, newPlayer, toPublic } from "@/game/engine";
+import { advance, executeTrade, hostAction, newPlayer, settle, toPublic } from "@/game/engine";
 import { mutate } from "@/game/store";
 import type { Mode, World } from "@/game/types";
 
@@ -85,12 +85,7 @@ export async function POST(request: NextRequest) {
       }
       if (action === "end") {
         if (player.ended) return null;
-        for (const [symbol, short] of Object.entries(player.shorts)) {
-          const px = state.stocks.find(s => s.symbol === symbol)?.price ?? short.avg;
-          const realized = (short.avg - px) * short.qty; player.cash += realized;
-          player.history.unshift({ id: crypto.randomUUID(), symbol, side: "Auto-cover", qty: short.qty, price: px, time: Date.now(), realized, note: "Short settled when you ended the session" });
-        }
-        player.shorts = {}; player.ended = true; state.version++; return null;
+        settle(state, player, Date.now()); state.version++; return null;
       }
       if (action === "sandbox-start") {
         if (mode !== "test") throw new Error("Practice rounds are only available in the isolated test market.");

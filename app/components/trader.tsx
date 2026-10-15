@@ -68,32 +68,39 @@ function MiniChart({ stock }: { stock: Stock }) {
   return <svg className="mini-chart" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><path d={smoothPath(points)} fill="none" stroke={up ? "#1e9173" : "#d75a4e"} strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" /></svg>;
 }
 
-function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Candles"; trades: Trade[] }) {
+function MainChart({ stock, kind, trades, startedAt, position }: { stock: Stock; kind: "Line" | "Candles"; trades: Trade[]; startedAt: number; position?: { side: "Long" | "Short"; avg: number; qty: number } }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const data = stock.candles.slice(-600);
   if (data.length < 2) return <div className="chart-loading">Building the first market bars…</div>;
   const w = 760, h = 250, pad = { l: 8, r: 68, t: 15, b: 24 };
-  const values = data.flatMap(c => [c.high, c.low]);
+  const values = [...data.flatMap(c => [c.high, c.low]), ...(position ? [position.avg] : [])];
   const min = Math.min(...values) * .9985, max = Math.max(...values) * 1.0015;
   const plotWidth = w - pad.l - pad.r;
-  const x = (i: number) => pad.l + i * plotWidth / Math.max(1, data.length - 1);
+  const firstTime = data[0].time, lastTime = data.at(-1)!.time;
+  const xTime = (time: number) => pad.l + Math.max(0, Math.min(1, (time - firstTime) / Math.max(1, lastTime - firstTime))) * plotWidth;
+  const x = (i: number) => xTime(data[i].time);
   const y = (v: number) => pad.t + (max - v) * (h - pad.t - pad.b) / (max - min || 1);
   const path = smoothPath(data.map((c, i) => ({ x: x(i), y: y(c.close) })));
   const ticks = [0, .25, .5, .75, 1].map(f => max - f * (max - min));
   const visibleTrades = trades.flatMap(trade => {
-    if (trade.symbol !== stock.symbol || trade.time < data[0].time - 1500 || trade.time > data.at(-1)!.time + 1500) return [];
+    if (trade.symbol !== stock.symbol || trade.time < firstTime || trade.time > lastTime + 1500 || (startedAt > 0 && trade.time < startedAt)) return [];
     let index = 0;
     for (let i = 1; i < data.length; i++) if (Math.abs(data[i].time - trade.time) < Math.abs(data[index].time - trade.time)) index = i;
     return [{ trade, index }];
   });
   const activeHover = hoveredIndex === null ? null : Math.max(0, Math.min(data.length - 1, hoveredIndex));
   const hoveredTrades = activeHover === null ? [] : visibleTrades.filter(item => item.index === activeHover);
-  const formatTime = (time: number) => new Date(time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const formatTime = (time: number) => {
+    if (!startedAt) return "PRE-START";
+    const seconds = Math.round((time - startedAt) / 1000);
+    return `${seconds < 0 ? "−" : "+"}${String(Math.floor(Math.abs(seconds) / 60)).padStart(2, "0")}:${String(Math.abs(seconds) % 60).padStart(2, "0")}`;
+  };
   return <><div className="price-chart-frame"><svg className="price-chart" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label={`${stock.name} ${kind.toLowerCase()} price chart with this terminal's own trades. Hover over the chart for timestamp, OHLC, volume, and trade details.`} onPointerMove={event => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const chartX = (event.clientX - bounds.left) / bounds.width * w;
-    const nearest = Math.round((chartX - pad.l) / plotWidth * (data.length - 1));
-    const next = Math.max(0, Math.min(data.length - 1, nearest));
+    const pointerTime = firstTime + (chartX - pad.l) / plotWidth * (lastTime - firstTime);
+    let next = 0;
+    for (let i = 1; i < data.length; i++) if (Math.abs(data[i].time - pointerTime) < Math.abs(data[next].time - pointerTime)) next = i;
     setHoveredIndex(current => current === next ? current : next);
   }} onPointerLeave={() => setHoveredIndex(null)}>
     <title>{stock.name} {kind.toLowerCase()} chart with your buy, sell, short and cover markers</title>
@@ -105,21 +112,25 @@ function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Cand
       const bodyWidth = Math.min(9, plotWidth / (data.length - 1) * .55);
       return <g key={c.time}><line x1={x(i)} x2={x(i)} y1={y(c.high)} y2={y(c.low)} stroke={color} strokeWidth="1.4"/><rect x={x(i) - bodyWidth / 2} y={bodyTop} width={bodyWidth} height={bodyHeight} fill={color}/></g>;
     })}
+    {position && <g className="chart-entry-line"><line x1={pad.l} x2={w - pad.r + 8} y1={y(position.avg)} y2={y(position.avg)} stroke={position.side === "Short" ? "#bd4b42" : "#087c66"} strokeWidth="1.6" strokeDasharray="6 4"/><text x={pad.l + 5} y={Math.max(pad.t + 12, y(position.avg) - 5)} fill={position.side === "Short" ? "#bd4b42" : "#087c66"} fontSize="13" fontWeight="700">{position.side === "Short" ? "SHORT AVG" : "BUY AVG"} {money(position.avg)}</text></g>}
     {visibleTrades.map(({ trade, index }, markIndex) => {
       const sameBarBefore = visibleTrades.slice(0, markIndex).filter(mark => mark.index === index).length;
-      const markerY = Math.max(pad.t + 5, Math.min(h - pad.b - 5, y(trade.price) - sameBarBefore * 11));
-      const marker = trade.side === "Buy" ? { label: "B", color: "#087c66" }
+      const markerY = Math.max(pad.t + 12, Math.min(h - pad.b - 12, y(trade.price) - sameBarBefore * 22));
+      const covered = trade.side === "Buy" ? (trade.coveredQty ?? (trade.note?.startsWith("Covered") ? trade.qty : 0)) : 0;
+      const marker = covered ? { label: covered < trade.qty ? "C+B" : "C", color: "#475dd1" } : trade.side === "Buy" ? { label: "B", color: "#087c66" }
         : trade.side === "Sell" ? { label: "S", color: "#cf781d" }
           : trade.side === "Short" ? { label: "SH", color: "#bd4b42" }
-            : { label: "C", color: "#475dd1" };
-      return <g key={trade.id} data-trade-marker={trade.side} transform={`translate(${x(index)},${markerY})`}><circle r="6" fill={marker.color}/><text x="0" y="2.4" textAnchor="middle" fill="white" fontSize={marker.label.length > 1 ? "5.2" : "6.5"} fontWeight="800">{marker.label}</text><title>{trade.side} {trade.qty} {stock.symbol} at {money(trade.price)} · {new Date(trade.time).toLocaleString("en-IN")}</title></g>;
+            : trade.side === "Auto-sell" ? { label: "S", color: "#cf781d" } : { label: "C", color: "#475dd1" };
+      const markerRadius = marker.label.length > 2 ? 12 : marker.label.length > 1 ? 10 : 9;
+      const markerFont = marker.label.length > 2 ? 8 : marker.label.length > 1 ? 9 : 10;
+      return <g key={trade.id} data-trade-marker={covered ? "Cover" : trade.side} transform={`translate(${xTime(trade.time)},${markerY})`}><circle r={markerRadius} fill={marker.color}/><text x="0" y="3.2" textAnchor="middle" fill="white" fontSize={markerFont} fontWeight="800">{marker.label}</text><title>{trade.note ?? `${trade.side} ${trade.qty} ${stock.symbol}`} at {money(trade.price)} · {formatTime(trade.time)}</title></g>;
     })}
     <circle cx={x(data.length - 1)} cy={y(stock.price)} r="3.5" fill="#1247d2"/><line x1={x(data.length - 1) + 8} x2={w - pad.r + 4} y1={y(stock.price)} y2={y(stock.price)} stroke="#1247d2" strokeDasharray="3 3"/>
     <text x={pad.l} y={h - 4} fill="var(--muted)" fontSize="13">{formatTime(data[0].time)}</text><text x={x(Math.floor((data.length - 1) / 2))} y={h - 4} textAnchor="middle" fill="var(--muted)" fontSize="13">{formatTime(data[Math.floor((data.length - 1) / 2)].time)}</text>
     <text x={w - pad.r - 20} y={h - 4} fill="var(--muted)" fontSize="13">{formatTime(data.at(-1)!.time)}</text>
     {activeHover !== null && <><line x1={x(activeHover)} x2={x(activeHover)} y1={pad.t} y2={h - pad.b} stroke="var(--muted)" strokeDasharray="3 3" opacity=".65"/><circle cx={x(activeHover)} cy={y(data[activeHover].close)} r="4" fill="#1247d2" stroke="white" strokeWidth="1.5"/>
     </>}
-    </svg>{activeHover !== null && <div className="chart-hover-card chart-hover-overlay" style={activeHover > data.length * .58 ? { left: 8 } : { right: 8 }}><b>{new Date(data[activeHover].time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "medium" })}</b><span>O {money(data[activeHover].open)} · H {money(data[activeHover].high)}</span><span>L {money(data[activeHover].low)} · C {money(data[activeHover].close)}</span><span>Volume {data[activeHover].volume.toLocaleString("en-IN")}</span>{hoveredTrades.slice(0, 3).map(({ trade }) => <span key={trade.id} className={`trade-detail ${trade.side.toLowerCase().replace("-", "")}`}>{trade.side.toUpperCase()} {trade.qty} @ {money(trade.price)} · {formatTime(trade.time)}</span>)}{hoveredTrades.length > 3 && <span>+{hoveredTrades.length - 3} more markers on this candle</span>}</div>}</div>{visibleTrades.length > 0 && <div className="chart-marker-legend"><span><i className="buy">B</i> Buy</span><span><i className="sell">S</i> Sell</span><span><i className="short">SH</i> Short</span><span><i className="cover">C</i> Cover</span><small>Your trades · Hover for exact time and price</small></div>}</>;
+    </svg>{activeHover !== null && <div className="chart-hover-card chart-hover-overlay" style={x(activeHover) > w * .58 ? { left: 8 } : { right: 8 }}><b>{formatTime(data[activeHover].time)} from batch open</b><span>O {money(data[activeHover].open)} · H {money(data[activeHover].high)}</span><span>L {money(data[activeHover].low)} · C {money(data[activeHover].close)}</span><span>Volume {data[activeHover].volume.toLocaleString("en-IN")}</span>{hoveredTrades.slice(0, 3).map(({ trade }) => <span key={trade.id} className={`trade-detail ${trade.side.toLowerCase().replace("-", "")}`}>{trade.side === "Buy" && (trade.coveredQty ?? 0) ? "COVER" : trade.side.toUpperCase()} {trade.qty} @ {money(trade.price)} · {formatTime(trade.time)}</span>)}{hoveredTrades.length > 3 && <span>+{hoveredTrades.length - 3} more markers on this candle</span>}</div>}</div>{visibleTrades.length > 0 && <div className="chart-marker-legend"><span><i className="buy">B</i> Buy</span><span><i className="sell">S</i> Sell</span><span><i className="short">SH</i> Short</span><span><i className="cover">C</i> Cover</span><small>Your trades · Hover for batch time and price</small></div>}</>;
 }
 
 function Header({ world, player, onTheme, theme, clockNow }: { world: PublicWorld | null; player: Player | null; onTheme: () => void; theme: "light" | "dark"; clockNow: number }) {
@@ -245,7 +256,10 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     return () => { delete document.documentElement.dataset.theme; };
   }, [theme, themeReady]);
   useEffect(() => { if (view === "portfolio") setMenu(false); }, [view]);
-  useEffect(() => { if (player?.ended && (world?.mode === "test" || world?.status === "closed")) setView("report"); }, [world?.mode, world?.status, player?.ended]);
+  useEffect(() => {
+    if (!audienceOnly && player?.ended && (world?.mode === "test" || world?.status === "closed"))
+      setView(current => current === "report" ? current : "report");
+  }, [audienceOnly, world?.mode, world?.status, player?.ended]);
 
   async function send(action: string, payload: Record<string, unknown> = {}) {
     if (!sessionId || submitting.current) return;
@@ -326,7 +340,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
           <aside className="trade-column">
             <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
               <div className="focus-price-row"><strong>{money(stock.price)}</strong><span className={`stock-change ${changePct(stock) >= 0 ? "positive" : "negative"}`}>{changePct(stock) >= 0 ? "+" : ""}{changePct(stock).toFixed(2)}%</span><small>SESSION</small></div>
-              <MainChart key={stock.symbol} stock={stock} kind={chartType} trades={world?.player?.history ?? []}/>
+              <MainChart key={stock.symbol} stock={stock} kind={chartType} trades={world?.player?.history ?? []} startedAt={world?.startedAt ?? 0} position={player?.holdings[stock.symbol]?.qty ? { side: "Long", ...player.holdings[stock.symbol] } : player?.shorts[stock.symbol]?.qty ? { side: "Short", ...player.shorts[stock.symbol] } : undefined}/>
+              {player?.shorts[stock.symbol]?.qty ? <div className="chart-active-position">OPEN SHORT · {player.shorts[stock.symbol].qty} shares at {money(player.shorts[stock.symbol].avg)} average</div> : null}
               <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.tickRate ?? 1} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
               <div className="chart-foot"><span><i/> Open <b>{money(stock.candles[0]?.open ?? stock.price)}</b></span><span>High <b>{money(Math.max(stock.price, ...stock.candles.map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(stock.price, ...stock.candles.map(c => c.low)))}</b></span></div>
               <section id="inline-order-ticket" className="inline-order-ticket"><div className="inline-order-heading"><span className="eyebrow">TRADE {stock.symbol} · {stock.sector.toUpperCase()}</span><small>ORDER PANEL</small></div>{orderTicket}</section>
@@ -334,7 +349,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
             <div className="holdings-card"><div><span className="eyebrow">YOUR HOLDINGS</span><button onClick={() => setView("portfolio")}>Portfolio →</button></div>
               {invested.length + shorts.length === 0 ? <p>Build your first position from the watchlist.</p> : [...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].slice(0, 4).map(p => {
                 const found = world?.stocks.find(s => s.symbol === p.symbol); const val = (found?.price ?? 0) * p.qty;
-                return <div className="holding-row" key={p.symbol}><span className="holding-code">{p.symbol}<small>{p.short ? "SHORT" : `${p.qty} shares`}</small></span><span>{money(val, 0)}</span><span className={p.short ? "negative" : "positive"}>{p.short ? "−" : "+"}{money((found?.price ?? 0) * p.qty - p.avg * p.qty, 0)}</span></div>;
+                const pl = (p.short ? p.avg - (found?.price ?? p.avg) : (found?.price ?? p.avg) - p.avg) * p.qty;
+                return <div className="holding-row" key={p.symbol}><span className="holding-code">{p.symbol}<small>{p.short ? "SHORT" : `${p.qty} shares`}</small></span><span>{money(val, 0)}</span><span className={pl >= 0 ? "positive" : "negative"}>{pl > 0 ? "+" : pl < 0 ? "−" : ""}{money(Math.abs(pl), 0)}</span></div>;
               })}
               <div className="holding-total"><span>Net positions</span><b>{money(totalLong - totalShort, 0)}</b></div>
             </div>
@@ -345,7 +361,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       {view === "portfolio" && <section className="wide-page"><div className="section-heading"><div><div className="eyebrow">DALAA<span>L</span> STREET / ACCOUNT</div><h1>Your portfolio<span className="heading-period">.</span></h1><p>Open exposure and completed orders, updated against the shared market.</p></div></div>
         <div className="portfolio-summary"><Metric label="TOTAL EQUITY" value={money(world && player ? equity(world as never, player) : 1_000_000, 0)} note="Free cash + long value + short P&L"/><Metric label="AVAILABLE CASH" value={money(player?.cash ?? 1_000_000, 0)} note="Short-sale proceeds are not spendable cash"/><Metric label="OPEN LONGS" value={money(totalLong, 0)} note={`${invested.length} company positions`}/><Metric label="SHORT EXPOSURE" value={money(totalShort, 0)} note="Marked to current prices"/></div>
         <div className="page-tabs"><button className={menu ? "" : "active"} onClick={() => setMenu(false)}>Holdings <span>{invested.length + shorts.length}</span></button><button className={menu ? "active" : ""} onClick={() => setMenu(true)}>History <span>{player?.history.length ?? 0}</span></button></div>
-        {!menu ? <div className="table-card">{invested.length + shorts.length === 0 ? <div className="empty-state roomy"><span>▧</span><b>No holdings yet</b><p>Choose a company from Markets to place your first order.</p><button className="outline-button" onClick={() => setView("markets")}>Browse markets</button></div> : <table><thead><tr><th>COMPANY</th><th>POSITION</th><th>AVG. PRICE</th><th>LAST PRICE</th><th>MARKET VALUE</th><th>UNREALISED P&amp;L</th><th>ACTION</th></tr></thead><tbody>{[...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].map(p => {const s = world?.stocks.find(x => x.symbol === p.symbol); const mark = s?.price ?? 0; const pl = (p.short ? p.avg - mark : mark - p.avg) * p.qty;return <tr key={p.symbol} onClick={() => {setSelected(p.symbol);setView("markets");}}><td><span className="table-company"><Logo stock={s!} compact/><span><b>{s?.name}</b><small>{p.symbol} · {s?.sector}</small></span></span></td><td><span className={`position-pill ${p.short ? "short" : "long"}`}>{p.short ? "Short" : "Long"} · {p.qty}</span></td><td>{money(p.avg)}</td><td>{money(mark)}</td><td>{money(mark * p.qty, 0)}</td><td className={pl >= 0 ? "positive" : "negative"}>{pl >= 0 ? "+" : ""}{money(pl, 0)}</td><td><button className={`position-close ${p.short ? "cover" : "sell"}`} disabled={blocked} onClick={e => { e.stopPropagation(); void send("trade", { side: p.short ? "Buy" : "Sell", symbol: p.symbol, quantity: p.qty }); }}>{busy ? "Submitting…" : p.short ? "Cover short" : "Sell holding"}</button></td></tr>;})}</tbody></table>}</div> : <div className="table-card">{!player?.history.length ? <div className="empty-state roomy"><span>↻</span><b>No trades yet</b><p>Every order and short-cover is recorded here.</p></div> : <table><thead><tr><th>TIME</th><th>COMPANY</th><th>ORDER</th><th>QUANTITY</th><th>EXECUTION</th><th>REALIZED P&amp;L</th></tr></thead><tbody>{player.history.map(t => {const s = world?.stocks.find(x => x.symbol === t.symbol);return <tr key={t.id}><td>{new Date(t.time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td><td><span className="table-company"><Logo stock={s!} compact/><span><b>{s?.name ?? t.symbol}</b><small>{t.symbol}</small></span></span></td><td><span className={`position-pill ${t.side === "Short" ? "short" : t.side === "Sell" || t.side === "Auto-cover" ? "sell" : "long"}`}>{t.side}</span></td><td>{t.qty}</td><td>{money(t.price)}</td><td className={t.realized >= 0 ? "positive" : "negative"}>{t.realized ? `${t.realized > 0 ? "+" : ""}${money(t.realized, 0)}` : "—"}</td></tr>;})}</tbody></table>}</div>}</section>}
+        {!menu ? <div className="table-card">{invested.length + shorts.length === 0 ? <div className="empty-state roomy"><span>▧</span><b>No holdings yet</b><p>Choose a company from Markets to place your first order.</p><button className="outline-button" onClick={() => setView("markets")}>Browse markets</button></div> : <table><thead><tr><th>COMPANY</th><th>POSITION</th><th>AVG. PRICE</th><th>LAST PRICE</th><th>MARKET VALUE</th><th>UNREALISED P&amp;L</th><th>ACTION</th></tr></thead><tbody>{[...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].map(p => {const s = world?.stocks.find(x => x.symbol === p.symbol); const mark = s?.price ?? 0; const pl = (p.short ? p.avg - mark : mark - p.avg) * p.qty;return <tr key={p.symbol} onClick={() => {setSelected(p.symbol);setView("markets");}}><td><span className="table-company"><Logo stock={s!} compact/><span><b>{s?.name}</b><small>{p.symbol} · {s?.sector}</small></span></span></td><td><span className={`position-pill ${p.short ? "short" : "long"}`}>{p.short ? "Short" : "Long"} · {p.qty}</span></td><td>{money(p.avg)}</td><td>{money(mark)}</td><td>{money(mark * p.qty, 0)}</td><td className={pl >= 0 ? "positive" : "negative"}>{pl >= 0 ? "+" : ""}{money(pl, 0)}</td><td><button className={`position-close ${p.short ? "cover" : "sell"}`} disabled={blocked} onClick={e => { e.stopPropagation(); void send("trade", { side: p.short ? "Buy" : "Sell", symbol: p.symbol, quantity: p.qty }); }}>{busy ? "Submitting…" : p.short ? "Cover short" : "Sell holding"}</button></td></tr>;})}</tbody></table>}</div> : <div className="table-card">{!player?.history.length ? <div className="empty-state roomy"><span>↻</span><b>No trades yet</b><p>Every order and short-cover is recorded here.</p></div> : <table><thead><tr><th>TIME</th><th>COMPANY</th><th>ORDER</th><th>QUANTITY</th><th>EXECUTION</th><th>REALIZED P&amp;L</th></tr></thead><tbody>{player.history.map(t => {const s = world?.stocks.find(x => x.symbol === t.symbol); const closing = t.side === "Sell" || t.side === "Auto-sell" || t.side === "Auto-cover" || (t.side === "Buy" && (t.coveredQty ?? (t.note?.startsWith("Covered") ? 1 : 0)) > 0);return <tr key={t.id}><td>{new Date(t.time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td><td><span className="table-company"><Logo stock={s!} compact/><span><b>{s?.name ?? t.symbol}</b><small>{t.symbol}</small></span></span></td><td><span className={`position-pill ${t.side === "Short" ? "short" : closing ? "sell" : "long"}`}>{t.side === "Auto-sell" ? "Auto-sell · automatic close" : t.side === "Auto-cover" ? "Auto-cover · automatic close" : t.side === "Buy" && (t.coveredQty ?? 0) ? t.coveredQty === t.qty ? "Cover" : "Cover + Buy" : t.side}</span></td><td>{t.qty}</td><td>{money(t.price)}</td><td className={t.realized >= 0 ? "positive" : "negative"}>{closing ? `${t.realized > 0 ? "+" : ""}${money(t.realized, 0)}` : "—"}</td></tr>;})}</tbody></table>}</div>}</section>}
 
       {view === "news" && <section className="wide-page"><div className="section-heading"><div><div className="eyebrow">DALAA<span>L</span> STREET / NEWS</div><h1>Market news<span className="heading-period">.</span></h1><p>Company and sector bulletins shape the fictional market through the same price model as trading.</p></div></div><div className="news-list">{world?.headlines.map((n, i) => <article className={`news-item ${i === 0 ? "newest" : ""}`} key={n.id}><div className="news-meta"><span className={`news-tag ${n.type}`}>{n.type}</span><span>{newsScope(n)}</span><time>{new Date(n.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><h2>{n.headline}</h2></article>) ?? null}{!world?.headlines.length && <div className="empty-state">No bulletins yet. Headlines triggered during this batch will appear here.</div>}</div></section>}
 
@@ -355,7 +371,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       </section>}
       <footer className="workspace-footer"><span>SIMULATED MARKET · FICTIONAL PRICES · NO REAL TRADES</span><span>© PULSE / DALAA<span>L</span> STREET</span></footer>
     </main>
-    {!audienceOnly && world?.status === "live" && player && !player.ended && <button className="end-session" onClick={() => { if (window.confirm("End your trading session now? Open shorts will be settled at the current simulated price.")) void send("end"); }}>Finish session <span>↗</span></button>}
+    {!audienceOnly && world?.status === "live" && player && !player.ended && <button className="end-session" onClick={() => { if (window.confirm("End your trading session now? Open long and short positions will close at the current simulated price.")) void send("end"); }}>Finish session <span>↗</span></button>}
     {toast && <div className="toast-message" role="status"><span>✓</span>{toast}<button onClick={() => setToast("")}>×</button></div>}
     {drawer && <div className="drawer-backdrop" onClick={() => setDrawer(false)}><section className="news-drawer" onClick={e => e.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">MARKET BULLETINS</span><h2>News desk</h2></div><button onClick={() => setDrawer(false)}>×</button></div>{world?.headlines.slice(0, 12).map(n => <article key={n.id}><small className={`news-tag ${n.type}`}>{n.type}</small><b>{n.headline}</b><span>{newsScope(n)}</span></article>)}</section></div>}
   </div>;
@@ -383,12 +399,12 @@ function Audience({ world, uiVariant, preview, theme, onTheme }: { world: Public
       <button className="theme-button wall-theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
       <button className="wall-fullscreen" onClick={() => document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen()}>{fullscreen ? "Exit full screen" : "Full screen"} ↗</button>
     </header>
-    <section className="wall-hero" aria-label="Dalaal-10 price and latest news">
+    <section className="wall-hero" aria-label="Dalaal-10 index">
       <article className="wall-index-card"><div className="wall-index-label"><small>DALAAL-10 · {isClosed ? "CLOSING LEVEL" : world?.status === "live" ? "LIVE LEVEL" : "REFERENCE LEVEL"}</small><span>{statusText}</span></div><div className="wall-index-value"><strong>{indexText}</strong><b className={returnPct >= 0 ? "positive" : "negative"}>{signReturn(returnPct)}</b></div></article>
-      <section className="wall-news" aria-label="Latest news"><header className="wall-news-heading"><span className="wall-news-label">LATEST NEWS</span><span>{latestNews.length ? `${latestNews.length} ${latestNews.length === 1 ? "headline" : "headlines"}` : "No headlines yet"}</span></header><div className="wall-news-headlines">{latestNews.length ? latestNews.map(item => <article key={item.id}><div><span className={`news-tag ${item.type}`}>{item.type}</span><span>{newsScope(item)}</span><time>{new Date(item.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><strong>{item.headline}</strong></article>) : <article className="wall-news-empty">News released during the batch will appear here.</article>}</div></section>
     </section>
+    <section className="wall-news" aria-label="Latest news"><header className="wall-news-heading"><span className="wall-news-label">LATEST NEWS</span><span>{latestNews.length ? `${latestNews.length} ${latestNews.length === 1 ? "headline" : "headlines"}` : "No headlines yet"}</span></header><div className="wall-news-headlines">{latestNews.length ? latestNews.map(item => <article key={item.id}><div><span className={`news-tag ${item.type}`}>{item.type}</span><span>{newsScope(item)}</span><time>{new Date(item.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><strong>{item.headline}</strong></article>) : <article className="wall-news-empty">News released during the batch will appear here.</article>}</div></section>
     <section className="wall-market-section"><header className="wall-section-heading"><div><span className="eyebrow">MARKET BOARD</span><h1>All stocks<span>.</span></h1></div></header>
-      <section className="wall-grid" aria-label="All listed stocks">{stocks.map(stock => <article className="wall-stock" key={stock.symbol}><div className="wall-stock-top"><Logo stock={stock} compact/><span><b>{stock.symbol}</b><small>{stock.name}</small></span></div><div className="wall-price"><strong>{money(stock.price, stock.price < 100 ? 2 : 0)}</strong><span className={changePct(stock) >= 0 ? "positive" : "negative"}>{signReturn(changePct(stock))}</span></div></article>)}</section>
+      <section className="wall-grid" aria-label="All listed stocks">{stocks.map(stock => <article className="wall-stock" key={stock.symbol}><div className="wall-stock-top"><Logo stock={stock} compact/><span><b>{stock.symbol}</b><small>{stock.name}</small></span></div><div className="wall-price"><strong>{money(stock.price, stock.price < 100 ? 2 : 0)}</strong><span className={changePct(stock) >= 0 ? "positive" : "negative"}>{signReturn(changePct(stock))}</span></div>{uiVariant !== "gallery" && <MiniChart stock={stock}/>}</article>)}</section>
     </section>
     <footer className="wall-footer"><span>{preview && uiVariant && <><a href="/ui-preview">PREVIEW V{uiVariant.toUpperCase()} · COMPARE ALL</a> · </>}FICTIONAL PRICE MOVEMENTS · NO REAL TRADES</span></footer>
   </main>;

@@ -1,0 +1,119 @@
+/* Audience layout refinement. V4 keeps its existing material treatment. */
+.audience-wall:not(.ui-gallery) .wall-hero {
+  display: block;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.audience-wall:not(.ui-gallery) .wall-index-card {
+  width: min(100%, 430px);
+  min-height: 0;
+  gap: 8px;
+  padding: clamp(11px, 1.2vw, 17px);
+  border-radius: 17px;
+}
+.audience-wall:not(.ui-gallery) .wall-index-value strong {
+  font-size: clamp(26px, 2.6vw, 39px);
+}
+.audience-wall:not(.ui-gallery) .wall-news {
+  width: 100%;
+  min-height: 0;
+  flex: 0 0 auto;
+  padding: clamp(10px, 1.15vw, 15px);
+}
+.audience-wall:not(.ui-gallery) .wall-news-headlines {
+  max-height: none;
+}
+.audience-wall:not(.ui-gallery) .wall-market-section { flex: 0 0 auto; min-height: 0; }
+.audience-wall:not(.ui-gallery) .wall-grid {
+  flex: 0 0 auto;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 148px), 1fr));
+  grid-template-rows: none;
+  grid-auto-rows: auto;
+  align-content: start;
+  align-items: stretch;
+  gap: clamp(7px, .8vw, 12px);
+}
+.audience-wall:not(.ui-gallery) .wall-stock {
+  min-height: 108px;
+  height: auto;
+  gap: 7px;
+  justify-content: start;
+}
+.audience-wall:not(.ui-gallery) .wall-stock .mini-chart {
+  display: block;
+  width: 100%;
+  height: 24px;
+  min-height: 24px;
+  margin-top: auto;
+}
+.audience-wall.ui-broadcast .wall-stock .mini-chart { grid-column: 1 / -1; }
+/* V4 keeps its existing index, stock, color and typography rules. */
+.audience-wall.ui-gallery .wall-hero { display: flex; }
+.audience-wall.ui-gallery .wall-index-card { flex: 0 1 36%; }
+.audience-wall.ui-gallery .wall-news { width: 100%; min-height: 0; }
+
+/* One chart and order surface in every terminal theme. */
+.terminal .trade-column { overflow-y: auto !important; overflow-x: hidden; }
+.terminal .trade-column > .focus-card {
+  min-width: 0;
+  overflow: visible;
+}
+.terminal .focus-card > .inline-order-ticket {
+  display: block;
+  min-width: 0;
+  margin: 14px 0 0 !important;
+  padding: 13px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.terminal .focus-card > .inline-order-ticket .order-card {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.terminal .focus-card > .inline-order-ticket .order-title h2 { color: var(--ink); }
+:root[data-theme="dark"] .terminal .focus-card > .inline-order-ticket {
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-theme="dark"] .terminal .focus-card > .inline-order-ticket .order-card {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.terminal .chart-active-position {
+  display: inline-flex;
+  max-width: 100%;
+  margin: 7px 0 2px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: var(--down-soft);
+  color: var(--down);
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+.terminal.ui-broadcast .trade-column { overflow-y: auto !important; }
+/* Vinyl motif stays visible without crowding the quote or company identity. */
+.terminal.ui-conservatory .stock-card::before { width: 50px; right: -12px; top: -12px; opacity: .13; transform-origin: top right; }
+.terminal.ui-conservatory .stock-card::after { width: 18px; right: 9px; top: 9px; opacity: .2; border-width: 2px; transform-origin: top right; }
+:root[data-theme="dark"] .terminal.ui-conservatory .stock-card::before { opacity: .17; }
+:root[data-theme="dark"] .terminal.ui-conservatory .stock-card::after { opacity: .22; }
+
+@media (max-width: 1000px) {
+  .terminal .trade-column { overflow: visible !important; }
+  .audience-wall.ui-gallery .wall-index-card { flex-basis: min(100%, 450px); }
+}
+@media (max-width: 620px) {
+  .audience-wall:not(.ui-gallery) .wall-index-card { width: 100%; }
+  .audience-wall:not(.ui-gallery) .wall-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 142px), 1fr)); }
+  .audience-wall:not(.ui-gallery) .wall-stock { min-height: 105px; }
+  .audience-wall.ui-gallery .wall-index-card { flex-basis: 100%; }
+}
