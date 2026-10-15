@@ -8,7 +8,6 @@ import { UI_OPTIONS, type UiVariant } from "@/ui-options";
 
 type Props = { mode?: Mode; audienceOnly?: boolean; terminal?: number; uiVariant?: UiVariant; preview?: boolean };
 type TradeSide = "Buy" | "Sell" | "Short";
-type FreshStockTheme = Extract<UiVariant, "canopy" | "bluecurrent" | "railway" | "picturehouse">;
 const money = (n: number, digits = 2) => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 const changePct = (s: Stock) => (s.price / s.previousClose - 1) * 100;
 const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">) => {
@@ -69,106 +68,6 @@ function MiniChart({ stock }: { stock: Stock }) {
   return <svg className="mini-chart" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><path d={smoothPath(points)} fill="none" stroke={up ? "#1e9173" : "#d75a4e"} strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" /></svg>;
 }
 
-function FreshStockTile({ variant, stock, selected, position, onSelect }: { variant: FreshStockTheme; stock: Stock; selected: boolean; position: string; onSelect: () => void }) {
-  const change = changePct(stock);
-  const changeClass = change >= 0 ? "positive" : "negative";
-  const changeText = `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
-  const mark = <Logo stock={stock} compact/>;
-  const miniChart = <MiniChart stock={stock}/>;
-  const move = <span className={`fresh-stock-move ${changeClass}`}>{changeText}</span>;
-  const company = <span className="fresh-stock-company">{stock.name}</span>;
-  const quote = <strong className="fresh-stock-quote">{money(stock.price)}</strong>;
-  const sector = <span className="fresh-stock-sector">{stock.sector}</span>;
-  const holding = <span className="fresh-stock-position">{position}</span>;
-
-  return <button type="button" className={`fresh-stock fresh-stock-${variant}${selected ? " selected" : ""}`} onClick={onSelect} aria-pressed={selected} aria-label={`Select ${stock.name}, ${money(stock.price)}, ${changeText}, ${stock.sector}, ${position}`}>
-    {variant === "canopy" && <>
-      <div className="canopy-stock-stamp"><span>{mark}</span><b>{stock.symbol}</b><small>GARDEN PLOT</small></div>
-      {company}
-      <div className="canopy-stock-quote">{quote}{move}</div>
-      <div className="canopy-stock-vitals">{miniChart}{sector}{holding}</div>
-    </>}
-    {variant === "bluecurrent" && <>
-      <div className="current-stock-depth"><span className="current-stock-porthole">{mark}</span><b>{stock.symbol}</b>{quote}{move}</div>
-      <div className="current-stock-trace">{miniChart}</div>
-      {company}
-      <div className="current-stock-badges">{sector}{holding}</div>
-    </>}
-    {variant === "railway" && <>
-      <div className="platform-stock-sign"><span className="platform-stock-logo">{mark}</span><span className="platform-stock-route"><b>{stock.symbol}</b><small>MARKET PLATFORM</small></span><span className="platform-stock-signal" aria-hidden="true">●</span></div>
-      {company}
-      <div className="platform-stock-board"><span>LAST PRICE</span>{quote}{move}{miniChart}</div>
-      <div className="platform-stock-footer">{sector}{holding}</div>
-    </>}
-    {variant === "picturehouse" && <>
-      <div className="picturehouse-poster-top"><span className="picturehouse-logo">{mark}</span><b>{stock.symbol}</b><span className="picturehouse-premiere">✦ NOW SHOWING</span></div>
-      {company}
-      <div className="picturehouse-billing">{quote}{move}</div>
-      <div className="picturehouse-screen">{miniChart}<span>MARKET TRAILER</span></div>
-      <div className="picturehouse-poster-foot">{sector}{holding}</div>
-    </>}
-  </button>;
-}
-
-function StockTile({ variant, stock, selected, position, onSelect }: { variant?: UiVariant; stock: Stock; selected: boolean; position: string; onSelect: () => void }) {
-  if (variant === "canopy" || variant === "bluecurrent" || variant === "railway" || variant === "picturehouse") {
-    return <FreshStockTile variant={variant} stock={stock} selected={selected} position={position} onSelect={onSelect}/>;
-  }
-
-  const change = changePct(stock);
-  const changeText = `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
-  const move = <span className={`stock-change ${change >= 0 ? "positive" : "negative"}`}>{changeText}</span>;
-  const mark = <Logo stock={stock} compact/>;
-  const chart = <MiniChart stock={stock}/>;
-  const classes = `stock-card stock-card-${variant ?? "default"}${selected ? " selected" : ""}`;
-  const accessible = `Select ${stock.name}, ${money(stock.price)}, ${changeText}, ${stock.sector}, ${position}`;
-
-  if (variant === "blockcraft") return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
-    <div className="block-stock-cap"><span className="block-stock-logo">{mark}</span><span><small>MARKET BLOCK</small><b>{stock.symbol}</b></span><strong>{money(stock.price)}</strong></div>
-    <span className="block-stock-name">{stock.name}</span>
-    <div className="block-stock-trend">{chart}{move}</div>
-    <div className="block-stock-meta"><span>{stock.sector}</span><b>{position}</b></div>
-  </button>;
-
-  if (variant === "arcade") return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
-    <div className="mash-stock-header"><span className="mash-stock-symbol">{stock.symbol}</span>{mark}<span className="mash-stock-sector">{stock.sector}</span></div>
-    <span className="mash-stock-name">{stock.name}</span>
-    <div className="mash-stock-price"><strong>{money(stock.price)}</strong>{move}</div>
-    <div className="mash-stock-trend">{chart}<small>LIVE MOVE</small></div>
-    <span className="mash-stock-position">{position}</span>
-  </button>;
-
-  if (variant === "paper") return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
-    <div className="paper-stock-kicker"><span>MARKET QUOTE · NSE</span>{move}</div>
-    <div className="paper-stock-heading"><b>{stock.symbol}</b>{mark}</div>
-    <span className="paper-stock-name">{stock.name}</span>
-    <div className="paper-stock-price"><small>LAST TRADED</small><strong>{money(stock.price)}</strong></div>
-    <div className="paper-stock-trend">{chart}</div>
-    <div className="paper-stock-footer"><span>{stock.sector}</span><b>{position}</b></div>
-  </button>;
-
-  if (variant === "pacman") return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
-    <div className="maze-stock-path"><span className="maze-pellets">● · ● · ●</span>{mark}<span className="maze-pellets">● · ●</span></div>
-    <div className="maze-stock-heading"><b>{stock.symbol}</b>{move}</div>
-    <span className="maze-stock-name">{stock.name}</span>
-    <div className="maze-stock-price"><strong>{money(stock.price)}</strong>{chart}</div>
-    <div className="maze-stock-footer"><span>{stock.sector}</span><b>{position}</b></div>
-  </button>;
-
-  if (variant === "aurora") return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
-    <div className="score-stock-header"><span>MARKET SCORE</span><b>{stock.symbol}</b></div>
-    <div className="score-stock-main">{mark}<span><small>{stock.name}</small><strong>{money(stock.price)}</strong></span>{move}</div>
-    <div className="score-stock-readout">{chart}<span>{change >= 0 ? "UP RUN" : "DOWN RUN"}</span></div>
-    <div className="score-stock-footer"><span>{stock.sector}</span><b>{position}</b></div>
-  </button>;
-
-  return <button type="button" className={classes} onClick={onSelect} aria-pressed={selected} aria-label={accessible}>
-    <div className="stock-card-top">{mark}<div className="stock-id"><strong>{stock.symbol}</strong><span>{stock.name}</span></div></div>
-    <div className="stock-card-bottom"><strong>{money(stock.price)}</strong>{move}</div>{chart}
-    <div className="stock-card-foot"><span>{stock.sector}</span><span>{position}</span></div>
-  </button>;
-}
-
 function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Candles"; trades: Trade[] }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const data = stock.candles.slice(-600);
@@ -190,14 +89,14 @@ function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Cand
   const activeHover = hoveredIndex === null ? null : Math.max(0, Math.min(data.length - 1, hoveredIndex));
   const hoveredTrades = activeHover === null ? [] : visibleTrades.filter(item => item.index === activeHover);
   const formatTime = (time: number) => new Date(time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  return <><div className="price-chart-frame"><svg className="price-chart" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${stock.name} ${kind.toLowerCase()} price chart. Hover over the chart for timestamp, OHLC, volume, and trade details.`} onPointerMove={event => {
+  return <><div className="price-chart-frame"><svg className="price-chart" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${stock.name} ${kind.toLowerCase()} price chart with this terminal's own trades. Hover over the chart for timestamp, OHLC, volume, and trade details.`} onPointerMove={event => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const chartX = (event.clientX - bounds.left) / bounds.width * w;
     const nearest = Math.round((chartX - pad.l) / plotWidth * (data.length - 1));
     const next = Math.max(0, Math.min(data.length - 1, nearest));
     setHoveredIndex(current => current === next ? current : next);
   }} onPointerLeave={() => setHoveredIndex(null)}>
-    <title>{stock.name} {kind.toLowerCase()} chart with buy, sell, short and cover markers</title>
+    <title>{stock.name} {kind.toLowerCase()} chart with your buy, sell, short and cover markers</title>
     <defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#9ee4cc" stopOpacity=".28"/><stop offset="1" stopColor="#9ee4cc" stopOpacity="0"/></linearGradient></defs>
     {ticks.map((v, i) => <g key={i}><line x1={pad.l} x2={w - pad.r + 8} y1={y(v)} y2={y(v)} stroke="var(--line)" strokeDasharray="3 5"/><text x={w - pad.r + 14} y={y(v) + 5} fill="var(--muted)" fontSize="16">{v.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</text></g>)}
     {kind === "Line" ? <><path d={`${path} L${x(data.length - 1)},${h - pad.b} L${x(0)},${h - pad.b} Z`} fill="url(#chartFill)"/><path d={path} fill="none" stroke="#087c66" strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round"/></> : data.map((c, i) => {
@@ -220,7 +119,7 @@ function MainChart({ stock, kind, trades }: { stock: Stock; kind: "Line" | "Cand
     <text x={w - pad.r - 20} y={h - 4} fill="var(--muted)" fontSize="13">{formatTime(data.at(-1)!.time)}</text>
     {activeHover !== null && <><line x1={x(activeHover)} x2={x(activeHover)} y1={pad.t} y2={h - pad.b} stroke="var(--muted)" strokeDasharray="3 3" opacity=".65"/><circle cx={x(activeHover)} cy={y(data[activeHover].close)} r="4" fill="#1247d2" stroke="white" strokeWidth="1.5"/>
     </>}
-  </svg>{activeHover !== null && <div className="chart-hover-card chart-hover-overlay" style={activeHover > data.length * .58 ? { left: 8 } : { right: 8 }}><b>{new Date(data[activeHover].time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "medium" })}</b><span>O {money(data[activeHover].open)} · H {money(data[activeHover].high)}</span><span>L {money(data[activeHover].low)} · C {money(data[activeHover].close)}</span><span>Volume {data[activeHover].volume.toLocaleString("en-IN")}</span>{hoveredTrades.slice(0, 3).map(({ trade }) => <span key={trade.id} className={`trade-detail ${trade.side.toLowerCase().replace("-", "")}`}>{trade.side.toUpperCase()} {trade.qty} @ {money(trade.price)} · {formatTime(trade.time)}</span>)}{hoveredTrades.length > 3 && <span>+{hoveredTrades.length - 3} more markers on this candle</span>}</div>}</div>{visibleTrades.length > 0 && <div className="chart-marker-legend"><span><i className="buy">B</i> Buy</span><span><i className="sell">S</i> Sell</span><span><i className="short">SH</i> Short</span><span><i className="cover">C</i> Cover</span><small>Hover for exact trade time and price</small></div>}</>;
+    </svg>{activeHover !== null && <div className="chart-hover-card chart-hover-overlay" style={activeHover > data.length * .58 ? { left: 8 } : { right: 8 }}><b>{new Date(data[activeHover].time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "medium" })}</b><span>O {money(data[activeHover].open)} · H {money(data[activeHover].high)}</span><span>L {money(data[activeHover].low)} · C {money(data[activeHover].close)}</span><span>Volume {data[activeHover].volume.toLocaleString("en-IN")}</span>{hoveredTrades.slice(0, 3).map(({ trade }) => <span key={trade.id} className={`trade-detail ${trade.side.toLowerCase().replace("-", "")}`}>{trade.side.toUpperCase()} {trade.qty} @ {money(trade.price)} · {formatTime(trade.time)}</span>)}{hoveredTrades.length > 3 && <span>+{hoveredTrades.length - 3} more markers on this candle</span>}</div>}</div>{visibleTrades.length > 0 && <div className="chart-marker-legend"><span><i className="buy">B</i> Buy</span><span><i className="sell">S</i> Sell</span><span><i className="short">SH</i> Short</span><span><i className="cover">C</i> Cover</span><small>Your trades · Hover for exact time and price</small></div>}</>;
 }
 
 function Header({ world, player, onTheme, theme, clockNow }: { world: PublicWorld | null; player: Player | null; onTheme: () => void; theme: "light" | "dark"; clockNow: number }) {
@@ -382,8 +281,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const isTest = mode === "test";
   const activeNews = world?.headlines.find(n => n.id === world.latestNewsId);
   const previewOption = uiVariant ? UI_OPTIONS.find(option => option.slug === uiVariant) : null;
-  const freshStockTheme: FreshStockTheme | null = uiVariant === "canopy" || uiVariant === "bluecurrent" || uiVariant === "railway" || uiVariant === "picturehouse" ? uiVariant : null;
-  const orderTicket = stock && <div className="order-card order-controls"><div className="order-title"><div><span className="eyebrow">ORDER TICKET · {stock.symbol}</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
+  const orderTicket = stock && <div className="order-card"><div className="order-title"><div><span className="eyebrow">ORDER TICKET · {stock.symbol}</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
     <div className="side-switch">{(["Buy", "Sell", "Short"] as const).map(t => <button key={t} onClick={() => setSide(t)} className={`${side === t ? `active ${t.toLowerCase()}` : ""}`} disabled={t === "Sell" && !ownedQty}>{t}</button>)}</div>
     {side === "Sell" && <div className="context-hint">You hold {ownedQty} {selected} shares. Sell closes owned shares only.</div>}
     {side === "Short" && <div className="context-hint short-hint">Short exposure is capped at 30% of your starting portfolio. A buy covers open shorts first.</div>}
@@ -406,31 +304,33 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       {world && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - clockNow) / 1000))} seconds` : world.status === "closed" ? isTest ? "Practice round complete" : "The batch has ended" : isTest ? "Practice round ready" : "The market is ready"}<span>{world.status === "countdown" ? "The market is starting on every device." : world.status === "closed" ? isTest ? "Start another isolated practice round when you’re ready." : "Review your report to return to the ready state." : isTest ? "Your isolated practice market is ready." : "The host will start the shared batch shortly."}</span>{isTest && (world.status === "closed" || world.status === "ready") && <button type="button" className="outline-button" disabled={busy} onClick={() => void send("sandbox-start")}>Start practice round</button>}</div>}
       {view === "markets" && stock && <>
         {breaking && activeNews && <div className="breaking-alert" role="status"><div className="breaking-mark">!</div><div><small>{activeNews.type.toUpperCase()} NEWS · {newsScope(activeNews)} · JUST NOW</small><strong>{activeNews.headline}</strong></div><button onClick={() => setBreaking(false)} aria-label="Minimize headline">×</button><span className="breaking-progress"/></div>}
-        <div className={`trading-grid${freshStockTheme ? " trading-grid-stocks-right" : ""}${uiVariant ? ` trading-grid-${uiVariant}` : " trading-grid-default"}`}>
+        <div className="trading-grid">
           <section className="watch-area">
             <div className="watch-controls"><div className="sector-scroll">{sectors.map(s => <button key={s} className={`filter-chip ${sector === s ? "active" : ""}`} onClick={() => setSector(s)}>{s}</button>)}</div><label className="search-field"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search companies" aria-label="Search stocks"/><kbd>⌘ K</kbd></label></div>
-            <div className={`stock-grid${uiVariant ? ` stock-grid-${uiVariant}` : " stock-grid-default"}`}>{shownStocks.map(s => {
+            <div className="stock-grid">{shownStocks.map(s => {
               const longQty = player?.holdings[s.symbol]?.qty ?? 0;
               const shortQty = player?.shorts[s.symbol]?.qty ?? 0;
               const position = longQty > 0 ? `${longQty} shares` : shortQty > 0 ? `${shortQty} short` : "No position";
               const onSelect = () => { setSelected(s.symbol); setQuantity("10"); setAmount(""); };
-              return <StockTile key={s.symbol} variant={uiVariant} stock={s} selected={selected === s.symbol} position={position} onSelect={onSelect}/>;
+              return <button key={s.symbol} type="button" className={`stock-card ${selected === s.symbol ? "selected" : ""}`} onClick={onSelect} aria-pressed={selected === s.symbol} aria-label={`Select ${s.name} to view its chart and trade controls`}>
+                  <div className="stock-card-top"><Logo stock={s}/><div className="stock-id"><strong>{s.symbol}</strong><span>{s.name}</span></div></div>
+                  <div className="stock-card-bottom"><strong>{money(s.price)}</strong><span className={`stock-change ${changePct(s) >= 0 ? "positive" : "negative"}`}>{changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</span></div>
+                  <MiniChart stock={s}/>
+                  <div className="stock-card-foot"><span>{s.sector}</span><span>{position}</span></div>
+                </button>;
             })}</div>
             {!shownStocks.length && <div className="empty-state">No companies match that search.</div>}
             {activeNews && <div className="latest-brief"><span className="brief-icon">◉</span><span><small>LATEST BULLETIN · {newsScope(activeNews)}</small><b>{activeNews.headline}</b></span><button onClick={() => setView("news")}>News desk →</button></div>}
           </section>
 
-          <aside className={`trade-column trade-column-${uiVariant ?? "default"}`}>
-            <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
+          <aside className="trade-column">
+            <div className="focus-card"><div className="focus-company"><Logo stock={stock}/><span><small>{stock.sector} · NSE</small><b>{stock.name}</b></span><button className="focus-trade-button" onClick={() => document.getElementById("inline-order-ticket")?.scrollIntoView({ behavior: "smooth", block: "nearest" })}>Trade {stock.symbol}</button><button className="ellipsis" onClick={() => setDrawer(true)} aria-label="Open news">···</button></div>
               <div className="focus-price-row"><strong>{money(stock.price)}</strong><span className={`stock-change ${changePct(stock) >= 0 ? "positive" : "negative"}`}>{changePct(stock) >= 0 ? "+" : ""}{changePct(stock).toFixed(2)}%</span><small>SESSION</small></div>
-              <div className="focus-workbench">
-                <div className="chart-workspace"><MainChart key={stock.symbol} stock={stock} kind={chartType} trades={world?.player?.history ?? []}/>
-                  <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.tickRate ?? 1} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
-                  <div className="chart-foot"><span><i/> Open <b>{money(stock.candles[0]?.open ?? stock.price)}</b></span><span>High <b>{money(Math.max(stock.price, ...stock.candles.map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(stock.price, ...stock.candles.map(c => c.low)))}</b></span></div>
-                </div>
-                <div id="integrated-order-ticket" className="integrated-order-ticket">{orderTicket}</div>
-              </div>
+              <MainChart key={stock.symbol} stock={stock} kind={chartType} trades={world?.player?.history ?? []}/>
+              <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.tickRate ?? 1} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
+              <div className="chart-foot"><span><i/> Open <b>{money(stock.candles[0]?.open ?? stock.price)}</b></span><span>High <b>{money(Math.max(stock.price, ...stock.candles.map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(stock.price, ...stock.candles.map(c => c.low)))}</b></span></div>
             </div>
+            <section id="inline-order-ticket" className="inline-order-ticket"><div className="inline-order-heading"><span className="eyebrow">TRADE {stock.symbol} · {stock.sector.toUpperCase()}</span><small>ORDER PANEL</small></div>{orderTicket}</section>
             <div className="holdings-card"><div><span className="eyebrow">YOUR HOLDINGS</span><button onClick={() => setView("portfolio")}>Portfolio →</button></div>
               {invested.length + shorts.length === 0 ? <p>Build your first position from the watchlist.</p> : [...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].slice(0, 4).map(p => {
                 const found = world?.stocks.find(s => s.symbol === p.symbol); const val = (found?.price ?? 0) * p.qty;

@@ -24,21 +24,13 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 | `/play/01` through `/play/12` | Join a numbered participant terminal |
 | `/v1` and `/v1/play` | Original appearance, also available at the unversioned routes |
 | `/v1/play/01` through `/v1/play/12` | Numbered terminals in the original appearance |
-| `/v2` and `/v2/play/01` through `/v2/play/12` | Block Market, a voxel-inspired trading floor |
-| `/v3` and `/v3/play/01` through `/v3/play/12` | Market Mash, a playful board-game layout with Buy, Sell, and Short controls inline beside the chart |
-| `/v4` and `/v4/play/01` through `/v4/play/12` | Paper Parade, a paper-crafted card interface |
-| `/v5` and `/v5/play/01` through `/v5/play/12` | Market Maze, a Pac-Man-inspired arcade theme using the same trading game |
-| `/v6` and `/v6/play/01` through `/v6/play/12` | Neon Nights ’88, a neon-lit 1980s arcade market |
-| `/v7` and `/v7/play/01` through `/v7/play/12` | Canopy Club, a glasshouse garden market |
-| `/v8` and `/v8/play/01` through `/v8/play/12` | Blue Current, an undersea submersible market |
-| `/v9` and `/v9/play/01` through `/v9/play/12` | Platform One, an old Indian railway-station market |
-| `/v10` and `/v10/play/01` through `/v10/play/12` | Picture Palace, a neighborhood single-screen cinema market |
-| `/v1/audience` through `/v10/audience` | Audience wall in the matching UI version |
+| `/v3` and `/v3/play/01` through `/v3/play/12` | Market Mash, a playful board-game layout |
+| `/v1/audience` and `/v3/audience` | Audience wall in the matching UI version |
 | `/host` | Host console with Quick Access, shared private notes, news studio, market controls and participant sessions (requires the configured host password) |
 | `/audience` | Read-only audience wall |
 | `/test` | Isolated six-minute practice market |
 | `/test/01` through `/test/12` | Numbered practice terminals, separate from live terminals |
-| `/ui-preview` | Local-only design review for all nine themed trading and audience layouts; unavailable in production |
+| `/ui-preview` | Local-only comparison of the original interface and V3; unavailable in production |
 
 ## Run locally
 
@@ -57,11 +49,11 @@ Open `http://localhost:3000`. Configure the environment values before using the 
 - `MARKET_SIGNING_SECRET`: a long random secret used by the server to authorize market-state RPC calls.
 - `HOST_PASSWORD`: password for `/host`.
 
-The unversioned `/play` and `/audience` routes keep the original appearance; `/v1` is an alias for that look. `/v2` through `/v10` select Block Market, Market Mash, Paper Parade, Market Maze, Neon Nights ’88, Canopy Club, Blue Current, Platform One, and Picture Palace. Each version presents stocks and the market workspace differently while preserving the same company mark, symbol, name, price, return, mini-chart, sector, and position information. V7 uses a greenhouse garden, V8 a deep-sea expedition, V9 a colorful Indian railway platform, and V10 a nostalgic neighborhood cinema marquee. Every trading version keeps Buy, Sell, Short, and quantity controls inside the selected-stock chart workspace; selecting a stock updates that workspace without opening a dialog. All versions use the same market engine, accounts, controls, and news. Their trading and audience screens adapt to screen size and browser zoom, and their light/dark modes retain each theme's visual identity. The audience screen shows the Dalaal-10 closing level and return, strongest and weakest stocks, market breadth, short factual takeaways, the batch news feed, and all stock prices.
+The unversioned `/play` and `/audience` routes keep the original appearance; `/v1` is an alias for that look. `/v3` selects Market Mash. The default and V3 trading screens adapt to screen size and browser zoom. In each, stock cards appear on the left and the selected stock's chart and Buy, Sell, and Short controls appear on the right, with the order controls directly below the chart. Chart markers and hover details show trades from the current terminal's individual session. The audience screen shows the Dalaal-10 closing level and return, strongest and weakest stocks, market breadth, short factual takeaways, the batch news feed, and all stock prices.
 
 The practice market uses the same price and curated news simulation as a live round, but has its own state. It starts with a short countdown, runs for six minutes, closes positions at the end, and offers a new practice round. `/test/01` to `/test/12` use their own terminal logins. Legacy autonomous practice sessions are closed safely the first time the updated engine reads them.
 
-During local development, open `http://localhost:3000/ui-preview` to compare the nine themed design directions. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
+During local development, open `http://localhost:3000/ui-preview` to compare the original interface and V3. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
 
 ## Supabase setup
 
