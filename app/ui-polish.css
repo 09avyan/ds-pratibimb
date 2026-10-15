@@ -1,54 +1,46 @@
-/* Keep the index visually connected to the full-width audience sections. */
-.audience-wall[class*="ui-"] .wall-hero {
-  display: block;
+/* Dalaal-10 reads as a quote in the masthead, not a separate floating panel. */
+.audience-wall[class*="ui-"] .wall-header { gap: clamp(10px, 1.35vw, 22px); }
+.audience-wall[class*="ui-"] .wall-brand { flex: 0 1 auto; min-width: 0; }
+.audience-wall[class*="ui-"] .wall-index-readout {
   flex: 0 0 auto;
-  width: 100%;
-  min-width: 0;
-}
-.audience-wall[class*="ui-"] .wall-index-card {
-  box-sizing: border-box;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 0;
-  gap: 16px;
-  padding: clamp(12px, 1.35vw, 18px) clamp(15px, 1.8vw, 24px);
-}
-.audience-wall[class*="ui-"] .wall-index-label {
-  flex: 1 1 auto;
+  align-items: baseline;
+  gap: clamp(6px, .75vw, 11px);
   min-width: 0;
+  padding-left: clamp(12px, 1.25vw, 19px);
+  border-left: 1px solid var(--wall-line);
+  color: var(--wall-ink);
+  white-space: nowrap;
+}
+.audience-wall[class*="ui-"] .wall-index-kicker {
   display: grid;
-  justify-content: start;
-  gap: 6px;
-}
-.audience-wall[class*="ui-"] .wall-index-value {
-  flex: 0 1 auto;
-  justify-content: flex-end;
-  gap: 8px 12px;
-}
-.audience-wall[class*="ui-"] .wall-index-value strong {
-  font-size: clamp(25px, 3.1vw, 40px);
-}
-.audience-wall:not(.ui-gallery) .wall-index-card {
-  border: 1px solid var(--wall-line);
-  border-left: 3px solid var(--wall-accent);
-  border-radius: 16px;
-  color: var(--wall-ink);
-  background: var(--wall-surface);
-  box-shadow: var(--wall-shadow);
-}
-.audience-wall:not(.ui-gallery) .wall-index-label small,
-.audience-wall:not(.ui-gallery) .wall-index-label span {
+  gap: 2px;
   color: var(--wall-muted);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .12em;
 }
-.audience-wall:not(.ui-gallery) .wall-index-value strong {
+.audience-wall[class*="ui-"] .wall-index-kicker small {
+  color: var(--wall-muted);
+  font-size: 7px;
+  letter-spacing: .16em;
+}
+.audience-wall[class*="ui-"] .wall-index-readout strong {
   color: var(--wall-ink);
+  font: 750 clamp(15px, 1.55vw, 22px)/1 var(--mono);
+  letter-spacing: -.065em;
 }
-.audience-wall:not(.ui-gallery) .wall-index-value b {
+.audience-wall[class*="ui-"] .wall-index-unit {
+  color: var(--wall-muted);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.audience-wall[class*="ui-"] .wall-index-readout b {
+  padding: 5px 7px;
+  border-radius: 999px;
   background: var(--wall-raised);
-  color: var(--wall-accent);
+  font: 750 9px/1 var(--mono);
 }
 .audience-wall:not(.ui-gallery) .wall-news {
   width: 100%;
@@ -83,9 +75,6 @@
   margin-top: auto;
 }
 .audience-wall.ui-broadcast .wall-stock .mini-chart { grid-column: 1 / -1; }
-/* V4 keeps its existing index, stock, color and typography rules. */
-.audience-wall.ui-gallery .wall-hero { display: flex; }
-.audience-wall.ui-gallery .wall-index-card { flex: 0 1 auto; }
 .audience-wall.ui-gallery .wall-news { width: 100%; min-height: 0; }
 
 /* Brand SVGs keep their proportions, while their corners follow the round mark. */
@@ -93,6 +82,36 @@
   border-radius: 50%;
   object-fit: contain;
 }
+
+.host-shortcuts-panel { max-width: 1040px; }
+.host-shortcuts-intro,
+.host-shortcuts-note { color: var(--muted); font-size: 10px; line-height: 1.6; }
+.host-shortcuts-intro { margin: 4px 0 16px; }
+.host-shortcut-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.host-shortcut-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+}
+.host-shortcut-row > span { display: grid; min-width: 0; gap: 4px; }
+.host-shortcut-row b { color: var(--ink); font-size: 10px; }
+.host-shortcut-row small { color: var(--muted); font-size: 8px; line-height: 1.45; }
+.host-shortcut-row kbd {
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--muted);
+  background: var(--secondary);
+  font: 700 8px var(--mono);
+  white-space: nowrap;
+}
+.host-shortcuts-note { margin: 14px 0 0; }
 
 /* One chart and order surface in every terminal theme. */
 .terminal .trade-column { overflow-y: auto !important; overflow-x: hidden; }
@@ -153,15 +172,25 @@
   .terminal .trade-column { overflow: visible !important; }
 }
 @media (max-width: 620px) {
-  .audience-wall[class*="ui-"] .wall-index-card { gap: 10px; }
-  .audience-wall[class*="ui-"] .wall-index-label { gap: 4px; }
-  .audience-wall[class*="ui-"] .wall-index-value { gap: 6px; }
-  .audience-wall[class*="ui-"] .wall-index-value strong { font-size: clamp(19px, 5.2vw, 27px); }
-  .audience-wall[class*="ui-"] .wall-index-value b { padding: 5px 7px; font-size: 10px; }
+  .audience-wall[class*="ui-"] .wall-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "brand theme fullscreen" "index index index";
+    gap: 7px 9px;
+    min-height: 0;
+  }
+  .audience-wall[class*="ui-"] .wall-brand { grid-area: brand; }
+  .audience-wall[class*="ui-"] .wall-index-readout {
+    grid-area: index;
+    padding: 8px 0 0;
+    border-top: 1px solid var(--wall-line);
+    border-left: 0;
+  }
+  .audience-wall[class*="ui-"] .wall-theme-button { grid-area: theme; }
+  .audience-wall[class*="ui-"] .wall-fullscreen { grid-area: fullscreen; }
   .audience-wall:not(.ui-gallery) .wall-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 142px), 1fr)); }
   .audience-wall:not(.ui-gallery) .wall-stock { min-height: 105px; }
 }
-@media (max-width: 390px) {
-  .audience-wall[class*="ui-"] .wall-index-card { align-items: flex-start; flex-direction: column; }
-  .audience-wall[class*="ui-"] .wall-index-value { width: 100%; justify-content: space-between; }
+@media (max-width: 760px) {
+  .host-shortcut-list { grid-template-columns: minmax(0, 1fr); }
 }
