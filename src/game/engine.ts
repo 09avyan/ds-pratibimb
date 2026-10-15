@@ -33,9 +33,23 @@ const id = () => crypto.randomUUID();
 const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">): NonNullable<News["scope"]> => news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
 const NEWS_IMPACT_SCALE: Record<News["type"], number> = { major: 3.8, minor: 3.5 };
 const NEWS_IMPACT_VARIATION = .1;
+const PREVIOUS_NEWS_IMPACT_DECAY = .94;
+const NEWS_IMPACT_DURATION_MULTIPLIER = 1.2;
+const NEWS_IMPACT_FADE_THRESHOLD = .00008;
+const NEWS_IMPACT_DECAY = Math.pow(PREVIOUS_NEWS_IMPACT_DECAY, 1 / NEWS_IMPACT_DURATION_MULTIPLIER);
+// Slower decay spreads the same total news-driven drift over a longer period.
+const NEWS_IMPACT_DRIFT_NORMALIZER = (1 - NEWS_IMPACT_DECAY) / (1 - PREVIOUS_NEWS_IMPACT_DECAY);
 export function newsImpactRange(news: Pick<News, "type" | "severity">) {
   const expected = news.severity * NEWS_IMPACT_SCALE[news.type];
   return { low: expected * (1 - NEWS_IMPACT_VARIATION), high: expected * (1 + NEWS_IMPACT_VARIATION) };
+}
+
+export function newsImpactRemainingSeconds(world: Pick<World, "stocks" | "controls" | "remaining" | "status">) {
+  if (world.status !== "live") return 0;
+  const strongestSignal = Math.max(0, ...world.stocks.map(stock => Math.abs(stock.newsBias ?? 0)));
+  if (strongestSignal <= NEWS_IMPACT_FADE_THRESHOLD) return 0;
+  const ticks = Math.ceil(Math.log(NEWS_IMPACT_FADE_THRESHOLD / strongestSignal) / Math.log(NEWS_IMPACT_DECAY));
+  return Math.max(0, Math.min(ticks * world.controls.tickRate, world.remaining));
 }
 
 export function freshWorld(mode: Mode, now = Date.now(), batch = 1): World {
@@ -195,7 +209,7 @@ export function advance(world: World, now = Date.now()): World {
       const symbolSeed = world.tick * 37 + textSeed(stock.symbol) * 7;
       const noise = (rand(symbolSeed) - .5) * .009 * vol;
       const meanRevert = ((stock.previousClose - stock.price) / stock.previousClose) * .009;
-      const newsTrend = stock.newsBias ?? 0;
+      const newsTrend = (stock.newsBias ?? 0) * NEWS_IMPACT_DRIFT_NORMALIZER;
       const sectorMove = (sectorPulse.get(stock.sector) ?? 0) * (rand(symbolSeed + 3) < .76 ? 1 : -.42);
       const flowSignal = -stock.flow / 10000 * .012;
       let botOrders = 0;
@@ -210,8 +224,8 @@ export function advance(world: World, now = Date.now()): World {
       const botVolume = Math.round((300 + rand(world.tick + stock.base) * 5_800) * (VIRTUAL_BOT_COUNT / 100));
       applyMove(world, stock, returnRate, botVolume, at);
       if (stock.newsBias) {
-        stock.newsBias *= .94;
-        if (Math.abs(stock.newsBias) < .00008) stock.newsBias = 0;
+        stock.newsBias *= NEWS_IMPACT_DECAY;
+        if (Math.abs(stock.newsBias) < NEWS_IMPACT_FADE_THRESHOLD) stock.newsBias = 0;
       }
     }
     world.remaining = Math.max(0, world.remaining - interval / 1000);
