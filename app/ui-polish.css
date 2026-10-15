@@ -344,7 +344,6 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
-  overflow: hidden;
 }
 .terminal .order-card .side-switch > button {
   display: flex;
@@ -356,6 +355,13 @@
   justify-content: center;
   justify-self: stretch;
   align-self: stretch;
+}
+.terminal .inline-order-ticket .order-card .side-switch > button {
+  border-radius: 999px;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .terminal .inline-order-ticket .order-card .side-switch > button { transition: none; }
 }
 
 @media (max-height: 900px) {
