@@ -45,7 +45,9 @@ export const makeStocks = (seed: number): Stock[] => rows.map(([symbol, name, se
   for (let j = 0; j < 36; j++) {
     const drift = (price - start) / 36;
     const noise = (Math.sin((j + 1) * 1.31 + i * .7 + seed) + Math.cos(j * .61 + i * .33)) * price * .0007;
-    const close = Math.max(1, prev + drift + noise);
+    // Keep the final reset candle on the rounded reference quote. Earlier
+    // candles still ease into it; noise should not skew the opening mark.
+    const close = j === 35 ? price : Math.max(1, prev + drift + noise);
     const spread = Math.max(Math.abs(close - prev) * .45, price * .00035);
     candles.push({ time: Date.now() - (36 - j) * 1000, open: prev, high: Math.max(prev, close) + spread, low: Math.max(1, Math.min(prev, close) - spread), close, volume: 900 + i * 61 + j * 11 });
     prev = close;
