@@ -338,6 +338,26 @@
   line-height: 1;
 }
 .wall-theme-icon { display: block; width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Make the chosen Buy / Sell / Short mode fill its full third of the row. */
+.terminal .order-card .side-switch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+.terminal .order-card .side-switch > button {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  margin: 0;
+  align-items: center;
+  justify-content: center;
+  justify-self: stretch;
+  align-self: stretch;
+}
+
 @media (max-height: 900px) {
   .audience-wall[class*="ui-"] { height: auto; min-height: 100svh; overflow-x: hidden; overflow-y: auto; }
   .audience-wall[class*="ui-"] .wall-market-section { flex: 1 0 auto; }
