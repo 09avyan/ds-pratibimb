@@ -71,7 +71,7 @@
 .audience-wall[class*="ui-"] .wall-index-value strong {color:#fff;font:750 clamp(33px,4.3vw,62px)/1 var(--mono);letter-spacing:-.075em;}
 .audience-wall[class*="ui-"] .wall-index-value b {padding:6px 10px;border-radius:999px;background:#ffffff1b;color:#e8c679;font:800 13px var(--mono);}
 .audience-wall[class*="ui-"] .wall-news {
-  box-sizing:border-box;display:flex;flex-direction:column;gap:9px;
+  box-sizing:border-box;display:flex;flex-direction:column;align-items:stretch;gap:9px;width:100%;max-width:none;
   min-width:0;min-height:156px;margin:0;padding:15px 17px;
   border:1px solid var(--wall-line);border-radius:25px;color:var(--wall-ink);
   background:var(--wall-news);box-shadow:var(--wall-shadow);overflow:hidden;
@@ -81,10 +81,10 @@
 .audience-wall[class*="ui-"] .wall-news-heading>span:last-child {color:var(--wall-muted);font-size:9px;}
 .audience-wall[class*="ui-"] .wall-news-headlines {
   display:grid;grid-template-columns:minmax(0,1fr);gap:8px;
-  max-height:none;min-height:0;overflow:visible;
+  width:100%;max-width:none;justify-items:stretch;max-height:none;min-height:0;overflow:visible;
 }
 .audience-wall[class*="ui-"] .wall-news-headlines>article {
-  display:grid;align-content:start;gap:7px;min-width:0;padding:10px 11px;
+  display:grid;align-content:start;gap:7px;min-width:0;width:100%;max-width:none;padding:10px 11px;
   border:1px solid color-mix(in srgb,var(--wall-accent) 14%,var(--wall-line));border-radius:15px;
   background:var(--wall-raised);
 }
