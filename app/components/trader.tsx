@@ -163,6 +163,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const [clockNow, setClockNow] = useState(Date.now);
   const [menu, setMenu] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const [dismissedNews, setDismissedNews] = useState("");
   const inFlight = useRef(false);
   const submitting = useRef(false);
   const readController = useRef<AbortController | null>(null);
@@ -285,6 +286,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const report = world && player ? performance(world as never, player) : null;
   const isTest = mode === "test";
   const marketNews = [...(world?.headlines ?? [])].sort((a, b) => a.createdAt - b.createdAt);
+  const newsKey = `${world?.batch}:${marketNews.map(item => item.id).join(",")}`;
   const previewOption = uiVariant ? UI_OPTIONS.find(option => option.slug === uiVariant) : null;
   const orderTicket = stock && <div className="order-card"><div className="order-title"><div><span className="eyebrow">ORDER TICKET · {stock.symbol}</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
     <div className="side-switch">{(["Buy", "Sell", "Short"] as const).map(t => <button key={t} onClick={() => setSide(t)} className={`${side === t ? `active ${t.toLowerCase()}` : ""}`} disabled={t === "Sell" && !ownedQty}>{t}</button>)}</div>
@@ -308,10 +310,10 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       {isTest && <div className="autonomous-band"><span className="live-dot"/> TEST MARKET · ISOLATED PRACTICE <span>Six minute rounds use the same rules as a live session.</span></div>}
       {world && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - clockNow) / 1000))} seconds` : world.status === "closed" ? isTest ? "Practice round complete" : "The batch has ended" : isTest ? "Practice round ready" : "The market is ready"}<span>{world.status === "countdown" ? "The market is starting on every device." : world.status === "closed" ? isTest ? "Start another isolated practice round when you’re ready." : "Review your report to return to the ready state." : isTest ? "Your isolated practice market is ready." : "The host will start the shared batch shortly."}</span>{isTest && (world.status === "closed" || world.status === "ready") && <button type="button" className="outline-button" disabled={busy} onClick={() => void send("sandbox-start")}>Start practice round</button>}</div>}
       {view === "markets" && stock && <>
-        <section className="market-news-feed" aria-label="News published this batch">
-          <header><span className="eyebrow">BATCH NEWS</span><span>{marketNews.length} {marketNews.length === 1 ? "headline" : "headlines"}</span></header>
+        {marketNews.length > 0 && (dismissedNews === newsKey ? <button type="button" className="news-reopen" onClick={() => setDismissedNews("")}>News <span>{marketNews.length}</span></button> : <section className="market-news-feed" aria-label="News published this batch">
+          <header><span className="eyebrow">BATCH NEWS</span><span>{marketNews.length} {marketNews.length === 1 ? "headline" : "headlines"}</span><button type="button" className="news-popup-close" aria-label="Close news pop-up" onClick={() => setDismissedNews(newsKey)}>×</button></header>
           <div className="market-news-list">{marketNews.length ? marketNews.map((item, index) => <article key={item.id}><b className="market-news-number">News {index + 1}</b><span className={`news-tag ${item.type}`}>{item.type}</span><span className="market-news-scope">{newsScope(item)}</span><strong>{item.headline}</strong></article>) : <p>No news published in this batch yet.</p>}</div>
-        </section>
+        </section>)}
         <div className="trading-grid">
           <section className="watch-area">
             <div className="watch-controls"><div className="sector-scroll">{sectors.map(s => <button key={s} className={`filter-chip ${sector === s ? "active" : ""}`} onClick={() => setSector(s)}>{s}</button>)}</div><label className="search-field"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search companies" aria-label="Search stocks"/><kbd>⌘ K</kbd></label></div>

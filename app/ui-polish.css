@@ -1,3 +1,17 @@
+/* News stays within a bounded surface so publication never expands the market layout. */
+.terminal .market-news-feed {
+  position:fixed;left:16px;bottom:58px;z-index:45;
+  width:min(420px,calc(100vw - 32px));max-height:min(280px,35dvh);
+  grid-template-rows:auto minmax(0,1fr);margin:0;overflow:hidden;
+  box-shadow:0 12px 38px #0003;
+}
+.terminal .market-news-feed>header>span:nth-child(2) {margin-left:auto;color:var(--muted);font-size:9px;}
+.terminal .market-news-list {min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;}
+.news-popup-close {display:grid;place-items:center;flex:none;width:30px;height:30px;border:1px solid var(--line);border-radius:50%;background:var(--secondary);color:var(--ink);font-size:20px;line-height:1;}
+.news-reopen {position:fixed;left:16px;bottom:18px;z-index:45;display:flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);box-shadow:var(--shadow);font-size:11px;font-weight:750;}
+.news-reopen>span {padding:3px 6px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font:9px var(--mono);}
+:root[data-theme="dark"] .terminal .market-news-list>article {background:var(--secondary);border-color:var(--line);box-shadow:none;}
+
 /* Dalaal-10 reads as a quote in the masthead, not a separate floating panel. */
 .audience-wall[class*="ui-"] .wall-header { gap: clamp(10px, 1.35vw, 22px); }
 .audience-wall[class*="ui-"] .wall-brand { flex: 0 1 auto; min-width: 0; }
@@ -384,3 +398,23 @@
 }
 :root[data-theme="dark"] .terminal .inline-order-ticket .quantity-row label>div>input { color-scheme:dark; }
 .terminal .inline-order-ticket .quantity-row input::selection { background:var(--accent);color:var(--card);-webkit-text-fill-color:var(--card); }
+
+.audience-wall[class*="ui-"] .wall-news {
+  height:clamp(86px,12vh,120px);min-height:0;flex:0 0 auto;
+  padding:9px 13px;gap:6px;overflow:hidden;
+}
+.audience-wall[class*="ui-"] .wall-news-heading {flex:none;}
+.audience-wall[class*="ui-"] .wall-news-headlines {
+  flex:1 1 0;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;
+  overscroll-behavior:contain;scrollbar-width:thin;align-content:start;gap:4px;
+}
+.audience-wall[class*="ui-"] .wall-news-headlines>article {
+  grid-template-columns:minmax(130px,220px) minmax(0,1fr);
+  align-items:center;gap:10px;padding:6px 9px;border-radius:10px;
+}
+.audience-wall[class*="ui-"] .wall-news-headlines>article>div {flex-wrap:wrap;gap:4px 6px;}
+.audience-wall[class*="ui-"] .wall-news-headlines>article>strong {font-size:12px;line-height:1.35;overflow-wrap:anywhere;}
+.audience-wall[class*="ui-"] .wall-news-headlines time {display:none;}
+@media(max-width:650px) {
+  .audience-wall[class*="ui-"] .wall-news-headlines>article {grid-template-columns:minmax(0,1fr);gap:5px;}
+}

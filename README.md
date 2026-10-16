@@ -12,6 +12,7 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 - Host presence uses each device's last-seen heartbeat. A new batch resets participant portfolios without marking previously offline terminals as connected.
 - Price movement is driven by 128 simulated traders with 16 distinct trading styles. The baseline volatility is 15% lower than the previous engine setting; hosts can still adjust volatility for an event.
 - The audience wall shows the Dalaal-10 level and change, all stock prices and changes, and the latest batch headlines without creating a participant account.
+- Batch headlines are numbered and stacked. Audience news uses a fixed-height, full-width strip with its own scroll area, so publishing never lengthens the page. Trading news appears in a compact pop-up over the watchlist area: close it with ×, reopen it using the News button, and newly published headlines reopen it automatically.
 - The game includes an isolated practice market with the same three-second countdown, six-minute rounds, trading rules, news flow, settlement, and session report as a hosted game.
 - Each player’s round report includes short, activity-based learning notes, badges tied to their choices, and their best and toughest realized closed trades.
 - Host notes are stored with the shared game state and are available after sign-in from another device.
