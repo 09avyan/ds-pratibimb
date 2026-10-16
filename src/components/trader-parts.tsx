@@ -15,7 +15,7 @@ const brandedSymbols = new Set([
 
 export function DalaalMark({ className = "" }: { className?: string }) {
   return <span className={`dalaal-mark ${className}`} aria-hidden="true">
-    <img src="/brand/dalaal-street-bull.png" alt="" draggable={false}/>
+    <img src="/brand/dalaal-street-market.png" alt="" draggable={false}/>
   </span>;
 }
 
