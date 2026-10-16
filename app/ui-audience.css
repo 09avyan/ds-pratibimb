@@ -47,7 +47,7 @@
 .audience-wall[class*="ui-"] .wall-status b { color:var(--wall-ink); border-color:var(--wall-line); }
 .audience-wall[class*="ui-"] .brand-glyph {
   width:40px;height:40px;border:0;border-radius:14px;
-  color:white;background:var(--wall-accent);box-shadow:0 7px 14px color-mix(in srgb,var(--wall-accent) 22%,transparent);
+  color:#f4f0e4;background:#123e43;box-shadow:0 7px 14px #123e4322;
 }
 .audience-wall[class*="ui-"] .brand-glyph .dalaal-mark { width:25px;height:25px; }
 .audience-wall[class*="ui-"] .wall-theme-button,

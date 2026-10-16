@@ -14,12 +14,9 @@ const brandedSymbols = new Set([
 ]);
 
 export function DalaalMark({ className = "" }: { className?: string }) {
-  return <svg className={`dalaal-mark ${className}`} viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-    <path d="M7 5h15c8.3 0 14 5.9 14 15S30.3 35 22 35H7z" fill="currentColor" opacity=".16"/>
-    <path d="M10 8h11c7.3 0 12 4.6 12 12s-4.7 12-12 12H10z" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round"/>
-    <path d="M15 25v-7m6 7V13m6 12v-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-    <path d="m14 15 6-5 5 2 5-5" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>;
+  return <span className={`dalaal-mark ${className}`} aria-hidden="true">
+    <img src="/brand/dalaal-street-mark-v2.png" alt="" draggable={false}/>
+  </span>;
 }
 
 function CompanyGlyph({ sector }: { sector: string }) {

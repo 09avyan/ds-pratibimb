@@ -1093,14 +1093,15 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 }
 
 /* Branded mark and non-text company icon fallbacks. */
-.dalaal-mark{display:inline-block;width:30px;height:30px;flex:none;color:var(--accent,#14705f)}
-.topbar-brand .dalaal-mark{width:25px;height:25px;color:var(--accent)}
-.login-wordmark .dalaal-mark,.preview-wordmark .dalaal-mark{width:31px;height:31px;padding:3px;border-radius:9px;color:#143641;background:#b7f36c}
+.dalaal-mark{display:inline-grid;place-items:center;width:30px;height:30px;flex:none;overflow:hidden;border-radius:8px;background:#123e43}
+.dalaal-mark>img{display:block;width:100%;height:100%;object-fit:contain}
+.topbar-brand .dalaal-mark{width:25px;height:25px}
+.login-wordmark .dalaal-mark,.preview-wordmark .dalaal-mark{width:31px;height:31px;padding:0;border-radius:9px;background:#123e43}
 .company-mark>span svg{display:block;width:64%;height:64%}
 .company-mark.logo-loaded>span{display:none}
 .brand-glyph{display:grid;place-items:center}
-.brand-glyph .dalaal-mark{width:31px;height:31px;color:currentColor}
-.host-top .login-wordmark .dalaal-mark{background:var(--lime)}
+.brand-glyph .dalaal-mark{width:31px;height:31px}
+.host-top .login-wordmark .dalaal-mark{background:#123e43}
 
 
 /* V3 · Market Mash: order controls below the chart with extra arcade-board character. */
