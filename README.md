@@ -16,6 +16,15 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 - Each player’s round report includes short, activity-based learning notes, badges tied to their choices, and their best and toughest realized closed trades.
 - Host notes are stored with the shared game state and are available after sign-in from another device.
 
+## Latest host and display refinements
+
+- Overview shows the live batch clock, start/pause/end controls, terminal status and equity, recent headlines, and shortcuts to frequently used sections. Open it with **Alt + O**.
+- Quick Access and News Studio share a faster news desk: category tabs, search, sector and direction filters, a removable selection list, publish/schedule controls, target effects, a reaction timer, and collapsible automation settings. Published picks are cleared automatically.
+- Simultaneous news uses the most specific applicable scope for each stock: company news overrides sector news for that company, and sector news overrides economy news within that sector. Stories at the same scope combine.
+- News prices no longer jump on publication. The original intended price move builds smoothly over about 24 seconds, while the same intended follow-through is spread over a longer period. Market trading continues alongside news, so displayed effects are estimates, not guaranteed final prices. Pausing freezes news progress; the host timer includes the remaining reaction and follow-through.
+- Audience company names are one pixel larger, and trade input values use theme-aware text and field colors in both light and dark mode.
+- The browser tab uses the Dalaal Street brand mark as its favicon.
+
 ## Routes
 
 | Route | Purpose |
@@ -31,7 +40,7 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 | `/v6` and `/v6/play/01` through `/v6/play/12` | Vinyl Exchange, a record-store market |
 | `/v7` and `/v7/play/01` through `/v7/play/12` | Tangram Exchange, an angular cut-paper market |
 | `/v1/audience` through `/v7/audience` | Audience wall styled to match each UI version |
-| `/host` | Host console with Quick Access, shared private notes, news studio, market controls and participant sessions (requires the configured host password) |
+| `/host` | Host console with Overview, Quick Access, shared private notes, news studio, market controls and participant sessions (requires the configured host password) |
 | `/audience` | Read-only audience wall |
 | `/test` | Isolated six-minute practice market |
 | `/test/01` through `/test/12` | Numbered practice terminals, separate from live terminals |

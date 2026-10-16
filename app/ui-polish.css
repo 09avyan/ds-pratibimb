@@ -368,3 +368,19 @@
   .audience-wall[class*="ui-"] { height: auto; min-height: 100svh; overflow-x: hidden; overflow-y: auto; }
   .audience-wall[class*="ui-"] .wall-market-section { flex: 1 0 auto; }
 }
+
+/* Pair typed values with their field surface in every terminal theme and mode. */
+.terminal .inline-order-ticket .quantity-row label>div {
+  background:var(--input,var(--card))!important;
+  color:var(--ink)!important;
+}
+.terminal .inline-order-ticket .quantity-row label>div>input {
+  color:var(--ink)!important;
+  -webkit-text-fill-color:var(--ink)!important;
+  caret-color:var(--accent);
+  background:transparent!important;
+  opacity:1;
+  color-scheme:light;
+}
+:root[data-theme="dark"] .terminal .inline-order-ticket .quantity-row label>div>input { color-scheme:dark; }
+.terminal .inline-order-ticket .quantity-row input::selection { background:var(--accent);color:var(--card);-webkit-text-fill-color:var(--card); }

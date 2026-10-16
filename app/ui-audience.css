@@ -113,7 +113,7 @@
 .audience-wall[class*="ui-"] .wall-stock-top .company-mark>img {width:20px;height:20px;object-fit:contain;}
 .audience-wall[class*="ui-"] .wall-stock-top>span {display:grid;gap:2px;min-width:0;}
 .audience-wall[class*="ui-"] .wall-stock-top b {overflow:hidden;color:var(--wall-ink);font:850 10px var(--mono);text-overflow:ellipsis;white-space:nowrap;}
-.audience-wall[class*="ui-"] .wall-stock-top small {overflow:hidden;color:var(--wall-muted);font-size:9px;text-overflow:ellipsis;white-space:nowrap;}
+.audience-wall[class*="ui-"] .wall-stock-top small {overflow:hidden;color:var(--wall-muted);font-size:10px;text-overflow:ellipsis;white-space:nowrap;}
 .audience-wall[class*="ui-"] .wall-price {display:flex;align-items:baseline;justify-content:space-between;gap:5px;min-width:0;}
 .audience-wall[class*="ui-"] .wall-price strong {overflow:hidden;color:var(--wall-ink);font:750 clamp(12px,1vw,17px) var(--mono);letter-spacing:-.045em;text-overflow:ellipsis;white-space:nowrap;}
 .audience-wall[class*="ui-"] .wall-price>span {flex:none;font:800 9px var(--mono);}
@@ -190,7 +190,7 @@
  .audience-wall[class*="ui-"] .wall-grid {grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:minmax(88px,auto);}
  .audience-wall[class*="ui-"] .wall-news-headlines {grid-template-columns:minmax(0,1fr);}
  .audience-wall[class*="ui-"] .wall-index-value strong {font-size:36px;}
- .audience-wall[class*="ui-"] .wall-stock-top small {font-size:8px;}
+ .audience-wall[class*="ui-"] .wall-stock-top small {font-size:9px;}
 }
 @media (max-height:740px) and (min-width:761px) {
  .audience-wall[class*="ui-"] {gap:9px;padding-top:12px;padding-bottom:12px;}

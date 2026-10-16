@@ -34,7 +34,8 @@ const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">): NonNullabl
 const NEWS_IMPACT_SCALE: Record<News["type"], number> = { major: 3.8, minor: 3.5 };
 const NEWS_IMPACT_VARIATION = .1;
 const PREVIOUS_NEWS_IMPACT_DECAY = .94;
-const NEWS_IMPACT_DURATION_MULTIPLIER = 1.2;
+const NEWS_IMPACT_DURATION_MULTIPLIER = 1.6;
+export const NEWS_REACTION_SECONDS = 24;
 const NEWS_IMPACT_FADE_THRESHOLD = .00008;
 const NEWS_IMPACT_DECAY = Math.pow(PREVIOUS_NEWS_IMPACT_DECAY, 1 / NEWS_IMPACT_DURATION_MULTIPLIER);
 // Slower decay spreads the same total news-driven drift over a longer period.
@@ -47,9 +48,27 @@ export function newsImpactRange(news: Pick<News, "type" | "severity">) {
 export function newsImpactRemainingSeconds(world: Pick<World, "stocks" | "controls" | "remaining" | "status">) {
   if (world.status !== "live") return 0;
   const strongestSignal = Math.max(0, ...world.stocks.map(stock => Math.abs(stock.newsBias ?? 0)));
-  if (strongestSignal <= NEWS_IMPACT_FADE_THRESHOLD) return 0;
-  const ticks = Math.ceil(Math.log(NEWS_IMPACT_FADE_THRESHOLD / strongestSignal) / Math.log(NEWS_IMPACT_DECAY));
-  return Math.max(0, Math.min(ticks * world.controls.tickRate, world.remaining));
+  const driftSeconds = strongestSignal <= NEWS_IMPACT_FADE_THRESHOLD ? 0 : Math.ceil(Math.log(NEWS_IMPACT_FADE_THRESHOLD / strongestSignal) / Math.log(NEWS_IMPACT_DECAY));
+  const reactionSeconds = Math.max(0, ...world.stocks.flatMap(stock => (stock.newsMoves ?? []).map(move => move.duration - move.elapsed)));
+  return Math.max(0, Math.min(Math.max(driftSeconds, reactionSeconds), world.remaining));
+}
+
+// Smoothstep gives a small opening reaction, a stronger middle and a gentle finish.
+const reactionProgress = (elapsed: number, duration: number) => { const t = clamp(elapsed / duration, 0, 1); return t * t * (3 - 2 * t); };
+export function advanceNewsReaction(stock: World["stocks"][number], seconds: number) {
+  let logReturn = 0;
+  stock.newsMoves = (stock.newsMoves ?? []).filter(move => {
+    const next = Math.min(move.duration, move.elapsed + seconds);
+    logReturn += move.logReturn * (reactionProgress(next, move.duration) - reactionProgress(move.elapsed, move.duration));
+    move.elapsed = next;
+    return next < move.duration;
+  });
+  return Math.expm1(logReturn);
+}
+
+function projectedNewsPrice(stock: World["stocks"][number], fromMove: number) {
+  const logReturn = (stock.newsMoves ?? []).slice(fromMove).reduce((sum, move) => sum + move.logReturn, 0);
+  return round2(clamp(stock.price * Math.exp(logReturn), stock.previousClose * .68, stock.previousClose * 1.32));
 }
 
 export function freshWorld(mode: Mode, now = Date.now(), batch = 1): World {
@@ -78,48 +97,85 @@ function applyMove(world: World, stock: World["stocks"][number], move: number, v
   stock.flow = stock.flow * .74 + move * 10000;
 }
 
-function pushHeadline(world: World, presetIndex?: number, at = Date.now()) {
+function scopeRank(news: Pick<News, "scope" | "symbols" | "sector">) {
+  const scope = newsScope(news);
+  return scope === "stock" ? 3 : scope === "sector" ? 2 : 1;
+}
+
+function pushHeadlines(world: World, presetIndices: number[], at = Date.now()) {
   const presets = world.news;
-  const idx = presetIndex ?? Math.floor(rand(world.tick + world.batch * 991) * presets.length);
-  const source = presets[idx % presets.length];
-  const news = { ...source, id: id(), createdAt: at };
-  const range = newsImpactRange(news);
-  world.latestNewsId = news.id;
-  world.latestNewsIds = [news.id];
-  world.headlines.unshift(news);
-  if (world.headlines.length > 80) world.headlines.pop();
+  const indices = presetIndices.filter(index => Number.isInteger(index) && index >= 0 && index < presets.length);
+  const published = indices.map(index => {
+    const news = { ...presets[index], id: id(), createdAt: at };
+    const range = newsImpactRange(news);
+    world.headlines.unshift(news);
+    return { index, news, range, rank: scopeRank(news) };
+  });
+  if (!published.length) return [];
+  if (world.headlines.length > 80) world.headlines.splice(80);
+  world.latestNewsId = published.at(-1)!.news.id;
+  world.latestNewsIds = world.headlines.slice(0, published.length).map(news => news.id);
+
   for (const stock of world.stocks) {
-    const scope = newsScope(news);
-    const applies = scope === "stock" ? Boolean(news.symbols?.includes(stock.symbol)) : scope === "economy" || news.sector === stock.sector;
-    if (!applies) continue;
-    const impact = ((range.low + rand(world.tick + textSeed(stock.symbol) * 71) * (range.high - range.low)) / 100) * news.direction;
-    const intensity = impact;
-    const directionalDrift = Math.min(.0045, Math.max(.0011, Math.abs(impact) * .055)) * news.direction;
-    stock.newsBias = news.direction * Math.min(.0045, Math.max(Math.abs(stock.newsBias ?? 0) * .55, Math.abs(directionalDrift)));
-    applyMove(world, stock, intensity, 2500 + Math.floor(rand(world.tick + stock.base) * 18000), at);
+    const applicable = published.flatMap(item => {
+      const scope = newsScope(item.news);
+      const applies = scope === "stock" ? Boolean(item.news.symbols?.includes(stock.symbol)) : scope === "economy" || item.news.sector === stock.sector;
+      if (!applies) return [];
+      const seed = world.tick + textSeed(stock.symbol) * 71 + item.index * 104729;
+      const impact = ((item.range.low + rand(seed) * (item.range.high - item.range.low)) / 100) * item.news.direction;
+      return [{ ...item, impact }];
+    });
+    if (!applicable.length) continue;
+
+    const strongestRank = Math.max(...applicable.map(item => item.rank));
+    // Use only the most directly targeted stories for this stock. Economy news
+    // yields to its sector, and sector news yields to a stock-specific story.
+    const impact = applicable.filter(item => item.rank === strongestRank).reduce((sum, item) => sum + item.impact, 0);
+    const directionalDrift = Math.min(.0045, Math.max(.0011, Math.abs(impact) * .055)) * Math.sign(impact);
+    const previousBias = stock.newsBias ?? 0;
+    const biasDirection = Math.sign(directionalDrift || previousBias);
+    stock.newsBias = biasDirection * Math.min(.0045, Math.max(Math.abs(previousBias) * .55, Math.abs(directionalDrift)));
+    if (impact) {
+      const target = clamp(stock.price * (1 + impact), stock.previousClose * .68, stock.previousClose * 1.32);
+      stock.newsMoves = [...(stock.newsMoves ?? []), { logReturn: Math.log(target / stock.price), elapsed: 0, duration: NEWS_REACTION_SECONDS }];
+    }
   }
-  world.controls.activeNews = Math.max(world.controls.activeNews ?? 0, range.high);
+  world.controls.activeNews = Math.max(world.controls.activeNews ?? 0, ...published.map(item => item.range.high));
+  return published.map(item => item.news);
+}
+
+function pushHeadline(world: World, presetIndex?: number, at = Date.now()) {
+  const index = presetIndex ?? Math.floor(rand(world.tick + world.batch * 991) * world.news.length);
+  return pushHeadlines(world, [index], at)[0];
 }
 
 export type NewsImpactStock = { symbol: string; name: string; before: number; after: number; change: number; changePct: number };
 export type NewsImpactPreview = { headlines: { news: World["news"][number]; stocks: NewsImpactStock[] }[]; combined: NewsImpactStock[] };
 
 export function previewNewsImpact(world: World, presetIndices: number[]): NewsImpactPreview {
-  const preview: World = { ...world, stocks: structuredClone(world.stocks), controls: { ...world.controls }, headlines: [], sessions: {}, scheduledNews: [], scheduledInterventions: [] };
+  // Publishing now queues reactions without editing candle history. Reuse the
+  // history here so a large selection does not copy thousands of candles per story.
+  const createPreviewWorld = (): World => ({ ...world, stocks: world.stocks.map(stock => ({ ...stock, newsMoves: stock.newsMoves?.map(move => ({ ...move })) })), controls: { ...world.controls }, headlines: [], sessions: {}, scheduledNews: [], scheduledInterventions: [] });
+  const preview = createPreviewWorld();
   const headlines: NewsImpactPreview["headlines"] = [];
+  const indices = [...new Set(presetIndices)].filter(index => Number.isInteger(index) && index >= 0 && index < world.news.length);
   const startingPrices = new Map(preview.stocks.map(stock => [stock.symbol, stock.price] as const));
-  for (const index of [...new Set(presetIndices)]) {
+  const existingMoveCounts = new Map(world.stocks.map(stock => [stock.symbol, stock.newsMoves?.length ?? 0]));
+  for (const index of indices) {
     if (!Number.isInteger(index) || index < 0 || index >= preview.news.length) continue;
-    const before = new Map(preview.stocks.map(stock => [stock.symbol, stock.price] as const));
-    pushHeadline(preview, index);
-    const stocks = preview.stocks.flatMap(stock => {
-      const oldPrice = before.get(stock.symbol) ?? stock.price;
+    const individual = createPreviewWorld();
+    pushHeadlines(individual, [index]);
+    for (const stock of individual.stocks) stock.price = projectedNewsPrice(stock, existingMoveCounts.get(stock.symbol) ?? 0);
+    const stocks = individual.stocks.flatMap(stock => {
+      const oldPrice = startingPrices.get(stock.symbol) ?? stock.price;
       if (stock.price === oldPrice) return [];
       const change = stock.price - oldPrice;
       return [{ symbol: stock.symbol, name: stock.name, before: oldPrice, after: stock.price, change, changePct: change / oldPrice * 100 }];
     }).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
-    headlines.push({ news: preview.news[index], stocks });
+    headlines.push({ news: world.news[index], stocks });
   }
+  pushHeadlines(preview, indices);
+  for (const stock of preview.stocks) stock.price = projectedNewsPrice(stock, existingMoveCounts.get(stock.symbol) ?? 0);
   const combined = preview.stocks.flatMap(stock => {
     const before = startingPrices.get(stock.symbol) ?? stock.price;
     if (stock.price === before) return [];
@@ -191,7 +247,9 @@ export function advance(world: World, now = Date.now()): World {
     const dueNews = world.scheduledNews.filter(item => item.at <= at);
     world.scheduledNews = world.scheduledNews.filter(item => item.at > at);
     if (dueNews.length) {
-      for (const event of dueNews) pushHeadline(world, event.index, at);
+      const eventsByPublishTime = new Map<number, number[]>();
+      for (const event of dueNews) eventsByPublishTime.set(event.at, [...(eventsByPublishTime.get(event.at) ?? []), event.index]);
+      for (const [publishTime, indices] of [...eventsByPublishTime].sort(([a], [b]) => a - b)) pushHeadlines(world, indices, publishTime);
       world.latestNewsIds = world.headlines.slice(0, dueNews.length).map(news => news.id);
     }
     const vol = world.controls.volatility / 25;
@@ -209,7 +267,8 @@ export function advance(world: World, now = Date.now()): World {
       const symbolSeed = world.tick * 37 + textSeed(stock.symbol) * 7;
       const noise = (rand(symbolSeed) - .5) * .009 * vol;
       const meanRevert = ((stock.previousClose - stock.price) / stock.previousClose) * .009;
-      const newsTrend = (stock.newsBias ?? 0) * NEWS_IMPACT_DRIFT_NORMALIZER;
+      const tickSeconds = interval / 1000;
+      const newsTrend = (stock.newsBias ?? 0) * NEWS_IMPACT_DRIFT_NORMALIZER * (1 - NEWS_IMPACT_DECAY ** tickSeconds) / (1 - NEWS_IMPACT_DECAY);
       const sectorMove = (sectorPulse.get(stock.sector) ?? 0) * (rand(symbolSeed + 3) < .76 ? 1 : -.42);
       const flowSignal = -stock.flow / 10000 * .012;
       let botOrders = 0;
@@ -222,9 +281,10 @@ export function advance(world: World, now = Date.now()): World {
       const institutional = (rand(Math.floor(world.tick / 11) + textSeed(stock.symbol) * 3) - .5) * .00009 * (world.controls.bots / 50);
       const returnRate = clamp(scenarioDrift + bias + sectorMove + momentum + meanRevert + noise + botOrders + institutional + stock.flow / 10000 * .02 + newsTrend, -.009 * vol, .009 * vol);
       const botVolume = Math.round((300 + rand(world.tick + stock.base) * 5_800) * (VIRTUAL_BOT_COUNT / 100));
-      applyMove(world, stock, returnRate, botVolume, at);
+      const reactionMove = advanceNewsReaction(stock, tickSeconds);
+      applyMove(world, stock, (1 + returnRate) * (1 + reactionMove) - 1, botVolume, at);
       if (stock.newsBias) {
-        stock.newsBias *= NEWS_IMPACT_DECAY;
+        stock.newsBias *= NEWS_IMPACT_DECAY ** tickSeconds;
         if (Math.abs(stock.newsBias) < NEWS_IMPACT_FADE_THRESHOLD) stock.newsBias = 0;
       }
     }
@@ -391,10 +451,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     const delay = clamp(Number(payload.delay) || 0, 0, 300);
     if (!indices.length || indices.some(idx => !Number.isInteger(idx) || idx < 0 || idx >= world.news.length)) throw new Error("Choose one or more valid news presets first.");
     if (delay) world.scheduledNews.push(...indices.map(index => ({ at: at + delay * 1000, index })));
-    else {
-      indices.forEach(index => pushHeadline(world, index, at));
-      world.latestNewsIds = world.headlines.slice(0, indices.length).map(news => news.id);
-    }
+    else pushHeadlines(world, indices, at);
   } else if (action === "intervene") {
     const sector = String(payload.sector ?? "ALL"), direction = payload.direction === "down" ? -1 : 1;
     const magnitude = clamp(Number(payload.magnitude) || 1, .1, 5) / 100;
@@ -426,7 +483,7 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
   const base = world.stocks.reduce((sum, s) => sum + s.weight * s.previousClose, 0);
   const value = indexValue(world);
   return { ...rest, controls: publicControls, headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), revision: world.version, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => {
-    const { newsBias: _newsBias, ...publicStock } = stock;
+    const { newsBias: _newsBias, newsMoves: _newsMoves, ...publicStock } = stock;
     const fullCandles = stock.candles.slice(-600);
     const since = options.candlesSince;
     const canSendDelta = typeof since === "number" && Number.isFinite(since) && fullCandles.length > 0 && since >= fullCandles[0].time && since <= fullCandles.at(-1)!.time;
