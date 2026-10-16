@@ -80,7 +80,7 @@
 .audience-wall[class*="ui-"] .wall-news-label {color:var(--wall-accent);font-size:9px;font-weight:900;letter-spacing:.14em;}
 .audience-wall[class*="ui-"] .wall-news-heading>span:last-child {color:var(--wall-muted);font-size:9px;}
 .audience-wall[class*="ui-"] .wall-news-headlines {
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:8px;
+  display:grid;grid-template-columns:minmax(0,1fr);gap:8px;
   max-height:none;min-height:0;overflow:visible;
 }
 .audience-wall[class*="ui-"] .wall-news-headlines>article {

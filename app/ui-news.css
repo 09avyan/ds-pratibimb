@@ -1,6 +1,6 @@
 /* The market news desk is a quick visual scan across every version. */
 .terminal[class*="ui-"] .news-list {
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));
+  display:grid;grid-template-columns:minmax(0,1fr);
   align-items:stretch;gap:clamp(9px,1.1vw,16px);margin-top:14px;
 }
 .terminal[class*="ui-"] .news-item {
@@ -24,7 +24,7 @@
 .terminal .market-news-feed {display:grid;gap:8px;margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);box-shadow:var(--shadow);}
 .terminal .market-news-feed>header {display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .terminal .market-news-feed>header>span:last-child {color:var(--muted);font-size:9px;}
-.terminal .market-news-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:7px;}
+.terminal .market-news-list {display:grid;grid-template-columns:minmax(0,1fr);gap:7px;}
 .terminal .market-news-list>article {display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:6px;min-width:0;padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:var(--secondary);}
 .terminal .market-news-list>article>.news-tag {font-size:7px;padding:4px 6px;}
 .terminal .market-news-scope {overflow:hidden;color:var(--muted);font-size:8px;text-overflow:ellipsis;white-space:nowrap;}
