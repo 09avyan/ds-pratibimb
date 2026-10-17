@@ -14,6 +14,13 @@ const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">) => {
   const scope = news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
   return scope === "economy" ? "Economy · all stocks" : scope === "stock" ? (news.symbols?.join(", ") ?? news.sector) : `${news.sector} sector`;
 };
+function latestNewsSet(world: PublicWorld | null) {
+  const news = world?.headlines ?? [];
+  if (!news.length) return [];
+  const latestAt = Math.max(...news.map(item => item.createdAt));
+  const ids = new Set(world?.latestNewsIds ?? []);
+  return news.filter(item => ids.size ? ids.has(item.id) : item.createdAt === latestAt).sort((a, b) => a.createdAt - b.createdAt);
+}
 function smoothPath(points: { x: number; y: number }[]) {
   if (!points.length) return "";
   let path = `M${points[0].x},${points[0].y}`;
@@ -71,7 +78,7 @@ function MiniChart({ stock }: { stock: Stock }) {
 function StockPriceTicker({ stocks }: { stocks: Stock[] }) {
   if (!stocks.length) return null;
   const copies = [...stocks, ...stocks];
-  const duration = `${Math.max(26, stocks.length * 2.1)}s`;
+  const duration = `${(Math.max(26, stocks.length * 2.1) / .85)}s`;
   return <section className="stock-price-ticker" aria-label={`Live stock prices: ${stocks.map(stock => `${stock.name} ${money(stock.price, stock.price < 100 ? 2 : 0)}`).join(", ")}`}>
     <span className="ticker-label"><i/> LIVE PRICES</span>
     <div className="ticker-window"><div className="ticker-track" style={{ animationDuration: duration }} aria-hidden="true">
@@ -151,7 +158,7 @@ function Header({ world, player, onTheme, theme, clockNow }: { world: PublicWorl
   return <header className="topbar">
     <div className="topbar-brand"><DalaalMark/><span>DALAA<span>L</span> STREET</span></div>
     <div className="market-ribbon"><span className="ribbon-label">DALAAL-10</span><strong>{world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00"}</strong><span className={world && world.indexChange >= 0 ? "positive" : "negative"}>{world ? `${world.indexChange >= 0 ? "+" : ""}${world.indexChange.toFixed(2)}%` : "0.00%"}</span></div>
-    <div className="topbar-metrics"><div><small>SESSION</small><b className="timer-value">{world?.status === "countdown" ? fmtTime(Math.ceil((world.startedAt - clockNow) / 1000)) : world ? fmtTime(world.remaining) : "06:00"}</b></div><div><small>FREE CASH</small><b>{money(player?.cash ?? 1_000_000, 0)}</b></div><div><small>PORTFOLIO</small><b>{money(value, 0)}</b></div><div><small>DAY P&amp;L</small><b className={pnl >= 0 ? "positive" : "negative"}>{pnl >= 0 ? "+" : ""}{money(pnl, 0)}</b></div></div>
+    <div className="topbar-metrics"><div className="terminal-standing"><small>POSITION</small><b>{world?.standing ? `${world.standing.rank} / ${world.standing.total}` : "—"}</b></div><div><small>SESSION</small><b className="timer-value">{world?.status === "countdown" ? fmtTime(Math.ceil((world.startedAt - clockNow) / 1000)) : world ? fmtTime(world.remaining) : "06:00"}</b></div><div><small>FREE CASH</small><b>{money(player?.cash ?? 1_000_000, 0)}</b></div><div><small>PORTFOLIO</small><b>{money(value, 0)}</b></div><div><small>DAY P&amp;L</small><b className={pnl >= 0 ? "positive" : "negative"}>{pnl >= 0 ? "+" : ""}{money(pnl, 0)}</b></div></div>
     <button className="theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
   </header>;
 }
@@ -298,7 +305,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const report = world && player ? performance(world as never, player) : null;
   const isTest = mode === "test";
   const marketNews = [...(world?.headlines ?? [])].sort((a, b) => a.createdAt - b.createdAt);
-  const newsKey = `${world?.batch}:${marketNews.map(item => item.id).join(",")}`;
+  const latestNews = latestNewsSet(world);
+  const newsKey = `${world?.batch}:${latestNews.map(item => item.id).join(",")}`;
   const previewOption = uiVariant ? UI_OPTIONS.find(option => option.slug === uiVariant) : null;
   const orderTicket = stock && <div className="order-card"><div className="order-title"><div><span className="eyebrow">ORDER TICKET · {stock.symbol}</span><h2>Place a trade</h2></div><span className="order-live"><i/> LIVE PRICE</span></div>
     <div className="side-switch">{(["Buy", "Sell", "Short"] as const).map(t => <button key={t} onClick={() => setSide(t)} className={`${side === t ? `active ${t.toLowerCase()}` : ""}`} disabled={t === "Sell" && !ownedQty}>{t}</button>)}</div>
@@ -323,9 +331,9 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       {world && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - clockNow) / 1000))} seconds` : world.status === "closed" ? isTest ? "Practice round complete" : "The batch has ended" : isTest ? "Practice round ready" : "The market is ready"}<span>{world.status === "countdown" ? "The market is starting on every device." : world.status === "closed" ? isTest ? "Start another isolated practice round when you’re ready." : "Review your report to return to the ready state." : isTest ? "Your isolated practice market is ready." : "The host will start the shared batch shortly."}</span>{isTest && (world.status === "closed" || world.status === "ready") && <button type="button" className="outline-button" disabled={busy} onClick={() => void send("sandbox-start")}>Start practice round</button>}</div>}
       {view === "markets" && stock && <>
         <StockPriceTicker stocks={world?.stocks ?? []}/>
-        {marketNews.length > 0 && (dismissedNews === newsKey ? <button type="button" className="news-reopen" onClick={() => setDismissedNews("")}>News <span>{marketNews.length}</span></button> : <section className="market-news-feed" aria-label="News published this batch">
-          <header><span className="eyebrow">BATCH NEWS</span><span>{marketNews.length} {marketNews.length === 1 ? "headline" : "headlines"}</span><button type="button" className="news-popup-close" aria-label="Close news pop-up" onClick={() => setDismissedNews(newsKey)}>×</button></header>
-          <div className="market-news-list">{marketNews.length ? marketNews.map((item, index) => <article key={item.id}><b className="market-news-number">News {index + 1}</b><span className={`news-tag ${item.type}`}>{item.type}</span><span className="market-news-scope">{newsScope(item)}</span><strong>{item.headline}</strong></article>) : <p>No news published in this batch yet.</p>}</div>
+        {latestNews.length > 0 && (dismissedNews === newsKey ? <button type="button" className="news-reopen" onClick={() => setDismissedNews("")}>News <span>{latestNews.length}</span></button> : <section className="market-news-feed" aria-label="Latest news set">
+          <button type="button" className="news-popup-close" aria-label="Close latest news" onClick={() => setDismissedNews(newsKey)}>×</button>
+          <div className="market-news-list">{latestNews.map(item => <article key={item.id}><strong>{item.headline}</strong></article>)}</div>
         </section>)}
         <div className="trading-grid">
           <section className="watch-area">
@@ -373,7 +381,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
       {view === "news" && <section className="wide-page"><div className="section-heading"><div><div className="eyebrow">DALAA<span>L</span> STREET / NEWS</div><h1>Market news<span className="heading-period">.</span></h1><p>Company and sector bulletins shape the fictional market through the same price model as trading.</p></div></div><div className="news-list">{marketNews.map((n, i) => <article className={`news-item ${i === 0 ? "newest" : ""}`} key={n.id}><div className="news-meta"><b className="market-news-number">News {i + 1}</b><span className={`news-tag ${n.type}`}>{n.type}</span><span>{newsScope(n)}</span><time>{new Date(n.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><h2>{n.headline}</h2></article>)}{!marketNews.length && <div className="empty-state">No bulletins yet. Headlines triggered during this batch will appear here.</div>}</div></section>}
 
-      {view === "report" && report && <section className="results-view"><div className="results-heading"><span className="eyebrow">SESSION COMPLETE · BATCH {world?.batch}</span><h1>That’s a wrap<span>.</span></h1><p>Here’s what your decisions added up to. This is a fictional learning simulation, not investment advice.</p></div><div className="results-value"><small>FINAL PORTFOLIO VALUE</small><strong>{money(report.value, 0)}</strong><span className={report.pnl >= 0 ? "positive" : "negative"}>{report.pnl >= 0 ? "+" : ""}{money(report.pnl, 0)} · {report.returnPct >= 0 ? "+" : ""}{report.returnPct.toFixed(2)}%</span></div><div className="portfolio-summary report-metrics"><Metric label="AVAILABLE CASH" value={money(report.cash, 0)}/><Metric label="ORDERS PLACED" value={String(report.tradeCount)}/><Metric label="WIN / LOSS CLOSES" value={`${report.winners} / ${report.losers}`}/><Metric label="DIVERSIFICATION" value={`${report.sectors} sectors`}/></div>
+      {view === "report" && report && <section className="results-view"><div className="results-heading"><span className="eyebrow">SESSION COMPLETE · BATCH {world?.batch}</span><h1>That’s a wrap<span>.</span></h1><p>Here’s what your decisions added up to. This is a fictional learning simulation, not investment advice.</p></div><div className="results-value"><small>FINAL PORTFOLIO VALUE</small><strong>{money(report.value, 0)}</strong><span className={report.pnl >= 0 ? "positive" : "negative"}>{report.pnl >= 0 ? "+" : ""}{money(report.pnl, 0)} · {report.returnPct >= 0 ? "+" : ""}{report.returnPct.toFixed(2)}%</span></div><div className="portfolio-summary report-metrics"><Metric label={world?.status === "closed" ? "FINAL POSITION" : "POSITION SO FAR"} value={world?.standing ? `${world.standing.rank} / ${world.standing.total}` : "—"} note="Ranked by total portfolio value"/><Metric label="AVAILABLE CASH" value={money(report.cash, 0)}/><Metric label="ORDERS PLACED" value={String(report.tradeCount)}/><Metric label="WIN / LOSS CLOSES" value={`${report.winners} / ${report.losers}`}/><Metric label="DIVERSIFICATION" value={`${report.sectors} sectors`}/></div>
         <div className="report-trade-pair">{([["BEST CLOSED TRADE", report.bestTrade], ["TOUGHEST CLOSED TRADE", report.worstTrade]] as const).map(([label, trade]) => <article className={`report-trade-card${trade ? trade.realized >= 0 ? " positive-result" : " negative-result" : " empty-result"}`} key={label}><span className="eyebrow">{label}</span>{trade ? <><div className="report-trade-title"><b>{trade.symbol}</b><span>{trade.side} · {trade.qty} shares</span></div><strong className={trade.realized >= 0 ? "positive" : "negative"}>{trade.realized > 0 ? "+" : ""}{money(trade.realized, 0)} <small>realised</small></strong><small className="report-trade-meta">{money(trade.price)} per share · {new Date(trade.time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</small></> : <p>No closed trades yet. Best and toughest realized trades will appear here.</p>}</article>)}</div>
         <div className="report-panels"><div className="report-panel"><span className="eyebrow">YOUR LEARNING NOTES</span>{report.lessons.map((l, i) => <p key={i}><i>{String(i + 1).padStart(2, "0")}</i>{l}</p>)}</div><div className="report-panel"><span className="eyebrow">BADGES EARNED FROM YOUR ACTIONS · {report.badges.length}</span><div className="badge-grid">{report.badges.length ? report.badges.map(b => <span className="achievement" key={b.name}><i>✳</i><b>{b.name}</b><small>{b.detail}</small></span>) : <p>Place an order, explore another part of the market, or try a short to earn a badge.</p>}</div></div></div><button className="execute-button report-ready" onClick={() => { if (isTest && world?.status === "closed") { void send("sandbox-start"); return; } const next = crypto.randomUUID(); localStorage.setItem(sessionStorageKey(mode, terminal, preview), next); setSessionId(next); setView("markets"); setToast(isTest ? "You’re ready to rejoin this practice round." : "You’re ready for the next batch."); }}>{isTest && world?.status === "closed" ? "Start another practice round" : isTest ? "Return to practice market" : "Return to ready state"} <span>→</span></button>
       </section>}
@@ -389,12 +397,9 @@ function Metric({ label, value, note }: { label: string; value: string; note?: s
 
 function Audience({ world, uiVariant, preview, theme, onTheme }: { world: PublicWorld | null; uiVariant?: UiVariant; preview?: boolean; theme: "light" | "dark"; onTheme: () => void }) {
   const [fullscreen, setFullscreen] = useState(false);
-  const [newsPage, setNewsPage] = useState(0);
-  const allNews = [...(world?.headlines ?? [])].sort((a, b) => a.createdAt - b.createdAt);
-  const newsSetKey = `${world?.batch ?? 0}:${allNews.map(item => item.id).join(",")}`;
-  const newsPageCount = Math.max(1, Math.ceil(allNews.length / 4));
-  const currentNewsPage = Math.min(newsPage, newsPageCount - 1);
-  const visibleNews = allNews.slice(currentNewsPage * 4, currentNewsPage * 4 + 4);
+  const [dismissedSet, setDismissedSet] = useState("");
+  const visibleNews = latestNewsSet(world);
+  const newsSetKey = `${world?.batch ?? 0}:${visibleNews.map(item => item.id).join(",")}`;
   const stocks = world?.stocks ?? [];
   const terminalSummaries = world?.terminalSummaries ?? [];
   const topTerminals = [...terminalSummaries].sort((a, b) => b.totalValue - a.totalValue || b.pnl - a.pnl || a.terminalNumber - b.terminalNumber).slice(0, 3);
@@ -404,12 +409,6 @@ function Audience({ world, uiVariant, preview, theme, onTheme }: { world: Public
   const signReturn = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
   const indexText = world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00";
   useEffect(() => { const done = () => setFullscreen(Boolean(document.fullscreenElement)); document.addEventListener("fullscreenchange", done); return () => document.removeEventListener("fullscreenchange", done); }, []);
-  useEffect(() => { setNewsPage(Math.max(0, Math.ceil((world?.headlines.length ?? 0) / 4) - 1)); }, [newsSetKey]);
-  useEffect(() => {
-    if (newsPageCount <= 1) return;
-    const timer = window.setInterval(() => setNewsPage(current => (current + 1) % newsPageCount), 8_000);
-    return () => window.clearInterval(timer);
-  }, [newsPageCount, newsSetKey]);
   return <main className={`audience-wall ui-${uiVariant ?? "default"}`}>
     <header className="wall-header">
       <div className="wall-brand"><span className="brand-glyph"><DalaalMark/></span><span><small>PRATIBIMB · INTERACTIVE MARKET</small><b>DALAA<span>L</span> STREET</b></span></div>
@@ -419,7 +418,8 @@ function Audience({ world, uiVariant, preview, theme, onTheme }: { world: Public
       <button className="wall-fullscreen" onClick={() => document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen()}>{fullscreen ? "Exit full screen" : "Full screen"} ↗</button>
     </header>
     <section className="wall-terminal-strip" aria-label="Active terminal positions"><header><b>LIVE TERMINALS</b><span>{terminalSummaries.length}/10 active</span><div className="wall-top-three" aria-label="Top three terminals by total portfolio value">{topTerminals.map((terminal, index) => <span key={terminal.terminalNumber}><b>{index + 1}</b> T{String(terminal.terminalNumber).padStart(2, "0")} <strong>{money(terminal.totalValue, 0)}</strong></span>)}</div></header><div className="wall-terminal-grid">{terminalSummaries.map(terminal => <article className={`wall-terminal ${terminal.status}`} key={terminal.terminalNumber}><div className="wall-terminal-top"><b>TERMINAL {String(terminal.terminalNumber).padStart(2, "0")}</b><span>{terminal.status === "paused" ? "PAUSED" : terminal.status === "ready" ? "READY" : "LIVE"}</span></div><div className="wall-terminal-value"><small>TOTAL VALUE</small><strong>{money(terminal.totalValue, 0)}</strong></div><div className="wall-terminal-bottom"><span className={terminal.pnl >= 0 ? "positive" : "negative"}>P&amp;L {terminal.pnl >= 0 ? "+" : "−"}{money(Math.abs(terminal.pnl), 0)}</span><span>CASH {money(terminal.cash, 0)}</span></div></article>)}</div>{!terminalSummaries.length && <p className="wall-terminal-empty">No terminals are active right now.</p>}</section>
-    <section className="wall-news" aria-label="Batch news"><header className="wall-news-heading"><span className="wall-news-label">BATCH NEWS</span><span>{allNews.length ? `${allNews.length} ${allNews.length === 1 ? "headline" : "headlines"}${newsPageCount > 1 ? ` · VIEW ${currentNewsPage + 1}/${newsPageCount}` : ""}` : "No headlines yet"}</span></header><div className="wall-news-headlines">{visibleNews.length ? visibleNews.map((item, index) => <article key={item.id}><div><b className="wall-news-number">News {currentNewsPage * 4 + index + 1}</b><span className={`news-tag ${item.type}`}>{item.type}</span><span>{newsScope(item)}</span></div><strong>{item.headline}</strong></article>) : <article className="wall-news-empty">News released during the batch will appear here.</article>}</div></section>
+    {visibleNews.length > 0 && dismissedSet !== newsSetKey && <section className="wall-news latest-set" aria-label="Latest news set"><button type="button" className="wall-news-close" aria-label="Close latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button><div className="wall-news-headlines">{visibleNews.map(item => <article key={item.id}><strong title={item.headline}>{item.headline}</strong></article>)}</div></section>}
+
     <section className="wall-market-section"><header className="wall-section-heading"><div><span className="eyebrow">MARKET BOARD</span><h1>All stocks<span>.</span></h1></div></header>
       <section className="wall-grid" aria-label="All listed stocks">{stocks.map(stock => <article className="wall-stock" key={stock.symbol}><div className="wall-stock-top"><Logo stock={stock} compact/><span><b>{stock.symbol}</b><small>{stock.name}</small></span></div><div className="wall-price"><strong>{money(stock.price, stock.price < 100 ? 2 : 0)}</strong><span className={changePct(stock) >= 0 ? "positive" : "negative"}>{signReturn(changePct(stock))}</span></div><MiniChart stock={stock}/></article>)}</section>
     </section>

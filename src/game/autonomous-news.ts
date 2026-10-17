@@ -1,12 +1,13 @@
+import { newsContradicts } from "./news-rules";
 import { INDEX_WEIGHTS } from "./catalog";
 import { TERMINAL_ACTIVE_WINDOW_MS } from "./terminals";
-import type { AutonomousNewsLogEntry, AutonomousNewsReading, News, World } from "./types";
+import type { AutonomousNews, AutonomousNewsLogEntry, AutonomousNewsReading, News, World } from "./types";
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const scopeOf = (news: Pick<News, "scope" | "symbols" | "sector">) => news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
 const storyKey = (news: Pick<News, "headline" | "scope" | "symbols" | "sector">) => `${scopeOf(news)}|${news.sector}|${news.symbols?.join(",") ?? ""}|${news.headline}`;
 
-export function newAutonomousNewsState(enabled = false) {
+export function newAutonomousNewsState(enabled = false): AutonomousNews {
   return {
     enabled,
     nextAt: 0,
@@ -50,9 +51,14 @@ export function readAutonomousNewsSignals(world: World, at: number): AutonomousN
 
 export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalSeconds = 75, opening = false) {
   const reading = readAutonomousNewsSignals(world, at);
-  const activeMarket = reading.unresolvedNewsSeconds > 20 || reading.recentVolatility >= .28 || Math.abs(reading.indexChange) >= .85;
+  const recentIndexChange = Object.entries(INDEX_WEIGHTS).reduce((sum, [symbol, weight]) => {
+    const stock = world.stocks.find(item => item.symbol === symbol);
+    const prior = stock?.candles.at(-8)?.close;
+    return sum + (stock && prior ? (stock.price / prior - 1) * 100 * weight : 0);
+  }, 0);
+  const activeMarket = reading.unresolvedNewsSeconds > 20 || reading.recentVolatility >= .28 || Math.abs(recentIndexChange) >= .5;
   const activeCrowd = reading.activeTerminals >= 4 && reading.recentTrades >= 6;
-  const quiet = reading.recentTrades < 2 && reading.recentVolatility < .12 && Math.abs(reading.indexChange) < .18;
+  const quiet = reading.recentTrades < 2 && reading.recentVolatility < .12 && Math.abs(recentIndexChange) < .15;
   const base = clamp(Math.round(baseIntervalSeconds), 50, 90);
   const intervalSeconds = opening ? base : activeMarket
     ? clamp(Math.max(base, 85 + (reading.unresolvedNewsSeconds > 35 ? 5 : 0)), 50, 90)
@@ -62,8 +68,9 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   const setSize: 2 | 3 = activeMarket || activeCrowd || reading.activeTerminals >= 7 ? 2 : 3;
 
   const publishedKeys = new Set(world.headlines.map(storyKey));
-  const recentlyPublishedKeys = new Set(world.headlines.slice(0, 12).map(storyKey));
-  const freshStories = world.news.map((news, index) => ({ news, index })).filter(item => !publishedKeys.has(storyKey(item.news)));
+  const reserved = world.scheduledNews.map(event => world.news[event.index]).filter(Boolean);
+  const freshStories = world.news.map((news, index) => ({ news, index }))
+    .filter(item => !publishedKeys.has(storyKey(item.news)) && !reserved.some(news => storyKey(news) === storyKey(item.news)) && ![...world.headlines, ...reserved].some(other => newsContradicts(item.news, other)));
   const tradeSymbolScores = new Map<string, number>();
   const tradeSectorScores = new Map<string, number>();
   for (const player of Object.values(world.sessions)) {
@@ -88,63 +95,44 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
     if (scope === "sector") score += Math.min(1.5, (tradeSectorScores.get(item.news.sector) ?? 0) * .55);
     if (item.news.type === "minor" && world.headlines.slice(0, 3).every(headline => headline.type === "major")) score += .18;
     if (item.news.type === "major" && world.headlines.slice(0, 3).every(headline => headline.type === "minor")) score += .18;
+    const affected = world.stocks.filter(stock => scope === "economy" || (scope === "sector" ? stock.sector === item.news.sector : item.news.symbols?.includes(stock.symbol)));
+    const exposed = Object.values(world.sessions).filter(player => player.batch === world.batch && player.included && !player.ended && at - (player.lastSeenAt ?? player.joinedAt) < TERMINAL_ACTIVE_WINDOW_MS)
+      .filter(player => affected.some(stock => (player.holdings[stock.symbol]?.qty ?? 0) + (player.shorts[stock.symbol]?.qty ?? 0) > 0)).length;
+    score += Math.min(1.2, exposed * .18);
+    if (affected.length) {
+      score -= affected.filter(stock => item.news.direction > 0 ? stock.price / stock.previousClose > 1.24 : stock.price / stock.previousClose < .76).length / affected.length * 4;
+    }
+    // Deterministic rotation avoids always picking the first story on equal scores.
+    score += Math.sin(item.index * 37 + world.batch * 11 + (world.autonomousNews?.decisions ?? 0) * 7) * .12;
     return score;
   };
-  const byScope = (scope: "economy" | "sector" | "stock", pool = freshStories) => pool
-    .filter(item => scopeOf(item.news) === scope)
-    .map(item => ({ ...item, score: scoreStory(item) }))
-    .sort((a, b) => b.score - a.score || a.index - b.index);
-  const desiredScopes: ("economy" | "sector" | "stock")[] = setSize === 3
-    ? ["economy", "sector", "stock"]
-    : reading.recentTrades > 0 ? ["sector", "stock"] : ["economy", "sector"];
-  const scopeOrder = ["economy", "sector", "stock"] as const;
-  let scopes = desiredScopes.filter(scope => byScope(scope).length > 0);
-  for (const scope of scopeOrder) if (scopes.length < setSize && !scopes.includes(scope) && byScope(scope).length) scopes.push(scope);
-  // If a category runs out during a long round, use the fullest remaining
-  // category for the remaining slot instead of failing to make a 2/3-story set.
-  const reusableStories = world.news.map((news, index) => ({ news, index }))
-    .filter(item => !recentlyPublishedKeys.has(storyKey(item.news)));
-  while (scopes.length < setSize) {
-    const pool = freshStories.length >= 2 ? freshStories : reusableStories;
-    const next = scopeOrder.map(scope => ({ scope, available: byScope(scope, pool).length }))
-      .sort((a, b) => b.available - a.available || scopeOrder.indexOf(a.scope) - scopeOrder.indexOf(b.scope))[0];
-    if (!next?.available) break;
-    scopes.push(next.scope);
-  }
-  if (scopes.length < 2) {
-    const fallback = world.news.map((news, index) => ({ news, index, score: scoreStory({ news, index }) }))
-      .sort((a, b) => b.score - a.score || a.index - b.index).slice(0, 2);
-    scopes = fallback.map(item => scopeOf(item.news));
-  }
-  const pool = freshStories.length >= setSize ? freshStories : reusableStories;
-  const options = scopes.map(scope => byScope(scope, pool));
-  const picks: { index: number; score: number; direction: number; type: News["type"] }[][] = [];
-  const build = (depth: number, selected: { index: number; score: number; direction: number; type: News["type"] }[]) => {
-    if (depth === options.length) { picks.push(selected); return; }
-    for (const item of options[depth].slice(0, 14)) {
-      if (selected.some(existing => existing.index === item.index)) continue;
-      build(depth + 1, [...selected, { index: item.index, score: item.score, direction: item.news.direction, type: item.news.type }]);
-    }
+  // Score complete sets rather than forcing one fixed category recipe.
+  const ranked = freshStories.map(item => ({ ...item, score: scoreStory(item) })).sort((a, b) => b.score - a.score || a.index - b.index);
+  const pool = [...new Map([
+    ...ranked.slice(0, 14),
+    ...(["economy", "sector", "stock"] as const).flatMap(scope => ranked.filter(item => scopeOf(item.news) === scope).slice(0, 6)),
+  ].map(item => [item.index, item])).values()];
+  let best: typeof ranked = [];
+  let bestScore = -Infinity;
+  const evaluate = (items: typeof ranked) => {
+    if (items.some((item, i) => items.slice(0, i).some(other => newsContradicts(item.news, other.news)))) return;
+    const scopes = new Set(items.map(item => scopeOf(item.news))).size;
+    const sectors = new Set(items.filter(item => scopeOf(item.news) !== "economy").map(item => item.news.sector)).size;
+    const balance = new Set(items.map(item => item.news.direction)).size > 1 ? .45 : -.15;
+    const score = items.reduce((sum, item) => sum + item.score, 0) / items.length + scopes * .18 + sectors * .1 + balance + (items.length === setSize ? .5 : 0);
+    if (score > bestScore) { bestScore = score; best = items; }
   };
-  build(0, []);
-  const best = picks.map(items => {
-    const directions = new Set(items.map(item => item.direction));
-    const majors = new Set(items.map(item => item.type)).size;
-    const balance = directions.size > 1 ? .55 : -.35;
-    const typeVariety = majors > 1 ? .15 : 0;
-    return { items, score: items.reduce((sum, item) => sum + item.score, 0) + balance + typeVariety };
-  }).sort((a, b) => b.score - a.score || a.items[0].index - b.items[0].index)[0]?.items ?? [];
-  const indices = best.map(item => item.index);
-  if (indices.length < 2) {
-    const fallback = [...freshStories, ...reusableStories].filter(item => !indices.includes(item.index)).slice(0, 2 - indices.length).map(item => item.index);
-    indices.push(...fallback);
+  for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) {
+    evaluate([pool[i], pool[j]]);
+    if (setSize === 3) for (let k = j + 1; k < pool.length; k++) evaluate([pool[i], pool[j], pool[k]]);
   }
-  const finalSize: 2 | 3 = indices.length >= 3 && setSize === 3 ? 3 : 2;
+  const indices = best.map(item => item.index);
+  const finalSize: 2 | 3 = indices.length === 3 ? 3 : 2;
   const tempo = intervalSeconds === 50 ? "Prices and trading have been quiet, so I’m shortening the gap to keep the round moving."
     : intervalSeconds >= 85 ? "The market is active or earlier news is still moving prices, so I’m giving those reactions room to play out."
       : intervalSeconds < base ? "Several terminals are trading actively, so I’m keeping news lively without crowding the market."
         : "The market is balanced, so I’m keeping the news near its usual pace.";
   const coverage = [...new Set(indices.map(index => scopeOf(world.news[index])))].join(", ");
-  const reason = `${tempo} I selected ${finalSize} stories across ${coverage}.`;
+  const reason = indices.length < 2 ? "Fewer than two compatible unused stories remain in this batch." : `${tempo} I selected ${indices.length} compatible stories across ${coverage}, considering current holdings and recent trades.`;
   return { indices: indices.slice(0, finalSize), setSize: finalSize, intervalSeconds, reason, reading };
 }

@@ -602,3 +602,38 @@ html:has(.auto-launch-page),body:has(.auto-launch-page){min-height:100%;backgrou
 .audience-wall[class*="ui-"] .wall-top-three>span>b{display:grid;place-items:center;width:12px;height:12px;border-radius:50%;background:var(--wall-accent);color:#fff;font:850 6px var(--mono);}
 .audience-wall[class*="ui-"] .wall-top-three>span>strong{overflow:hidden;color:var(--wall-ink);text-overflow:ellipsis;}
 @media(max-width:640px){.audience-wall[class*="ui-"] .wall-terminal-strip>header{grid-template-columns:auto auto;}.audience-wall[class*="ui-"] .wall-top-three{grid-column:1/-1;justify-content:flex-start;}.audience-wall[class*="ui-"] .wall-top-three>span{font-size:6px;}}
+
+/* Latest-set news: no separate title row, and controls stay inside the surface. */
+.terminal .market-news-feed {position:relative;display:block;min-height:0;max-height:min(120px,15vh);padding:9px 38px 9px 11px;isolation:isolate;border-radius:16px;}
+.terminal .market-news-feed .news-popup-close,.audience-wall .wall-news-close {position:absolute;inset:7px 7px auto auto;z-index:2;display:inline-flex;align-items:center;justify-content:center;flex:none;width:25px;height:25px;min-height:25px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--card);color:var(--muted);font:20px/1 var(--body);cursor:pointer;}
+.terminal .market-news-feed .market-news-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:8px;max-height:min(100px,12vh);overflow:auto;}
+.terminal .market-news-feed .market-news-list>article {display:flex;align-items:center;min-height:0;padding:5px 9px;border:0;border-radius:10px;background:var(--secondary);box-shadow:none;}
+.terminal .market-news-feed .market-news-list>article>strong {display:block;font:600 clamp(10px,.85vw,13px)/1.45 var(--body);color:var(--ink);overflow-wrap:anywhere;}
+.audience-wall[class*="ui-"] .wall-news.latest-set {position:relative;display:block;box-sizing:border-box;flex:0 0 auto;height:clamp(76px,11vh,128px);min-height:0;max-height:13vh;padding:10px 40px 10px 15px;border:1px solid color-mix(in srgb,var(--wall-ink) 15%,transparent);border-radius:19px;background:var(--wall-news,var(--card));isolation:isolate;overflow:hidden!important;}
+.audience-wall[class*="ui-"] .wall-news.latest-set .wall-news-headlines {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);grid-template-columns:none;grid-template-rows:minmax(0,1fr);align-items:stretch;gap:0;width:100%;height:100%;min-height:0;max-height:100%;margin:0;padding:0;border-radius:inherit;background:transparent;overflow:hidden!important;}
+.audience-wall[class*="ui-"] .wall-news.latest-set .wall-news-headlines>article {display:flex;align-items:center;min-width:0;min-height:0;height:100%;box-sizing:border-box;padding:0 clamp(9px,1vw,20px);margin:0;border:0;border-radius:0;box-shadow:none;background:transparent;overflow:hidden;}
+.audience-wall[class*="ui-"] .wall-news.latest-set .wall-news-headlines>article+article {border-left:1px solid color-mix(in srgb,var(--wall-ink) 16%,transparent);}
+.audience-wall[class*="ui-"] .wall-news.latest-set .wall-news-headlines>article>strong {display:-webkit-box;max-height:100%;margin:0;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:4;font:600 clamp(10px,.82vw,22px)/1.35 var(--body);letter-spacing:0;color:var(--wall-ink);overflow-wrap:anywhere;}
+.audience-wall .wall-news-close {border-color:color-mix(in srgb,var(--wall-ink) 18%,transparent);background:transparent;color:var(--wall-muted);}
+.brain-quick-control {grid-column:1/-1;display:flex;align-items:center;gap:12px;min-width:0;padding:10px 13px;border:1px solid var(--line);border-radius:13px;background:var(--card);}
+.brain-quick-control>p {flex:1;min-width:0;margin:0;color:var(--muted);font-size:11px;line-height:1.45;}
+.brain-quick-control>button {flex:none;min-height:34px;padding:8px 12px;font-size:11px;}
+.host-content>.autonomous-news-panel {max-width:1080px;margin-bottom:14px;}
+.terminal .topbar-metrics {flex-wrap:wrap;row-gap:8px;}
+.terminal .topbar-metrics .terminal-standing {color:var(--ink);}
+.terminal .report-metrics {grid-template-columns:repeat(auto-fit,minmax(135px,1fr));}
+/* Align action labels without changing intentionally asymmetric navigation/card layouts. */
+:is(.host-primary,.host-danger,.outline-button,.quick-start-batch,.execute-button,.news-reopen,.theme-button,.wall-fullscreen,.filter-chip,.end-session),.terminal .side-switch>button {display:inline-flex;align-items:center;justify-content:center;gap:7px;text-align:center;line-height:1.2;}
+.terminal .side-switch>button {align-self:stretch;height:auto;min-height:36px;padding:9px 12px;margin:0;box-sizing:border-box;}
+:is(.host-primary,.outline-button,.host-danger)>.host-button-shortcut {align-self:center;line-height:1.2;}
+:where(button,a):focus-visible {outline:2px solid var(--accent);outline-offset:3px;}
+@media(max-width:700px){.brain-quick-control {flex-wrap:wrap;gap:8px;}.brain-quick-control>p {flex-basis:calc(100% - 130px);}.brain-quick-control>button:last-child {margin-left:auto;}.audience-wall[class*="ui-"] .wall-news.latest-set {padding:6px 30px 6px 5px;height:clamp(70px,12vh,105px);}.audience-wall[class*="ui-"] .wall-news.latest-set .wall-news-headlines>article {padding:0 5px;}.audience-wall[class*="ui-"] .wall-news.latest-set .wall-news-headlines>article>strong {font-size:clamp(8px,1.7vw,11px);-webkit-line-clamp:5;}.terminal .topbar-metrics {column-gap:12px;}.terminal .market-news-feed {max-height:17vh;}}
+@media(max-width:700px){
+ .terminal .topbar {height:auto;min-height:94px;flex-wrap:wrap;gap:8px;padding:9px 12px;}
+ .terminal .topbar .topbar-metrics {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));order:5;flex:0 0 100%;width:100%;min-width:0;margin:0;gap:6px;}
+ .terminal .topbar .topbar-metrics>div,.terminal .topbar .topbar-metrics>div:nth-child(3) {display:grid;min-width:0;gap:3px;}
+ .terminal .topbar .topbar-metrics small {font-size:6px;letter-spacing:.035em;}
+ .terminal .topbar .topbar-metrics b {font-size:clamp(8px,2.25vw,11px);line-height:1.2;}
+ .terminal .topbar .topbar-metrics .timer-value {font-size:10px;}
+}
+.terminal .topbar .topbar-metrics>div:nth-child(3) {display:grid;}
