@@ -641,9 +641,10 @@ export function hostAction(world: World, action: string, payload: Record<string,
     const auto = world.autonomousNews ?? (world.autonomousNews = newAutonomousNewsState());
     auto.enabled = true;
     world.controls.newsEnabled = false;
-    if (world.status === "live" || world.status === "countdown") planAutonomousNews(world, world.status === "countdown" ? world.startedAt : at, true);
-    else auto.nextReason = "Autonomous news is ready. Start the next batch to let the brain begin.";
-    keepAutonomousHistory(world, { at, kind: "started", indices: [...auto.nextIndices], intervalSeconds: auto.nextIntervalSeconds, reason: world.status === "live" || world.status === "countdown" ? "The host started the autonomous news brain." : "The host armed the brain for the next batch." });
+    const startingBatch = world.status === "ready" || world.status === "closed";
+    if (startingBatch) hostAction(world, "start", { autonomous: true }, at);
+    else planAutonomousNews(world, world.status === "countdown" ? world.startedAt : at, true);
+    keepAutonomousHistory(world, { at, kind: "started", indices: [...auto.nextIndices], intervalSeconds: auto.nextIntervalSeconds, reason: startingBatch ? "Starting the brain also started a fresh batch with the normal opening countdown." : "The host started the autonomous news brain in the current batch." });
   } else if (action === "autonomous-stop") {
     const auto = world.autonomousNews ?? (world.autonomousNews = newAutonomousNewsState());
     restoreBrainSettings(world, at);
