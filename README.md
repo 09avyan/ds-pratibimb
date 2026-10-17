@@ -14,7 +14,7 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 - Price movement is driven by 128 simulated traders with 16 distinct trading styles. The baseline volatility is 15% lower than the previous engine setting; hosts can still adjust volatility for an event.
 - The audience wall shows the Dalaal-10 level and change, all stock prices and changes, only the latest published news set, and active terminal cash, P&L and total portfolio value without creating a participant account.
 - Audience screens fit the full stock board and latest news into one viewport; the stock grid changes from 7×4 on wide screens to denser responsive layouts on smaller screens. There are no page or news scrollbars on the audience wall.
-- Trading screens show a ticker of all stock prices above the market. Only the latest published news set appears near the top of the trading page, without a heading, with an internal close button. Older sets remain available in the News desk. The live stock ticker runs 15% slower.
+- Trading screens show a ticker of all stock prices above the market. Only the latest published news set appears near the top of the trading page in a full news panel with numbered stories, scope, major/minor labels, game-relative time and an internal close button. Older sets remain available in the News desk. The live stock ticker runs 15% slower.
 - The game includes an isolated practice market with the same three-second countdown, six-minute rounds, trading rules, news flow, settlement, and session report as a hosted game.
 - Each player’s round report includes short, activity-based learning notes, badges tied to their choices, and their best and toughest realized closed trades.
 - Host notes are stored with the shared game state and are available after sign-in from another device.
@@ -113,7 +113,7 @@ The market keeps its one-second update rhythm and price rules unchanged. Unchang
 ## News and standings refinements
 
 - The library still contains 61 stories: 12 economy, three for each of eight sectors, and 25 company stories. Each now describes a concrete event and a clear business consequence in everyday language. Stories have event topics so opposite accounts of the same event cannot be selected together or later in the same batch. The brain also reserves manually scheduled stories.
-- Audience and trading news use individual rounded cards showing only the latest set’s story text, without headings, counts or category labels. Audience news stays inside one viewport without scrolling. Its close button sits inside the section. A new set appears automatically.
+- Audience and trading news use individual rounded cards showing the full details of only the latest published set, including headings, counts, category/scope labels and game-relative release times. Audience news stays inside one viewport without scrolling. Its close button sits inside the section. A new set appears automatically.
 - The trading account bar shows the terminal’s position by total portfolio value. Results show the final position when the batch has closed; an individually finished session shows its position so far while other terminals continue trading. Ranking counts one current login per included terminal, including finished and offline entrants. Equal portfolio values share a rank.
 - Browser checks cover all seven versions in light and dark themes at desktop, laptop, tablet and mobile widths. Engine verification: `node scripts/engine-smoke.cjs` and `node scripts/news-behavior-check.cjs`.
 
@@ -141,3 +141,7 @@ The market keeps its one-second update rhythm and price rules unchanged. Unchang
 The News brain tab shows observations, player activity and order issues, session timing, selection/pacing reasons, current settings and recent changes, and the latest 12 brain activity records directly on the page. No diagnostic section needs expanding. Full retained activity is accessible through Game logs (Alt + G). The quick-access start/stop row remains compact.
 
 Starting the brain from a ready or closed market also starts a fresh batch with the normal three-second countdown. During a live batch or its countdown, it attaches to that batch without resetting portfolios or starting a duplicate round.
+
+### Restored full news cards
+
+Trading and audience dashboards show the latest published set only, with the full earlier card details restored: numbered stories, major/minor label, affected company/sector/economy, game-relative release time, headline count and story text. The close button stays inside the panel; older sets remain in the News desk. News is laid out in compact themed cards, with a fixed-height audience region that preserves the stock grid without page scrolling.
