@@ -181,6 +181,18 @@
 .brain-workspace .brain-visible-section .host-card-copy{font-size:12px;line-height:1.65;margin:8px 0;max-width:100ch}.brain-workspace .brain-visible-section .autonomous-reason{font-size:13px;line-height:1.7;margin:10px 0}
 .brain-workspace .autonomous-reading-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));gap:9px}.brain-workspace .autonomous-reading-grid>div{padding:11px 12px;gap:7px}.brain-workspace .autonomous-reading-grid small{white-space:normal;overflow:visible;font-size:9px;line-height:1.5;letter-spacing:.03em}.brain-workspace .autonomous-reading-grid b{white-space:normal;overflow:visible;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
 .brain-timing-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px;margin:12px 0}.brain-timing-facts>span{display:grid;align-content:start;gap:5px;padding:10px 12px;background:var(--secondary);border-radius:10px;font-size:11px;color:var(--muted)}.brain-timing-facts b{font-size:13px;color:var(--ink)}.brain-timing-facts small{font-size:10px}
+.brain-workspace .brain-key-facts{grid-template-columns:repeat(2,minmax(0,1fr));max-width:520px;margin-top:9px}.brain-workspace .brain-key-facts>span{padding:8px 11px}
+.brain-advanced{margin-top:13px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.brain-advanced>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:8px 2px;cursor:pointer;list-style:none;color:var(--ink)}
+.brain-advanced>summary::-webkit-details-marker{display:none}
+.brain-advanced>summary>span{display:grid;gap:3px;min-width:0}
+.brain-advanced>summary b{font-size:12px;font-weight:700}
+.brain-advanced>summary small{font-size:10px;color:var(--muted);line-height:1.4}
+.brain-advanced>summary>i{display:grid;place-items:center;width:25px;height:25px;flex:none;border:1px solid var(--line);border-radius:50%;color:var(--muted);font:normal 16px/1 var(--mono);transition:transform .16s ease,background .16s ease,color .16s ease}
+.brain-advanced[open]>summary>i{transform:rotate(45deg);background:var(--secondary);color:var(--ink)}
+.brain-advanced>summary:hover>i{color:var(--ink);border-color:color-mix(in srgb,var(--ink) 24%,var(--line))}
+.brain-advanced>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+.brain-advanced-content{padding:0 0 10px}
 .brain-setting-history>article{display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px;border-top:1px solid var(--line);padding:10px 0}.brain-setting-history time{font:11px var(--mono);color:var(--muted)}.brain-setting-history p{margin:0;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
 .brain-workspace .autonomous-history-list{max-height:none;overflow:visible}.brain-workspace .autonomous-history-list>article{font-size:12px;line-height:1.65;padding:12px 0}.brain-workspace .autonomous-history-list>article>div small{font-size:11px;line-height:1.6}.brain-workspace .autonomous-history-list time,.brain-workspace .autonomous-history-list>article>b{font-size:10px}.brain-workspace>.news-automation-fast{display:grid;gap:9px}.brain-workspace>.news-automation-fast .host-field{max-width:330px}.brain-workspace>.news-automation-fast>button{width:auto;justify-self:start}
 @media(max-width:600px){.brain-workspace .autonomous-reading-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.brain-workspace .autonomous-history-list>article{grid-template-columns:75px minmax(0,1fr);gap:7px}.brain-workspace .autonomous-history-list>article>div{grid-column:1/-1}.brain-workspace .autonomous-history-list>article>b{display:none}.brain-setting-history>article{grid-template-columns:minmax(0,1fr);gap:5px}}

@@ -329,10 +329,18 @@ export function HostConsole() {
         <div className="autonomous-plan-stories">{autonomousPlanNews.map((news, index) => <article key={`${news.id}-${index}`}><span className={news.direction > 0 ? "positive" : "negative"}><NewsDirectionIcon direction={news.direction}/></span><div><small>{newsScope(news)}</small><b>{news.headline}</b></div></article>)}{autonomousPlanNews.length < 2 && <p className="host-card-copy">The next set will appear after the brain finishes its first live reading.</p>}</div>
         <div className="autonomous-plan-actions"><button type="button" className="outline-button" disabled={working || autonomousPlanNews.length < 2} onClick={() => void act("autonomous-skip")}>Skip and reselect</button><button type="button" className="host-primary" disabled={working || world?.status !== "live" || autonomousPlanNews.length < 2} onClick={() => void act("autonomous-publish-now")}>Publish this set now</button>{selectedIndices.length >= 2 && selectedIndices.length <= 3 && <button type="button" className="outline-button" disabled={working} onClick={() => void act("autonomous-plan", { indices: selectedIndices })}>Use my {selectedIndices.length} picks</button>}</div>
       </div>}
-    <section className="brain-reading-details brain-visible-section" aria-labelledby="brain-observations-title">
-      <div className="brain-section-heading"><h2 id="brain-observations-title">What the brain is noticing</h2><small>{autonomous?.enabled ? "Live game signals" : "Last recorded reading · brain stopped"}</small></div>
-      <p className="host-card-copy">These signals help adjust the pace. Inactivity or order issues can suggest that players need more time; they do not prove confusion.</p>
-      <div className="autonomous-reading-grid">
+    <section className="brain-visible-section brain-decision-section" aria-labelledby="brain-decision-title">
+      <div className="brain-section-heading"><h2 id="brain-decision-title">Why this news and timing</h2><span className="secure-tag">{autonomous?.hostOverride ? "HOST SELECTED" : autonomous?.introductoryStage === 1 ? "SIMPLE OPENING" : autonomous?.introductoryStage === 2 ? "SECOND SET" : autonomous?.strategy === "calm" ? "GIVING ROOM" : autonomous?.strategy === "lively" ? "ADDING ACTION" : "BALANCED"}</span></div>
+      <p className="autonomous-reason">{autonomous?.nextReason ?? "Start the brain to see its proposed stories and decision reasons."}</p>
+      <div className="brain-timing-facts brain-key-facts"><span>Release interval <b>{autonomous?.enabled ? `${autonomous.nextIntervalSeconds}s` : "—"}</b></span><span>Next release <b>{autonomous?.enabled && autonomousCountdown !== null ? fmtTime(autonomousCountdown) : "Not scheduled"}</b></span></div>
+    </section>
+    <details className="brain-advanced">
+      <summary><span><b>Advanced</b><small>Live readings, settings, decision details and activity</small></span><i aria-hidden="true">+</i></summary>
+      <div className="brain-advanced-content">
+      <section className="brain-reading-details brain-visible-section" aria-labelledby="brain-observations-title">
+        <div className="brain-section-heading"><h2 id="brain-observations-title">What the brain is noticing</h2><small>{autonomous?.enabled ? "Live game signals" : "Last recorded reading · brain stopped"}</small></div>
+        <p className="host-card-copy">These signals help adjust the pace. Inactivity or order issues can suggest that players need more time; they do not prove confusion.</p>
+        <div className="autonomous-reading-grid">
         <div><small>DALAAL-10 CHANGE</small><b className={(autonomous?.reading.indexChange ?? world?.indexChange ?? 0) >= 0 ? "positive" : "negative"}>{(autonomous?.reading.indexChange ?? world?.indexChange ?? 0).toFixed(2)}%</b></div>
         <div><small>RECENT INDEX MOVE</small><b>{(autonomous?.reading.recentIndexChange ?? 0).toFixed(2)}%</b></div>
         <div><small>RECENT VOLATILITY</small><b>{(autonomous?.reading.recentVolatility ?? 0).toFixed(2)}%</b></div>
@@ -348,27 +356,28 @@ export function HostConsole() {
         <div><small>BATCH DURATION</small><b>{fmtTime(autonomous?.reading.sessionDuration ?? world?.duration ?? 0)}</b></div>
         <div><small>TIME PLAYED</small><b>{fmtTime(autonomous?.reading.elapsedSeconds ?? 0)}</b></div>
         <div><small>TIME REMAINING</small><b>{fmtTime(autonomous?.reading.secondsRemaining ?? world?.remaining ?? 0)}</b></div>
-      </div>
-    </section>
-    <section className="brain-visible-section brain-decision-section" aria-labelledby="brain-decision-title">
-      <div className="brain-section-heading"><h2 id="brain-decision-title">Why this news and timing</h2><span className="secure-tag">{autonomous?.hostOverride ? "HOST SELECTED" : autonomous?.introductoryStage === 1 ? "SIMPLE OPENING" : autonomous?.introductoryStage === 2 ? "SECOND SET" : autonomous?.strategy === "calm" ? "GIVING ROOM" : autonomous?.strategy === "lively" ? "ADDING ACTION" : "BALANCED"}</span></div>
-      <p className="autonomous-reason">{autonomous?.nextReason ?? "Start the brain to see its proposed stories and decision reasons."}</p>
-      <div className="brain-timing-facts"><span>Chosen gap <b>{autonomous?.enabled ? `${autonomous.nextIntervalSeconds}s` : "—"}</b></span><span>Host baseline <b>{world?.controls.newsSpacing ?? 75}s</b></span><span>Next release <b>{autonomous?.enabled && autonomousCountdown !== null ? fmtTime(autonomousCountdown) : "Not scheduled"}</b></span><span>Plan review <b>{autonomous?.hostOverride ? "Host mix protected" : autonomous?.enabled ? "Every 5 seconds" : "Stopped"}</b></span></div>
-      <p className="host-card-copy">The brain can revise unpublished combinations of 2–3 compatible stories as the game changes. It normally lets earlier effects settle, allows limited overlap when useful, and keeps the original release-time anchor. Published stories stay unchanged.</p>
-    </section>
-    <section className="brain-visible-section" aria-labelledby="brain-settings-title">
+        </div>
+      </section>
+      <section className="brain-visible-section" aria-labelledby="brain-full-decision-title">
+        <div className="brain-section-heading"><h2 id="brain-full-decision-title">Decision and timing details</h2><small>Selection and release rules</small></div>
+        <div className="brain-timing-facts"><span>Chosen gap <b>{autonomous?.enabled ? `${autonomous.nextIntervalSeconds}s` : "—"}</b></span><span>Host baseline <b>{world?.controls.newsSpacing ?? 75}s</b></span><span>Plan review <b>{autonomous?.hostOverride ? "Host mix protected" : autonomous?.enabled ? "Every 5 seconds" : "Stopped"}</b></span></div>
+        <p className="host-card-copy">The brain can revise unpublished combinations of 2–3 compatible stories as the game changes. It normally lets earlier effects settle, allows limited overlap when useful, and keeps the original release-time anchor. Published stories stay unchanged.</p>
+      </section>
+      <section className="brain-visible-section" aria-labelledby="brain-settings-title">
       <div className="brain-section-heading"><h2 id="brain-settings-title">Market settings and recent changes</h2><small>Volatility and bot activity only</small></div>
       <div className="brain-timing-facts"><span>Volatility <b>{world?.controls.volatility ?? "—"}</b>{autonomous?.marketTuning && <small>Host baseline {autonomous.marketTuning.volatility}</small>}</span><span>Bot activity <b>{world?.controls.bots ?? "—"}</b>{autonomous?.marketTuning && <small>Host baseline {autonomous.marketTuning.bots}</small>}</span></div>
       <p className="autonomous-reason">{autonomous?.marketTuning?.reason ?? "No automatic setting adjustment is active. Host settings remain the reference."}</p>
       <p className="host-card-copy">Observes for 45 seconds; changes by at most 5% of the host baseline every 30 seconds, within 75–110% of that baseline and the normal setting limits. Disabled bots stay off. Stopping restores the host baseline. Cash, duration, tick speed and trading rules stay under host control.</p>
       <div className="brain-setting-history">{autonomous?.history.filter(entry => entry.kind === "settings-adjusted").slice(0, 5).map((entry, index) => <article key={`${entry.at}-${index}`}><time>T+{fmtTime(Math.max(0, (entry.at - (world?.startedAt ?? entry.at)) / 1000))}</time><p>{entry.reason}</p></article>)}{!autonomous?.history.some(entry => entry.kind === "settings-adjusted") && <p className="host-card-copy">No automatic settings changes recorded in this batch.</p>}</div>
-    </section>
-    <section className="autonomous-history brain-visible-section" aria-labelledby="brain-activity-title"><div className="brain-section-heading"><h2 id="brain-activity-title">Recent brain activity</h2><button type="button" className="text-link" onClick={() => setTab("logs")}>Full game logs <small>Alt + G</small></button></div>{autonomous?.history.length ? <div className="autonomous-history-list">{autonomous.history.slice(0, 12).map((entry, index) => <article key={`${entry.at}-${entry.kind}-${index}`}><span className={`autonomous-history-kind ${entry.kind}`}>{autonomousLabel(entry.kind)}</span><time>T+{fmtTime(Math.max(0, (entry.at - (world?.startedAt ?? entry.at)) / 1000))}</time><div>{entry.indices.map(newsIndex => world?.news[newsIndex]?.headline).filter(Boolean).join(" · ") || (entry.kind === "settings-adjusted" ? "Market difficulty" : "Brain control")}<small>{entry.reason}</small></div><b>{entry.intervalSeconds}s</b></article>)}</div> : <p className="host-card-copy">Decisions, publications and host overrides will appear here as they happen.</p>}<p className="host-card-copy">Latest {Math.min(12, autonomous?.history.length ?? 0)} records shown. The Logs section contains the retained game journal.</p></section>
+      </section>
+      <section className="autonomous-history brain-visible-section" aria-labelledby="brain-activity-title"><div className="brain-section-heading"><h2 id="brain-activity-title">Recent brain activity</h2><button type="button" className="text-link" onClick={() => setTab("logs")}>Full game logs <small>Alt + G</small></button></div>{autonomous?.history.length ? <div className="autonomous-history-list">{autonomous.history.slice(0, 12).map((entry, index) => <article key={`${entry.at}-${entry.kind}-${index}`}><span className={`autonomous-history-kind ${entry.kind}`}>{autonomousLabel(entry.kind)}</span><time>T+{fmtTime(Math.max(0, (entry.at - (world?.startedAt ?? entry.at)) / 1000))}</time><div>{entry.indices.map(newsIndex => world?.news[newsIndex]?.headline).filter(Boolean).join(" · ") || (entry.kind === "settings-adjusted" ? "Market difficulty" : "Brain control")}<small>{entry.reason}</small></div><b>{entry.intervalSeconds}s</b></article>)}</div> : <p className="host-card-copy">Decisions, publications and host overrides will appear here as they happen.</p>}<p className="host-card-copy">Latest {Math.min(12, autonomous?.history.length ?? 0)} records shown. The Logs section contains the retained game journal.</p></section>
       <section className="news-automation-fast brain-visible-section"><div className="brain-section-heading"><h2>Brain pacing</h2></div>
             <label className="host-field">BASELINE NEWS INTERVAL · SECONDS<input type="number" min="50" max="90" value={controls.newsSpacing} onChange={e => setControls(c => ({ ...c, newsSpacing: Number(e.target.value) }))}/></label>
             <p className="host-card-copy">The baseline is 75 seconds. The brain can choose 50–105 seconds, usually letting earlier effects settle and allowing a small overlap when fresh action is useful.</p>
             <button className="outline-button full" disabled={working} onClick={() => void act("controls", { newsSpacing: controls.newsSpacing })}>Save baseline interval</button>
 </section>
+      </div>
+    </details>
   </section>;
 
   const newsWorkspace = <div className="host-news-workspace">
