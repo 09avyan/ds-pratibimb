@@ -5,14 +5,16 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 ## How the game works
 
 - Each participant gets a device session and starts with ₹10,00,000 of simulated cash.
+- There are exactly 10 live terminals. Enter the assigned two-digit terminal code at `/play`, or open its direct URL from `/play/01` to `/play/10`; each code maps to that terminal's player session.
 - Players can buy shares, sell shares they own, or open short positions. Prices move as the market simulation, news events, and participant trades update the shared market.
 - A host can start, pause, and end a timed batch; set the next batch to 4–15 minutes; adjust market behavior; publish or schedule bulletins; and review participant sessions.
 - The curated news library has 61 fictional bulletins: 12 economy stories, 3 for each of the 8 sectors, and 25 company stories for 25 different stocks. The remaining stocks still respond to their sector and economy stories. Hosts can select any mix of categories in Quick Access or News Studio, review the combined stock-by-stock estimate, and expand a headline for its individual effect before publishing.
 - A new batch reset restores the market's starting stock prices as well as clearing its terminal sessions and published headlines.
 - Host presence uses each device's last-seen heartbeat. A new batch resets participant portfolios without marking previously offline terminals as connected.
 - Price movement is driven by 128 simulated traders with 16 distinct trading styles. The baseline volatility is 15% lower than the previous engine setting; hosts can still adjust volatility for an event.
-- The audience wall shows the Dalaal-10 level and change, all stock prices and changes, and the latest batch headlines without creating a participant account.
-- Batch headlines are numbered and stacked. Audience news uses a fixed-height, full-width strip with its own scroll area, so publishing never lengthens the page. Trading news appears in a compact pop-up over the watchlist area: close it with ×, reopen it using the News button, and newly published headlines reopen it automatically.
+- The audience wall shows the Dalaal-10 level and change, all stock prices and changes, the latest batch headlines, and active terminal cash, P&L and total portfolio value without creating a participant account.
+- Audience screens fit the full stock board and latest news into one viewport; the stock grid changes from 7×4 on wide screens to denser responsive layouts on smaller screens. There are no page or news scrollbars on the audience wall.
+- Trading screens show a ticker of all stock prices above the market. Batch headlines appear together near the top of the trading page in side-by-side cards and can be closed and reopened.
 - The game includes an isolated practice market with the same three-second countdown, six-minute rounds, trading rules, news flow, settlement, and session report as a hosted game.
 - Each player’s round report includes short, activity-based learning notes, badges tied to their choices, and their best and toughest realized closed trades.
 - Host notes are stored with the shared game state and are available after sign-in from another device.
@@ -22,7 +24,9 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 - Overview shows the live batch clock, start/pause/end controls, terminal status and equity, recent headlines, and shortcuts to frequently used sections. Open it with **Alt + O**.
 - Quick Access and News Studio share a faster news desk: category tabs, search, sector and direction filters, a removable selection list, publish/schedule controls, target effects, a reaction timer, and collapsible automation settings. Published picks are cleared automatically.
 - Simultaneous news uses the most specific applicable scope for each stock: company news overrides sector news for that company, and sector news overrides economy news within that sector. Stories at the same scope combine.
-- News prices no longer jump on publication. The original intended price move builds smoothly over about 24 seconds, while the same intended follow-through is spread over a longer period. Market trading continues alongside news, so displayed effects are estimates, not guaranteed final prices. Pausing freezes news progress; the host timer includes the remaining reaction and follow-through.
+- News prices no longer jump on publication. The direct price move builds smoothly over about 24 seconds, while the full directional effect usually settles over roughly 53–82 seconds (within the requested 50–90 second range). Market trading continues alongside news, so displayed effects are estimates, not guaranteed final prices. Pausing freezes news progress; the host timer includes the remaining reaction and follow-through.
+- Autonomous news is available at `/auto`. Anyone can start the next shared batch there; that round begins with the news brain enabled. It studies Dalaal-10 movement, recent price volatility, active terminals, trading activity, and outstanding news reactions, then selects a set of two or three stories and schedules the next release. The default interval is 75 seconds; the brain can adjust it between 50 and 90 seconds.
+- The host can start or stop the brain, review its live market readings, see the upcoming stories and reason, skip and reselect, publish early, replace the next set with two or three host-selected stories, and review the batch activity log. This remains available even when someone else starts the round through `/auto`. Manual news selection remains available when the brain is stopped.
 - Audience company names are one pixel larger, and trade input values use theme-aware text and field colors in both light and dark mode.
 - The browser tab uses the Dalaal Street brand mark as its favicon.
 
@@ -30,21 +34,22 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 
 | Route | Purpose |
 | --- | --- |
-| `/play` | Join the live market with an unnumbered device |
-| `/play/01` through `/play/12` | Join a numbered participant terminal |
-| `/v1` and `/v1/play` | Original appearance, also available at the unversioned routes |
-| `/v1/play/01` through `/v1/play/12` | Numbered terminals in the original appearance |
-| `/v2` and `/v2/play/01` through `/v2/play/12` | Orbit Exchange, a calm observatory-inspired market floor |
-| `/v3` and `/v3/play/01` through `/v3/play/12` | Clay Market, a soft sculpted interface |
-| `/v4` and `/v4/play/01` through `/v4/play/12` | Chroma Current, an expressive flowing-color interface |
-| `/v5` and `/v5/play/01` through `/v5/play/12` | Signal Station, a precise operations-board interface |
-| `/v6` and `/v6/play/01` through `/v6/play/12` | Vinyl Exchange, a record-store market |
-| `/v7` and `/v7/play/01` through `/v7/play/12` | Tangram Exchange, an angular cut-paper market |
+| `/play` | Enter the assigned terminal code to open a live terminal |
+| `/play/01` through `/play/10` | Join one of the 10 numbered participant terminals |
+| `/v1` and `/v1/play` | Original appearance; enter a terminal code to continue |
+| `/v1/play/01` through `/v1/play/10` | Numbered terminals in the original appearance |
+| `/v2` and `/v2/play/01` through `/v2/play/10` | Orbit Exchange, a calm observatory-inspired market floor |
+| `/v3` and `/v3/play/01` through `/v3/play/10` | Clay Market, a soft sculpted interface |
+| `/v4` and `/v4/play/01` through `/v4/play/10` | Chroma Current, an expressive flowing-color interface |
+| `/v5` and `/v5/play/01` through `/v5/play/10` | Signal Station, a precise operations-board interface |
+| `/v6` and `/v6/play/01` through `/v6/play/10` | Vinyl Exchange, a record-store market |
+| `/v7` and `/v7/play/01` through `/v7/play/10` | Tangram Exchange, an angular cut-paper market |
 | `/v1/audience` through `/v7/audience` | Audience wall styled to match each UI version |
 | `/host` | Host console with Overview, Quick Access, shared private notes, news studio, market controls and participant sessions (requires the configured host password) |
+| `/auto` | Public batch launcher; starting a round here enables autonomous news, which the host can monitor or override from `/host` |
 | `/audience` | Read-only audience wall |
-| `/test` | Isolated six-minute practice market |
-| `/test/01` through `/test/12` | Numbered practice terminals, separate from live terminals |
+| `/test` | Enter the code for a numbered practice terminal |
+| `/test/01` through `/test/10` | Numbered practice terminals, separate from live terminals |
 | `/ui-preview` | Local-only comparison of all seven interfaces; unavailable in production |
 
 ## Run locally
@@ -64,11 +69,11 @@ Open `http://localhost:3000`. Configure the environment values before using the 
 - `MARKET_SIGNING_SECRET`: a long random secret used by the server to authorize market-state RPC calls.
 - `HOST_PASSWORD`: password for `/host`.
 
-The unversioned `/play` and `/audience` routes keep the original appearance; `/v1` is an alias for that look. V2 is an observatory, V3 uses claymorphism, V4 uses expressive flowing forms, V5 is a restrained signal board, V6 is a record store, and V7 uses cut-paper geometry. Every version uses the same market engine, company data, and trade rules. Trading screens adapt their stock columns to screen size and browser zoom; stocks stay on the left, with the selected stock's chart and Buy, Sell, and Short controls together on the right, directly below the chart. Chart markers and hover details show trades from the current terminal's individual session. Audience versions show the Dalaal-10 level and change, the full stock list with each price and change, and the latest batch headlines.
+`/play` asks for the station's terminal code; `/play/01` through `/play/10` open the assigned numbered player sessions directly. `/v1` is the original look, V2 is an observatory, V3 uses claymorphism, V4 uses expressive flowing forms, V5 is a restrained signal board, V6 is a record store, and V7 uses cut-paper geometry. Every version uses the same market engine, company data, and trade rules. Trading screens adapt their stock columns to screen size and browser zoom; stocks stay on the left, with the selected stock's chart and Buy, Sell, and Short controls together on the right, directly below the chart. Chart markers and hover details show trades from the current terminal's individual session. Audience versions show the Dalaal-10 level and change, the full stock list with each price and change, latest batch headlines, and terminal position summaries.
 
 Starting stock prices use rounded whole-rupee reference closes from NSE India's market page dated 15 October 2026 (15:30 IST); Wipro's close for the same date uses Yahoo Finance historical data. These are opening references for a fictional game and are not live quotes. The initial daily move percentages are preserved to reflect that dated market snapshot.
 
-The practice market uses the same price and curated news simulation as a live round, but has its own state. It starts with a short countdown, runs for six minutes, closes positions at the end, and offers a new practice round. `/test/01` to `/test/12` use their own terminal logins. Legacy autonomous practice sessions are closed safely the first time the updated engine reads them.
+The practice market uses the same price and curated news simulation as a live round, but has its own state. It starts with a short countdown, runs for six minutes, closes positions at the end, and offers a new practice round. `/test/01` to `/test/10` use their own terminal logins. Legacy autonomous practice sessions are closed safely the first time the updated engine reads them.
 
 During local development, open `http://localhost:3000/ui-preview` to compare the original interface and all six themed versions. Preview market state stays in its own in-memory development store and cannot affect the shared live market. Preview routes return not found in production.
 
@@ -92,7 +97,8 @@ Keep the signing secret and host password out of source control. The Supabase pu
 - `app/components/trader.tsx` — participant market, portfolio, news desk, charts, and audience wall.
 - `app/components/host-console.tsx` — host controls, news selection, and participant session view.
 - `src/game/catalog.ts` — fictional companies, starting prices, and the direction-checked economy, sector and company news catalog.
-- `src/game/engine.ts` — market ticks, trades, news effects, account valuation, and session settlement.
+- `src/game/engine.ts` — market ticks, trades, news effects, account valuation, autonomous news controls, and session settlement.
+- `src/game/autonomous-news.ts` — market and trading signals, adaptive news timing, and two- or three-story selection.
 - `src/game/store.ts` — shared Supabase market state, plus a separate in-memory store for local UI previews.
 - `src/game/types.ts` — shared market and participant types.
 - `src/ui-options.ts`, `app/ui-theme-v*.css`, and `app/ui-preview/` — version descriptions, separate visual theme styles, and local preview pages.

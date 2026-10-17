@@ -1,4 +1,5 @@
 import type { Player } from "./types";
+import { TERMINAL_COUNT } from "./terminals";
 
 export type ParticipantGroup = Player & {
   sessionIds: string[];
@@ -11,6 +12,7 @@ const lastSeen = (player: Player) => player.lastSeenAt ?? player.joinedAt;
 export function groupTerminalSessions(sessions: Record<string, Player>, now = Date.now(), activeWindowMs = 30_000): ParticipantGroup[] {
   const groups = new Map<string, Player[]>();
   for (const player of Object.values(sessions)) {
+    if (!Number.isInteger(player.terminalNumber) || player.terminalNumber! < 1 || player.terminalNumber! > TERMINAL_COUNT) continue;
     const key = player.terminalNumber ? `terminal-${player.terminalNumber}` : `session-${player.id}`;
     groups.set(key, [...(groups.get(key) ?? []), player]);
   }

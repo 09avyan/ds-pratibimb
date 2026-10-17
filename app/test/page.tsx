@@ -1,3 +1,3 @@
-import { Trader } from "../components/trader";
+import { TerminalEntry } from "../components/terminal-entry";
 export const dynamic = "force-dynamic";
-export default function TestPage() { return <Trader mode="test" />; }
+export default function TestPage() { return <TerminalEntry basePath="/test"/>; }

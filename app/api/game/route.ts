@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { advance, executeTrade, hostAction, newPlayer, settle, toPublic } from "@/game/engine";
+import { TERMINAL_COUNT } from "@/game/terminals";
 import { mutate } from "@/game/store";
 import type { Mode, World } from "@/game/types";
 
@@ -10,7 +11,7 @@ const validSession = (value: string) => /^[\w-]{8,80}$/.test(value) && !["__prot
 const readTerminal = (value: unknown): number | undefined => {
   if (value === undefined || value === null || value === "") return undefined;
   const terminal = Number(value);
-  if (!Number.isInteger(terminal) || terminal < 1 || terminal > 12) throw new Error("Terminal numbers must be from 01 to 12.");
+  if (!Number.isInteger(terminal) || terminal < 1 || terminal > TERMINAL_COUNT) throw new Error(`Terminal numbers must be from 01 to ${String(TERMINAL_COUNT).padStart(2, "0")}.`);
   return terminal;
 };
 const errorResponse = (error: unknown, status = 400) => NextResponse.json({ error: error instanceof Error ? error.message : "Something went wrong." }, { status, headers: { "Cache-Control": "no-store" } });
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
   if (sessionId && !validSession(sessionId)) return errorResponse(new Error("Invalid device session."));
   try { terminalNumber = readTerminal(request.nextUrl.searchParams.get("terminal")); }
   catch (error) { return errorResponse(error); }
+  if (sessionId && !terminalNumber) return errorResponse(new Error(mode === "test" ? "Open a numbered practice terminal, from /test/01 through /test/10." : "Open your numbered terminal URL, from /play/01 through /play/10."));
   try {
     const { world } = await mutate(mode, state => {
       advance(state);
@@ -68,6 +70,7 @@ export async function POST(request: NextRequest) {
     const sessionId = String(body.sessionId ?? "");
     const action = String(body.action ?? "");
     const terminalNumber = readTerminal(body.terminal);
+    if (!terminalNumber) return errorResponse(new Error(mode === "test" ? "A terminal code is required. Open /test/01 through /test/10." : "A terminal code is required. Open /play/01 through /play/10."));
     if (!validSession(sessionId)) return errorResponse(new Error("Refresh to create a device session."));
     const requestId = typeof body.requestId === "string" && /^[\w-]{8,80}$/.test(body.requestId) ? body.requestId : undefined;
     if (action === "trade" && !["Buy", "Sell", "Short"].includes(body.side)) return errorResponse(new Error("Choose Buy, Sell or Short."));
