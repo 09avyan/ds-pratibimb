@@ -1,5 +1,8 @@
 import { INDEX_WEIGHTS, makeNews, makeStocks, NEWS_CATALOG_VERSION } from "./catalog";
 import { chooseAutonomousNewsPlan, newAutonomousNewsState, readAutonomousNewsSignals } from "./autonomous-news";
+import { NEWS_REACTION_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS, NEWS_AUTO_MAX_INTERVAL_SECONDS, NEWS_IMPACT_DECAY, NEWS_IMPACT_FADE_THRESHOLD, NEWS_IMPACT_DRIFT_NORMALIZER } from "./news-timing";
+export { NEWS_REACTION_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS } from "./news-timing";
+import { recordGameLog, recentOrderDifficulty } from "./logs";
 import { validateNewsSelection } from "./news-rules";
 import type { Mode, News, Player, PublicWorld, Trade, World } from "./types";
 import { TERMINAL_ACTIVE_WINDOW_MS, TERMINAL_COUNT } from "./terminals";
@@ -36,15 +39,6 @@ const id = () => crypto.randomUUID();
 const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">): NonNullable<News["scope"]> => news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
 const NEWS_IMPACT_SCALE: Record<News["type"], number> = { major: 3.8, minor: 3.5 };
 const NEWS_IMPACT_VARIATION = .1;
-const PREVIOUS_NEWS_IMPACT_DECAY = .94;
-const NEWS_IMPACT_DURATION_MULTIPLIER = 1.25;
-export const NEWS_REACTION_SECONDS = 36;
-export const NEWS_EFFECT_MIN_SECONDS = 50;
-export const NEWS_EFFECT_MAX_SECONDS = 90;
-const NEWS_IMPACT_FADE_THRESHOLD = .00008;
-const NEWS_IMPACT_DECAY = Math.pow(PREVIOUS_NEWS_IMPACT_DECAY, 1 / NEWS_IMPACT_DURATION_MULTIPLIER);
-// The lower decay multiplier keeps the same total drift inside a 50–90 second window.
-const NEWS_IMPACT_DRIFT_NORMALIZER = (1 - NEWS_IMPACT_DECAY) / (1 - PREVIOUS_NEWS_IMPACT_DECAY);
 const NEWS_SETTINGS_VERSION = 2;
 export function newsImpactRange(news: Pick<News, "type" | "severity">) {
   const expected = news.severity * NEWS_IMPACT_SCALE[news.type];
@@ -53,10 +47,12 @@ export function newsImpactRange(news: Pick<News, "type" | "severity">) {
 
 export function newsImpactRemainingSeconds(world: Pick<World, "stocks" | "controls" | "remaining" | "status">) {
   if (world.status !== "live") return 0;
-  const strongestSignal = Math.max(0, ...world.stocks.map(stock => Math.abs(stock.newsBias ?? 0)));
-  const driftSeconds = strongestSignal <= NEWS_IMPACT_FADE_THRESHOLD ? 0 : Math.ceil(Math.log(NEWS_IMPACT_FADE_THRESHOLD / strongestSignal) / Math.log(NEWS_IMPACT_DECAY));
   const reactionSeconds = Math.max(0, ...world.stocks.flatMap(stock => (stock.newsMoves ?? []).map(move => move.duration - move.elapsed)));
-  return Math.max(0, Math.min(Math.max(driftSeconds, reactionSeconds), world.remaining));
+  const clockSeconds = Math.max(0, ...world.stocks.map(stock => stock.newsBiasClock ? stock.newsBiasClock.duration - stock.newsBiasClock.elapsed : 0));
+  const unclocked = world.stocks.filter(stock => !stock.newsBiasClock);
+  const unclockedSignal = Math.max(0, ...unclocked.map(stock => Math.abs(stock.newsBias ?? 0)));
+  const unclockedSeconds = unclockedSignal <= NEWS_IMPACT_FADE_THRESHOLD ? 0 : Math.ceil(Math.log(NEWS_IMPACT_FADE_THRESHOLD / unclockedSignal) / Math.log(NEWS_IMPACT_DECAY));
+  return Math.max(0, Math.min(Math.max(clockSeconds, unclockedSeconds, reactionSeconds), world.remaining));
 }
 
 // Smoothstep gives a small opening reaction, a stronger middle and a gentle finish.
@@ -65,7 +61,7 @@ const reactionProgress = (elapsed: number, duration: number, seed = 0) => {
   // A small, smooth retracement sits inside the same endpoint. Telescoping
   // progress differences preserve the exact target at the end of the reaction.
   const waves = 6 + (seed % 5) * .2;
-  return t * t * (3 - 2 * t) + .11 * Math.sin(waves * Math.PI * t) * Math.sin(Math.PI * t) ** 2;
+  return t ** 3 * (4 - 3 * t) + .11 * Math.sin(waves * Math.PI * t) * Math.sin(Math.PI * t) ** 2 * Math.min(1, t * 2);
 };
 export function advanceNewsReaction(stock: World["stocks"][number], seconds: number) {
   let logReturn = 0;
@@ -76,6 +72,22 @@ export function advanceNewsReaction(stock: World["stocks"][number], seconds: num
     return next < move.duration;
   });
   return Math.expm1(logReturn);
+}
+
+export function advanceNewsDrift(stock: World["stocks"][number], seconds: number) {
+  const bias = stock.newsBias ?? 0;
+  if (!bias) { delete stock.newsBiasClock; return 0; }
+  const clock = stock.newsBiasClock;
+  // Ease the follow-through in after the opening reaction. Its virtual clock
+  // catches up at exactly the original stretched endpoint, conserving drift.
+  const next = clock ? Math.min(clock.duration, clock.elapsed + seconds) : 0;
+  const virtualSeconds = clock ? clock.duration * ((next / clock.duration) ** 3 - (clock.elapsed / clock.duration) ** 3) : seconds;
+  const decay = NEWS_IMPACT_DECAY ** virtualSeconds;
+  const drift = bias * NEWS_IMPACT_DRIFT_NORMALIZER * (1 - decay) / (1 - NEWS_IMPACT_DECAY);
+  stock.newsBias = bias * decay;
+  if (clock) clock.elapsed = next;
+  if (Math.abs(stock.newsBias) < NEWS_IMPACT_FADE_THRESHOLD || clock && next >= clock.duration) { stock.newsBias = 0; delete stock.newsBiasClock; }
+  return drift;
 }
 
 function projectedNewsPrice(stock: World["stocks"][number], fromMove: number) {
@@ -101,16 +113,59 @@ function shiftAutonomousClock(world: World, milliseconds: number) {
   auto.plannedAt = (auto.plannedAt ?? auto.nextAt - auto.nextIntervalSeconds * 1000) + milliseconds;
   auto.nextAt += milliseconds;
   if (auto.lastReviewedAt) auto.lastReviewedAt += milliseconds;
+  if (auto.marketTuning) { auto.marketTuning.observingSince += milliseconds; auto.marketTuning.lastChangedAt += milliseconds; }
   world.newsNextAt = auto.nextAt;
 }
 
 function keepAutonomousHistory(world: World, entry: NonNullable<World["autonomousNews"]>["history"][number]) {
   const auto = world.autonomousNews ?? (world.autonomousNews = newAutonomousNewsState());
   auto.history = [entry, ...auto.history].slice(0, 200);
+  recordGameLog(world, { at: entry.at, kind: entry.kind === "settings-adjusted" ? "settings" : "brain", message: `${entry.kind}: ${entry.reason}`, data: { indices: entry.indices.join(","), intervalSeconds: entry.intervalSeconds } });
+}
+
+function restoreBrainSettings(world: World, at: number) {
+  const tuning = world.autonomousNews?.marketTuning;
+  if (!tuning) return;
+  const changed = world.controls.volatility !== tuning.volatility || world.controls.bots !== tuning.bots;
+  world.controls.volatility = tuning.volatility; world.controls.bots = tuning.bots;
+  delete world.autonomousNews!.marketTuning;
+  if (changed) keepAutonomousHistory(world, { at, kind: "settings-adjusted", indices: [], intervalSeconds: world.autonomousNews!.nextIntervalSeconds, reason: `Restored host settings: volatility ${tuning.volatility}, bot activity ${tuning.bots}.` });
+}
+
+function adaptBrainSettings(world: World, at: number) {
+  const auto = world.autonomousNews;
+  if (!auto?.enabled || world.status !== "live" || world.controls.paused) return;
+  const tuning = auto.marketTuning ?? (auto.marketTuning = { volatility: world.controls.volatility, bots: world.controls.bots, observingSince: at, lastChangedAt: at, reason: "Observing before adjusting market difficulty." });
+  if (at - tuning.observingSince < 45_000 || at - tuning.lastChangedAt < 30_000 || world.remaining < 40) return;
+  const reading = readAutonomousNewsSignals(world, at);
+  // Inactivity is a clue, never proof of confusion. Require time and active
+  // terminals, and change only global difficulty, never anyone's portfolio.
+  const difficulty = recentOrderDifficulty(world, at);
+  const orderDifficulties = difficulty.strugglingTerminals >= Math.min(2, Math.max(1, reading.activeTerminals)) && difficulty.rejectedOrders >= 3;
+  const exploring = reading.activeTerminals > 0 && (reading.idleCashShare ?? 0) >= .6 && (reading.engagedTerminals ?? 0) / reading.activeTerminals < .35;
+  const stressed = reading.activeTerminals >= 3 && (reading.stressedShare ?? 0) >= .5;
+  const turbulent = reading.recentVolatility > Math.max(.5, Math.min(1.4, tuning.volatility * .02)) || Math.abs(reading.recentIndexChange ?? 0) >= .9;
+  const quiet = reading.activeTerminals > 0 && !exploring && !stressed && reading.unresolvedNewsSeconds <= 10 && reading.recentVolatility < .2 && Math.abs(reading.recentIndexChange ?? 0) < .15;
+  const multiplier = exploring || orderDifficulties || stressed || turbulent ? .75 : quiet ? 1.1 : 1;
+  const approach = (current: number, base: number, min: number, max: number) => {
+    const target = clamp(base * multiplier, min, max);
+    const step = Math.max(.1, base * .05);
+    return Math.round(clamp(current + clamp(target - current, -step, step), min, max) * 10) / 10;
+  };
+  const volatility = approach(world.controls.volatility, tuning.volatility, MIN_VOLATILITY, MAX_VOLATILITY);
+  const bots = tuning.bots === 0 ? 0 : approach(world.controls.bots, tuning.bots, 0, 100);
+  tuning.lastChangedAt = at;
+  if (volatility === world.controls.volatility && bots === world.controls.bots) return;
+  const cause = orderDifficulties ? "Repeated unsuccessful orders suggest players need more room" : exploring ? "Several active terminals are still exploring with most cash unused" : stressed ? "Many participants have sizeable portfolio losses" : turbulent ? "Recent market moves are unsettled" : quiet ? "Players are participating but the settled market is quiet" : "The market has settled, so difficulty is returning toward the host settings";
+  const before = `volatility ${world.controls.volatility} → ${volatility}, bot activity ${world.controls.bots} → ${bots}`;
+  world.controls.volatility = volatility; world.controls.bots = bots;
+  tuning.reason = `${cause}: ${before}.`;
+  keepAutonomousHistory(world, { at, kind: "settings-adjusted", indices: [], intervalSeconds: auto.nextIntervalSeconds, reason: tuning.reason });
 }
 
 function planAutonomousNews(world: World, at: number, opening = false) {
   const auto = world.autonomousNews ?? (world.autonomousNews = newAutonomousNewsState());
+  auto.marketTuning ??= { volatility: world.controls.volatility, bots: world.controls.bots, observingSince: at, lastChangedAt: at, reason: "Observing before adjusting market difficulty." };
   const plan = chooseAutonomousNewsPlan(world, at, world.controls.newsSpacing, opening);
   auto.plannedAt = at;
   auto.lastReviewedAt = at;
@@ -119,6 +174,8 @@ function planAutonomousNews(world: World, at: number, opening = false) {
   auto.nextSetSize = plan.setSize;
   auto.nextIntervalSeconds = plan.intervalSeconds;
   auto.nextReason = plan.reason;
+  auto.strategy = plan.strategy;
+  auto.introductoryStage = plan.introductoryStage;
   auto.reading = plan.reading;
   auto.nextAt = at + plan.intervalSeconds * 1000;
   auto.decisions++;
@@ -130,8 +187,16 @@ function planAutonomousNews(world: World, at: number, opening = false) {
 function publishAutonomousNews(world: World, at: number, hostOverride = false) {
   const auto = world.autonomousNews;
   if (!auto || !auto.enabled || world.status !== "live") return [];
+  if (!hostOverride && world.remaining < NEWS_REACTION_SECONDS + 5) {
+    restoreBrainSettings(world, at);
+    auto.enabled = false; auto.nextAt = 0; auto.nextIndices = [];
+    auto.nextReason = "Leaving the closing seconds for final trades rather than starting an unfinished news reaction.";
+    keepAutonomousHistory(world, { at, kind: "stopped", indices: [], intervalSeconds: auto.nextIntervalSeconds, reason: auto.nextReason });
+    return [];
+  }
   const indices = [...new Set(auto.nextIndices)].filter(index => Number.isInteger(index) && index >= 0 && index < world.news.length);
   if (indices.length < 2 || indices.length > 3) {
+    restoreBrainSettings(world, at);
     auto.enabled = false; auto.nextAt = 0;
     auto.nextReason = "Fewer than two compatible, unused stories remain. Manual publishing is still available.";
     keepAutonomousHistory(world, { at, kind: "stopped", indices: [], intervalSeconds: auto.nextIntervalSeconds, reason: auto.nextReason });
@@ -167,6 +232,7 @@ function pushHeadlines(world: World, presetIndices: number[], at = Date.now()) {
   const presets = world.news;
   const indices = presetIndices.filter(index => Number.isInteger(index) && index >= 0 && index < presets.length);
   validateNewsSelection(indices.map(index => presets[index]), world.headlines);
+  recordGameLog(world, { at, kind: "news", message: indices.map(index => presets[index].headline).join(" | "), data: { indices: indices.join(","), count: indices.length } });
   const published = indices.map(index => {
     const news = { ...presets[index], id: id(), createdAt: at };
     const range = newsImpactRange(news);
@@ -197,6 +263,7 @@ function pushHeadlines(world: World, presetIndices: number[], at = Date.now()) {
     const previousBias = stock.newsBias ?? 0;
     const biasDirection = Math.sign(directionalDrift || previousBias);
     stock.newsBias = biasDirection * Math.min(.0045, Math.max(Math.abs(previousBias) * .55, Math.abs(directionalDrift)));
+    stock.newsBiasClock = stock.newsBias ? { elapsed: 0, duration: Math.max(1, Math.ceil(Math.log(NEWS_IMPACT_FADE_THRESHOLD / Math.abs(stock.newsBias)) / Math.log(NEWS_IMPACT_DECAY))) } : undefined;
     if (impact) {
       const target = clamp(stock.price * (1 + impact), stock.previousClose * .68, stock.previousClose * 1.32);
       stock.newsMoves = [...(stock.newsMoves ?? []), { logReturn: Math.log(target / stock.price), elapsed: 0, duration: NEWS_REACTION_SECONDS }];
@@ -263,7 +330,7 @@ export function advance(world: World, now = Date.now()): World {
       world.controls.newsSpacing = 75;
       world.newsNextAt = world.status === "countdown" ? world.startedAt + 75_000 : now + 75_000;
     }
-    world.controls.newsSpacing = clamp(world.controls.newsSpacing, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS);
+    world.controls.newsSpacing = clamp(world.controls.newsSpacing, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS);
     world.newsSettingsVersion = NEWS_SETTINGS_VERSION;
     world.version++;
   }
@@ -303,6 +370,7 @@ export function advance(world: World, now = Date.now()): World {
   if (world.status === "countdown") {
     if (now < world.startedAt) return world;
     world.status = "live"; world.lastTickAt = world.startedAt; world.version++;
+    recordGameLog(world, { at: world.startedAt, kind: "batch", message: "Opening bell: trading started." });
   }
   if (world.status !== "live" || world.controls.paused) {
     if (world.status === "live" && world.controls.paused) shiftAutonomousClock(world, Math.max(0, now - world.lastTickAt));
@@ -321,6 +389,7 @@ export function advance(world: World, now = Date.now()): World {
     const at = start + k * interval;
     const dueInterventions = world.scheduledInterventions.filter(item => item.at <= at);
     world.scheduledInterventions = world.scheduledInterventions.filter(item => item.at > at);
+    for (const event of dueInterventions) recordGameLog(world, { at, kind: "market", message: `Scheduled intervention executed: ${event.sector}, ${(event.direction * event.magnitude * 100).toFixed(1)}%.` });
     for (const event of dueInterventions) for (const stock of world.stocks) {
       if (event.sector === "ALL" || stock.sector === event.sector || stock.symbol === event.sector)
         applyMove(world, stock, event.direction * event.magnitude * (.8 + rand(world.tick + stock.base) * .4), 20_000, at);
@@ -336,6 +405,7 @@ export function advance(world: World, now = Date.now()): World {
       }
       if (world.autonomousNews?.enabled) planAutonomousNews(world, at);
     }
+    const hadActiveNews = world.stocks.some(stock => stock.newsMoves?.length || stock.newsBiasClock || Math.abs(stock.newsBias ?? 0) > NEWS_IMPACT_FADE_THRESHOLD);
     const vol = world.controls.volatility / 25;
     const botParticipation = world.controls.bots === 0 ? 0 : Math.sqrt(VIRTUAL_BOT_COUNT / 128) * (world.controls.bots / 58);
     const scenarioDrift = world.controls.scenario === "Bullish" ? .000035 : world.controls.scenario === "Bearish" ? -.000035 : 0;
@@ -352,29 +422,41 @@ export function advance(world: World, now = Date.now()): World {
       const noise = (rand(symbolSeed) - .5) * .009 * vol;
       const meanRevert = ((stock.previousClose - stock.price) / stock.previousClose) * .009;
       const tickSeconds = interval / 1000;
-      const newsTrend = (stock.newsBias ?? 0) * NEWS_IMPACT_DRIFT_NORMALIZER * (1 - NEWS_IMPACT_DECAY ** tickSeconds) / (1 - NEWS_IMPACT_DECAY);
+      const newsTrend = advanceNewsDrift(stock, tickSeconds);
       const sectorMove = (sectorPulse.get(stock.sector) ?? 0) * (rand(symbolSeed + 3) < .76 ? 1 : -.42);
       const flowSignal = -stock.flow / 10000 * .012;
       let botOrders = 0;
+      let botNews = 0;
       for (let agent = 0; agent < VIRTUAL_BOT_COUNT; agent++) {
         const personality = BOT_PERSONALITIES[agent % BOT_PERSONALITIES.length];
         const agentSeed = symbolSeed + agent * 97 + 19;
+        botNews += newsTrend * personality.news;
         botOrders += momentum * personality.momentum + meanRevert * personality.reversion + newsTrend * personality.news + flowSignal * personality.flow + (rand(agentSeed) - .5) * personality.noise;
       }
       botOrders = botOrders / VIRTUAL_BOT_COUNT * botParticipation;
+      botNews = botNews / VIRTUAL_BOT_COUNT * botParticipation;
       const institutional = (rand(Math.floor(world.tick / 11) + textSeed(stock.symbol) * 3) - .5) * .00009 * (world.controls.bots / 50);
-      const returnRate = clamp(scenarioDrift + bias + sectorMove + momentum + meanRevert + noise + botOrders + institutional + stock.flow / 10000 * .02 + newsTrend, -.009 * vol, .009 * vol);
+      // During the direct reaction, unrelated noise should not conceal a clear
+      // company announcement. Keep wiggles and player flow, and leave the
+      // news target and its integrated follow-through unchanged.
+      const reacting = stock.newsMoves?.some(move => move.elapsed < move.duration) ?? false;
+      const ambientWeight = reacting ? .15 : 1;
+      const ambient = scenarioDrift + bias + sectorMove + momentum + meanRevert + noise + botOrders - botNews + institutional;
+      const returnRate = clamp(ambient * ambientWeight + stock.flow / 10000 * .02 + newsTrend + botNews, -.009 * vol, .009 * vol);
       const botVolume = Math.round((300 + rand(world.tick + stock.base) * 5_800) * (VIRTUAL_BOT_COUNT / 100));
       const reactionMove = advanceNewsReaction(stock, tickSeconds);
       applyMove(world, stock, (1 + returnRate) * (1 + reactionMove) - 1, botVolume, at);
-      if (stock.newsBias) {
-        stock.newsBias *= NEWS_IMPACT_DECAY ** tickSeconds;
-        if (Math.abs(stock.newsBias) < NEWS_IMPACT_FADE_THRESHOLD) stock.newsBias = 0;
-      }
     }
     world.remaining = Math.max(0, world.remaining - interval / 1000);
+    if (hadActiveNews && newsImpactRemainingSeconds(world) === 0) recordGameLog(world, { at, kind: "news", message: "Published news effects have settled; ordinary market trading continues." });
+    if (Math.round((world.duration - world.remaining) * 1000) % 30_000 === 0) {
+      const index = indexValue(world);
+      const ordered = [...world.stocks].sort((a, b) => b.price / b.previousClose - a.price / a.previousClose);
+      recordGameLog(world, { at, kind: "market", message: `Market checkpoint: Dalaal-10 ${index.toFixed(0)} (${((index / 10000 - 1) * 100).toFixed(2)}%); best ${ordered[0].symbol}, worst ${ordered.at(-1)!.symbol}.`, data: { index: round2(index), remaining: world.remaining, volatility: world.controls.volatility, bots: world.controls.bots } });
+    }
     if (world.remaining <= 0) { endWorld(world, at); break; }
     if (world.controls.activeNews > 0) world.controls.activeNews = Math.max(0, world.controls.activeNews - .0025);
+    adaptBrainSettings(world, at);
     if (world.autonomousNews?.enabled && !world.autonomousNews.hostOverride && at - (world.autonomousNews.lastReviewedAt ?? 0) >= 5_000) {
       const auto = world.autonomousNews;
       const plan = chooseAutonomousNewsPlan(world, at, world.controls.newsSpacing);
@@ -386,7 +468,7 @@ export function advance(world: World, now = Date.now()): World {
       auto.reading = plan.reading;
       // Keep the original planning anchor: repeated reviews cannot postpone news forever.
       auto.nextAt = nextAt; auto.nextIndices = plan.indices; auto.nextSetSize = plan.setSize;
-      auto.nextIntervalSeconds = plan.intervalSeconds; auto.nextReason = plan.reason;
+      auto.nextIntervalSeconds = plan.intervalSeconds; auto.nextReason = plan.reason; auto.strategy = plan.strategy; auto.introductoryStage = plan.introductoryStage;
       world.newsNextAt = nextAt;
     }
     if (world.autonomousNews?.enabled && world.autonomousNews.nextAt > 0 && at >= world.autonomousNews.nextAt) {
@@ -432,6 +514,8 @@ export function equity(world: World, player: Player) { return freeCash(player) +
 export function indexValue(world: World) { return 10_000 * Object.entries(INDEX_WEIGHTS).reduce((sum, [symbol, weight]) => { const s = world.stocks.find(x => x.symbol === symbol); return sum + weight * (s ? s.price / s.previousClose : 1); }, 0); }
 
 function endWorld(world: World, at: number) {
+  restoreBrainSettings(world, at);
+  recordGameLog(world, { at, kind: "batch", message: "Batch closed; all positions settled at final market prices." });
   world.status = "closed"; world.controls.paused = true;
   if (world.autonomousNews) {
     world.autonomousNews.enabled = false;
@@ -452,16 +536,19 @@ export function settle(world: World, player: Player, at: number) {
     const price = world.stocks.find(s => s.symbol === symbol)?.price ?? p.avg;
     const realized = (p.avg - price) * p.qty;
     player.cash += realized;
+    recordGameLog(world, { at, kind: "trade", terminalNumber: player.terminalNumber, message: `Auto-covered ${p.qty} ${symbol} at ${price.toFixed(2)}.`, data: { symbol, side: "Auto-cover", quantity: p.qty, price, realized } });
     player.history.unshift({ id: id(), symbol, side: "Auto-cover", qty: p.qty, price, time: at, realized, note: "Short settled at the session close" });
   }
   for (const [symbol, p] of Object.entries(player.holdings)) {
     const price = world.stocks.find(s => s.symbol === symbol)?.price ?? p.avg;
     const realized = (price - p.avg) * p.qty;
     player.cash += price * p.qty;
+    recordGameLog(world, { at, kind: "trade", terminalNumber: player.terminalNumber, message: `Auto-sold ${p.qty} ${symbol} at ${price.toFixed(2)}.`, data: { symbol, side: "Auto-sell", quantity: p.qty, price, realized } });
     player.history.unshift({ id: id(), symbol, side: "Auto-sell", qty: p.qty, price, time: at, realized, note: "Long settled at the session close" });
   }
   player.holdings = {};
   player.shorts = {};
+  recordGameLog(world, { at, kind: "terminal", terminalNumber: player.terminalNumber, message: "Terminal finished; positions settled.", data: { finalPortfolio: round2(player.cash), realizedPnl: round2(player.history.reduce((sum, trade) => sum + trade.realized, 0)) } });
   player.ended = true;
 }
 
@@ -510,6 +597,7 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
   }
   const trade: Trade = { id: id(), symbol, side: action, qty: quantity, coveredQty, price: px, time: at, realized, note };
   player.history.unshift(trade);
+  recordGameLog(world, { at, kind: "trade", terminalNumber: player.terminalNumber, message: `${action} ${quantity} ${symbol} at ${px.toFixed(2)}${coveredQty ? `; covered ${coveredQty} short shares` : ""}.`, data: { side: action, symbol, quantity, price: px, realized, cashAfter: round2(player.cash) } });
   const direction = action === "Buy" ? 1 : -1;
   const impact = clamp(quantity / Math.max(30_000, stock.base * 80) * .018, .000015, .0008) * direction;
   stock.flow += direction * Math.min(12, quantity / 20);
@@ -558,6 +646,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     keepAutonomousHistory(world, { at, kind: "started", indices: [...auto.nextIndices], intervalSeconds: auto.nextIntervalSeconds, reason: world.status === "live" || world.status === "countdown" ? "The host started the autonomous news brain." : "The host armed the brain for the next batch." });
   } else if (action === "autonomous-stop") {
     const auto = world.autonomousNews ?? (world.autonomousNews = newAutonomousNewsState());
+    restoreBrainSettings(world, at);
     auto.enabled = false; auto.nextAt = 0; auto.nextIndices = [];
     auto.nextReason = "Stopped by the host. Manual news publishing remains available.";
     keepAutonomousHistory(world, { at, kind: "stopped", indices: [], intervalSeconds: auto.nextIntervalSeconds, reason: auto.nextReason });
@@ -588,7 +677,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
   } else if (action === "pause") { world.controls.paused = true; world.lastTickAt = at; }
   else if (action === "resume") { shiftAutonomousClock(world, Math.max(0, at - world.lastTickAt)); world.controls.paused = false; world.lastTickAt = at; }
   else if (action === "end") endWorld(world, at);
-  else if (action === "reset") { world.status = "ready"; world.controls.paused = true; world.remaining = world.duration; world.sessions = {}; world.stocks = makeStocks(world.batch); world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; world.scheduledNews = []; world.scheduledInterventions = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0; world.lastTickAt = at; if (world.autonomousNews) { world.autonomousNews.enabled = false; world.autonomousNews.nextAt = 0; world.autonomousNews.nextIndices = []; world.autonomousNews.history = []; world.autonomousNews.nextReason = "Stopped after the market reset."; } }
+  else if (action === "reset") { restoreBrainSettings(world, at); world.status = "ready"; world.controls.paused = true; world.remaining = world.duration; world.sessions = {}; world.stocks = makeStocks(world.batch); world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; world.scheduledNews = []; world.scheduledInterventions = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0; world.lastTickAt = at; if (world.autonomousNews) { world.autonomousNews.enabled = false; world.autonomousNews.nextAt = 0; world.autonomousNews.nextIndices = []; world.autonomousNews.history = []; world.autonomousNews.nextReason = "Stopped after the market reset."; } }
   else if (action === "scenario") world.controls.scenario = payload.value as World["controls"]["scenario"];
   else if (action === "controls") {
     const c = world.controls;
@@ -599,8 +688,15 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (typeof payload.newsEnabled === "boolean") c.newsEnabled = payload.newsEnabled;
     if (typeof payload.majorAuto === "number") c.majorAuto = clamp(payload.majorAuto, 0, 20);
     if (typeof payload.minorAuto === "number") c.minorAuto = clamp(payload.minorAuto, 0, 20);
-    if (typeof payload.newsSpacing === "number") c.newsSpacing = clamp(payload.newsSpacing, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS);
+    if (typeof payload.newsSpacing === "number") c.newsSpacing = clamp(payload.newsSpacing, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS);
     if (typeof payload.duration === "number" && world.status !== "live") { world.duration = clamp(payload.duration, 60, 2700); world.remaining = world.duration; }
+    if (world.autonomousNews?.marketTuning && (typeof payload.volatility === "number" || typeof payload.bots === "number")) {
+      const tuning = world.autonomousNews.marketTuning;
+      if (typeof payload.volatility === "number") tuning.volatility = c.volatility;
+      if (typeof payload.bots === "number") tuning.bots = c.bots;
+      tuning.observingSince = at; tuning.lastChangedAt = at;
+      tuning.reason = "The host changed market difficulty. Observing before further adjustments.";
+    }
     if (typeof payload.newsSpacing === "number" && world.autonomousNews?.enabled && world.status === "live") planAutonomousNews(world, at, true);
   } else if (action === "headline") {
     const indices = Array.isArray(payload.indices) ? [...new Set(payload.indices.map(Number))] : [Number(payload.index)];
@@ -632,6 +728,12 @@ export function hostAction(world: World, action: string, payload: Record<string,
     else if (payload.command === "end") participants.forEach(p => settle(world, p, at));
     else if (payload.command === "reset") participants.forEach(p => { world.sessions[p.id] = newPlayer(p.id, world.batch, at, p.included, p.terminalNumber); });
   }
+  const safePayload = Object.fromEntries(Object.entries(payload).filter(([key, value]) => ["volatility", "bots", "tickRate", "marketBias", "duration", "newsSpacing", "value", "command", "sector", "magnitude", "direction", "delay"].includes(key) && ["string", "number", "boolean"].includes(typeof value))) as Record<string, string | number | boolean>;
+  recordGameLog(world, { at, kind: ["start", "pause", "resume", "reset", "end"].includes(action) ? "batch" : action === "controls" ? "settings" : "host", message: `Host action: ${action}${Object.keys(safePayload).length ? ` · ${JSON.stringify(safePayload)}` : ""}`, data: { action, ...safePayload,
+    ...(action === "start" ? { duration: world.duration, volatility: world.controls.volatility, bots: world.controls.bots } : {}),
+    ...(Array.isArray(payload.indices) ? { newsIndices: payload.indices.map(Number).filter(Number.isInteger).join(",") } : {}),
+    ...(action === "participant" ? { terminals: (Array.isArray(payload.ids) ? payload.ids : [payload.id]).map(value => world.sessions[String(value)]?.terminalNumber ?? "unknown").join(",") } : {}),
+  } });
   world.version++;
   return world;
 }
@@ -641,7 +743,7 @@ export function newPlayer(sessionId: string, batch: number, at = Date.now(), inc
 }
 
 export function toPublic(world: World, sessionId?: string | null, selectedStock = "RELIANCE", options: { includeCandles?: boolean; candlesSince?: number } = {}): PublicWorld {
-  const { sessions, hostNotes: _hostNotes, version: _version, testRulesVersion: _testRulesVersion, autonomousNews: _autonomousNews, ...rest } = world;
+  const { logs: _logs, sessions, hostNotes: _hostNotes, version: _version, testRulesVersion: _testRulesVersion, autonomousNews: _autonomousNews, ...rest } = world;
   const { activeNews: _activeNews, ...publicControls } = world.controls;
   const base = world.stocks.reduce((sum, s) => sum + s.weight * s.previousClose, 0);
   const value = indexValue(world);
@@ -662,7 +764,7 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
   const eligible = entrant && entrant.included && entrant.batch === world.batch && entrants.some(player => player.id === entrant.id);
   const standing = eligible ? { rank: 1 + entrants.filter(other => equity(world, other) > equity(world, entrant) + .005).length, total: entrants.length } : null;
   return { ...rest, standing, controls: publicControls, headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), revision: world.version, terminalSummaries, participants: terminalSummaries.length, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => {
-    const { newsBias: _newsBias, newsMoves: _newsMoves, ...publicStock } = stock;
+    const { newsBias: _newsBias, newsBiasClock: _newsBiasClock, newsMoves: _newsMoves, ...publicStock } = stock;
     const fullCandles = stock.candles.slice(-600);
     const since = options.candlesSince;
     const canSendDelta = typeof since === "number" && Number.isFinite(since) && fullCandles.length > 0 && since >= fullCandles[0].time && since <= fullCandles.at(-1)!.time;

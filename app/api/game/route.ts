@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { advance, executeTrade, hostAction, newPlayer, settle, toPublic } from "@/game/engine";
-import { TERMINAL_COUNT } from "@/game/terminals";
+import { recordGameLog } from "@/game/logs";
+import { TERMINAL_ACTIVE_WINDOW_MS, TERMINAL_COUNT } from "@/game/terminals";
 import { mutate } from "@/game/store";
 import type { Mode, World } from "@/game/types";
 
@@ -22,6 +23,7 @@ function touchSession(state: World, sessionId: string, terminalNumber?: number) 
     player = newPlayer(sessionId, state.batch, now, true, terminalNumber);
     if (state.status === "closed") player.ended = true;
     state.sessions[sessionId] = player;
+    recordGameLog(state, { at: now, kind: "terminal", terminalNumber, message: "Terminal joined the market." });
     state.version++;
   } else {
     if (player.batch !== state.batch && (state.status === "countdown" || state.status === "live")) {
@@ -30,6 +32,7 @@ function touchSession(state: World, sessionId: string, terminalNumber?: number) 
       state.version++;
     }
     if (terminalNumber && player.terminalNumber !== terminalNumber) { player.terminalNumber = terminalNumber; state.version++; }
+    if (now - (player.lastSeenAt ?? player.joinedAt) >= TERMINAL_ACTIVE_WINDOW_MS) recordGameLog(state, { at: now, kind: "terminal", terminalNumber: player.terminalNumber, message: "Terminal reconnected after being offline." });
     if (now - (player.lastSeenAt ?? 0) >= 10_000) { player.lastSeenAt = now; state.version++; }
   }
   return player;
@@ -83,8 +86,14 @@ export async function POST(request: NextRequest) {
           if (existing.side !== body.side || existing.symbol !== String(body.symbol ?? "") || existing.qty !== Number(body.quantity)) throw new Error("This submission ID already belongs to a different order.");
           return existing;
         }
-        const trade = executeTrade(state, player, body.side, String(body.symbol ?? ""), Number(body.quantity));
-        trade.requestId = requestId; player.lastSeenAt = Date.now(); return trade;
+        try {
+          const trade = executeTrade(state, player, body.side, String(body.symbol ?? ""), Number(body.quantity));
+          trade.requestId = requestId; player.lastSeenAt = Date.now(); return trade;
+        } catch (error) {
+          const orderError = error instanceof Error ? error.message : "Order could not be placed.";
+          recordGameLog(state, { at: Date.now(), kind: "order-rejected", terminalNumber: player.terminalNumber, message: `${body.side} ${String(body.quantity).slice(0, 20)} ${String(body.symbol).slice(0, 30)}: ${orderError}` });
+          return { orderError };
+        }
       }
       if (action === "end") {
         if (player.ended) return null;
@@ -99,6 +108,7 @@ export async function POST(request: NextRequest) {
       if (action === "news-read") return state.latestNewsId;
       throw new Error("Choose a valid market action.");
     }, localPreview);
+    if (result && typeof result === "object" && "orderError" in result) return errorResponse(new Error(result.orderError));
     const candlesSinceValue = body.candlesSince;
     const candlesSince = typeof candlesSinceValue === "number" && Number.isFinite(candlesSinceValue) ? candlesSinceValue : undefined;
     const includeCandles = body.includeCandles !== false;

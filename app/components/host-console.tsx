@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { HostNote, World } from "@/game/types";
 import { equity, NEWS_EFFECT_MAX_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_REACTION_SECONDS, newsImpactRange, newsImpactRemainingSeconds, previewNewsImpact, TERMINAL_ACTIVE_WINDOW_MS, VIRTUAL_BOT_COUNT } from "@/game/engine";
+import { HostLogs } from "./host-logs";
 import { DalaalMark } from "@/components/trader-parts";
 import { groupTerminalSessions, type ParticipantGroup } from "@/game/host-sessions";
 import { TERMINAL_COUNT } from "@/game/terminals";
@@ -10,8 +11,8 @@ import { TERMINAL_COUNT } from "@/game/terminals";
 const money = (n: number) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 const signedMoney = (n: number) => `${n >= 0 ? "+" : "−"}${money(Math.abs(n))}`;
 const fmtTime = (seconds: number) => `${String(Math.floor(Math.max(0, seconds) / 60)).padStart(2, "0")}:${String(Math.max(0, Math.floor(seconds) % 60)).padStart(2, "0")}`;
-type Tab = "brain" | "overview" | "quick" | "market" | "news" | "sessions" | "leaderboard" | "notes" | "settings" | "shortcuts";
-type HostWorld = World & { index: number; indexChange: number };
+type Tab = "logs" | "brain" | "overview" | "quick" | "market" | "news" | "sessions" | "leaderboard" | "notes" | "settings" | "shortcuts";
+type HostWorld = World & { logsReset?: boolean; index: number; indexChange: number };
 type NewsCategory = "economy" | "sector" | "stock";
 type HostActionEntry = { id: number; at: number; message: string };
 const HOST_SECTIONS: { key: Tab; label: string; icon: string; keys: string; detail: string }[] = [
@@ -22,6 +23,7 @@ const HOST_SECTIONS: { key: Tab; label: string; icon: string; keys: string; deta
   { key: "market", label: "Market control", icon: "⌁", keys: "Alt + M", detail: "Open scenario and market controls." },
   { key: "sessions", label: "Sessions", icon: "▦", keys: "Alt + S", detail: "Check terminals and participant data." },
   { key: "leaderboard", label: "Leaderboard", icon: "♛", keys: "Alt + L", detail: "Rank current batch participants by return." },
+  { key: "logs", label: "Logs", icon: "≡", keys: "Alt + G", detail: "Review game events, trades and brain decisions." },
   { key: "notes", label: "Host notes", icon: "▤", keys: "Alt + R", detail: "Open shared host notes." },
   { key: "settings", label: "Settings", icon: "⚙", keys: "Alt + T", detail: "Open batch duration and update settings." },
   { key: "shortcuts", label: "Shortcuts", icon: "⌨", keys: "Alt + K", detail: "Return to this shortcut guide." },
@@ -68,6 +70,9 @@ export function HostConsole() {
   const [headlineDelay, setHeadlineDelay] = useState(0);
   const [controls, setControls] = useState({ volatility: 48 * .85, bots: 58, tickRate: 1, marketBias: 50, duration: 360, newsEnabled: true, majorAuto: 1, minorAuto: 2, newsSpacing: 75 });
   const [intervention, setIntervention] = useState({ sector: "ALL", direction: "up", magnitude: 1.5, delay: 0 });
+  const logCursor = useRef("");
+  const activeTab = useRef<Tab>(tab);
+  useEffect(() => { activeTab.current = tab; }, [tab]);
   const initialized = useRef(false);
   const requestPending = useRef(false);
   const actionPending = useRef(false);
@@ -98,7 +103,8 @@ export function HostConsole() {
     });
   }, [world?.news]);
   const acceptSnapshot = useCallback((data: HostWorld) => {
-    setWorld(data);
+    if (data.logs?.length) logCursor.current = data.logs[0].id;
+    setWorld(previous => ({ ...data, logs: data.logsReset ? data.logs : data.logs ? [...new Map([...data.logs, ...(previous?.logs ?? [])].map(log => [log.id, log])).values()].slice(0, 1500) : previous?.logs }));
     setHostNotes(data.hostNotes ?? []);
     setNotesReady(true);
     setLastSuccessfulSync(Date.now());
@@ -158,9 +164,9 @@ export function HostConsole() {
     requestPending.current = true;
     const requestGeneration = generation.current;
     try {
-      const res = await fetch("/api/host", { cache: "no-store" });
+      const res = await fetch(activeTab.current === "logs" ? `/api/host?logs=1&logsAfter=${encodeURIComponent(logCursor.current)}` : "/api/host", { cache: "no-store" });
       if (requestGeneration !== generation.current) return;
-      if (res.status === 401) { setAuthenticated(false); setWorld(null); initialized.current = false; setError("Host access expired. Sign in again."); return; }
+      if (res.status === 401) { setAuthenticated(false); setWorld(null); logCursor.current = ""; initialized.current = false; setError("Host access expired. Sign in again."); return; }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "The shared market is temporarily unavailable.");
       acceptSnapshot(data);
@@ -169,6 +175,8 @@ export function HostConsole() {
   }, [authenticated, acceptSnapshot]);
   useEffect(() => { let active = true; fetch("/api/host", { cache: "no-store" }).then(async r => { if (r.ok && active) { const data = await r.json(); if (active) { acceptSnapshot(data); setAuthenticated(true); } } }).catch(() => {}); return () => { active = false; }; }, [acceptSnapshot]);
   useEffect(() => { if (!authenticated) return; const t = window.setInterval(refresh, 2500); return () => clearInterval(t); }, [authenticated, refresh]);
+
+  useEffect(() => { if (authenticated && tab === "logs") void refresh(); }, [authenticated, tab, refresh]);
 
   async function login(event: React.FormEvent) {
     event.preventDefault(); setError(""); setWorking(true);
@@ -205,7 +213,7 @@ export function HostConsole() {
     catch (e) { setError(e instanceof Error ? e.message : "That market action did not complete."); }
     finally { actionPending.current = false; setWorking(false); }
   }
-  async function logout() { if (actionPending.current) return; setWorking(true); try { const response = await fetch("/api/host/logout", { method: "POST" }); if (!response.ok) throw new Error("Could not sign out. Try again."); generation.current += 1; initialized.current = false; setAuthenticated(false); setWorld(null); setError(""); } catch(e) { setError(e instanceof Error ? e.message : "Could not sign out."); } finally { setWorking(false); } }
+  async function logout() { if (actionPending.current) return; setWorking(true); try { const response = await fetch("/api/host/logout", { method: "POST" }); if (!response.ok) throw new Error("Could not sign out. Try again."); generation.current += 1; initialized.current = false; setAuthenticated(false); setWorld(null); logCursor.current = ""; setError(""); } catch(e) { setError(e instanceof Error ? e.message : "Could not sign out."); } finally { setWorking(false); } }
   async function saveNote(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = noteDraft.trim().slice(0, MAX_HOST_NOTE_LENGTH);
@@ -262,7 +270,7 @@ export function HostConsole() {
   const autonomous = world?.autonomousNews;
   const autonomousPlanNews = (autonomous?.nextIndices ?? []).map(index => world?.news[index]).filter((news): news is NonNullable<typeof news> => Boolean(news));
   const autonomousCountdown = autonomous?.enabled && autonomous.nextAt && hostClockNow ? Math.max(0, Math.ceil((autonomous.nextAt - (world?.controls.paused ? world.lastTickAt : hostClockNow)) / 1000)) : null;
-  const autonomousLabel = (kind: NonNullable<World["autonomousNews"]>["history"][number]["kind"]) => ({ planned: "PLAN", published: "PUBLISHED", skipped: "SKIPPED", started: "STARTED", stopped: "STOPPED", "host-published": "HOST PUBLISHED", "host-edited": "HOST EDIT" })[kind];
+  const autonomousLabel = (kind: NonNullable<World["autonomousNews"]>["history"][number]["kind"]) => ({ planned: "PLAN", published: "PUBLISHED", skipped: "SKIPPED", started: "STARTED", stopped: "STOPPED", "host-published": "HOST PUBLISHED", "host-edited": "HOST EDIT", "settings-adjusted": "SETTINGS" })[kind];
   useEffect(() => {
     if (!authenticated) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -270,7 +278,7 @@ export function HostConsole() {
       const active = document.activeElement;
       if (active instanceof HTMLElement && (active.isContentEditable || active.matches("input, textarea, select, [contenteditable='true']"))) return;
       const key = event.key.toLowerCase();
-      const destinations: Record<string, Tab> = { b: "brain", o: "overview", q: "quick", m: "market", n: "news", s: "sessions", l: "leaderboard", r: "notes", t: "settings", k: "shortcuts" };
+      const destinations: Record<string, Tab> = { g: "logs", b: "brain", o: "overview", q: "quick", m: "market", n: "news", s: "sessions", l: "leaderboard", r: "notes", t: "settings", k: "shortcuts" };
       if (destinations[key]) {
         event.preventDefault();
         setTab(destinations[key]);
@@ -314,34 +322,36 @@ export function HostConsole() {
     </button>;
   };
 
-  const brainPanel = <>
-    <section className={`host-card autonomous-news-panel${autonomous?.enabled ? " is-running" : ""}`}>
-      <div className="host-card-title"><div><span className="eyebrow">AUTONOMOUS NEWS BRAIN</span><h2>{autonomous?.enabled ? "The brain is steering news" : "News brain is stopped"}</h2></div><span className={`secure-tag ${autonomous?.enabled ? "auto-brain-live" : ""}`}>{autonomous?.enabled ? "ACTIVE" : "STOPPED"}</span></div>
-      <div className="autonomous-news-topline"><p className="host-card-copy">It reads the market, recent terminal activity and unfinished news effects. It chooses a set of 2 or 3 headlines and the next publish time. Anyone can start this mode at <b>/auto</b>; these controls are host-only.</p><button type="button" className={autonomous?.enabled ? "outline-button" : "host-primary"} disabled={working} onClick={() => void act(autonomous?.enabled ? "autonomous-stop" : "autonomous-start")}>{autonomous?.enabled ? "Stop brain" : "Start brain"}</button></div>
+  const brainPanel = <section className="host-card autonomous-news-panel brain-workspace">
+    <header className="brain-toolbar"><div className="brain-status"><span className={`brain-status-dot${autonomous?.enabled ? " is-running" : ""}`}/><strong>Automatic news</strong><small>{autonomous?.enabled ? autonomous.strategy === "calm" ? "Giving room" : autonomous.strategy === "lively" ? "Adding action" : "Steady" : "Stopped"}</small></div><div className="brain-toolbar-actions">{autonomous?.enabled && <span className="brain-next-release">Next set <b>{autonomousCountdown === null ? "Waiting" : fmtTime(autonomousCountdown)}</b></span>}<button type="button" className={autonomous?.enabled ? "outline-button" : "host-primary"} disabled={working || !world} onClick={() => void act(autonomous?.enabled ? "autonomous-stop" : "autonomous-start")}>{autonomous?.enabled ? "Stop brain" : "Start brain"}</button></div></header>
+    <p className="brain-description">{autonomous?.enabled ? "Choosing stories, release times and gentle market adjustments as the game changes." : "Start during any batch. The brain will choose the stories and when to publish them."}</p>
+      {autonomous?.enabled && <div className="autonomous-plan"><div className="autonomous-plan-heading"><span><b>NEXT SET</b><small>{autonomousPlanNews.length} of 2–3 headlines · baseline {controls.newsSpacing}s</small></span><strong>{autonomousCountdown === null ? "—" : autonomousCountdown === 0 ? "NOW" : `IN ${fmtTime(autonomousCountdown)}`}</strong></div>
+        <div className="autonomous-plan-stories">{autonomousPlanNews.map((news, index) => <article key={`${news.id}-${index}`}><span className={news.direction > 0 ? "positive" : "negative"}><NewsDirectionIcon direction={news.direction}/></span><div><small>{newsScope(news)}</small><b>{news.headline}</b></div></article>)}{autonomousPlanNews.length < 2 && <p className="host-card-copy">The next set will appear after the brain finishes its first live reading.</p>}</div>
+        <div className="autonomous-plan-actions"><button type="button" className="outline-button" disabled={working || autonomousPlanNews.length < 2} onClick={() => void act("autonomous-skip")}>Skip and reselect</button><button type="button" className="host-primary" disabled={working || world?.status !== "live" || autonomousPlanNews.length < 2} onClick={() => void act("autonomous-publish-now")}>Publish this set now</button>{selectedIndices.length >= 2 && selectedIndices.length <= 3 && <button type="button" className="outline-button" disabled={working} onClick={() => void act("autonomous-plan", { indices: selectedIndices })}>Use my {selectedIndices.length} picks</button>}</div>
+      </div>}
+    <details className="brain-reading-details"><summary>Decision details & market readings</summary>
+      <p className="autonomous-reason">{autonomous?.nextReason ?? "The brain is ready. Start it here or let a player start it through /auto."}</p>
+      {autonomous?.marketTuning && <p className="autonomous-reason">Volatility {world?.controls.volatility} · Bot activity {world?.controls.bots}<br/>{autonomous.marketTuning.reason}</p>}
       <div className="autonomous-reading-grid">
         <div><small>DALAAL-10 CHANGE</small><b className={(autonomous?.reading.indexChange ?? world?.indexChange ?? 0) >= 0 ? "positive" : "negative"}>{(autonomous?.reading.indexChange ?? world?.indexChange ?? 0) >= 0 ? "+" : ""}{(autonomous?.reading.indexChange ?? world?.indexChange ?? 0).toFixed(2)}%</b></div>
         <div><small>ACTIVE TERMINALS</small><b>{autonomous?.reading.activeTerminals ?? connectedCount}</b></div>
+        <div><small>ORDER ISSUES · 60 SEC</small><b>{autonomous?.reading.rejectedOrders ?? 0}</b></div>
         <div><small>TRADES · 45 SEC</small><b>{autonomous?.reading.recentTrades ?? 0}</b></div>
         <div><small>NEWS STILL MOVING</small><b>{autonomous?.reading.unresolvedNewsSeconds ?? 0}s</b></div>
         <div><small>RECENT VOLATILITY</small><b>{(autonomous?.reading.recentVolatility ?? 0).toFixed(2)}%</b></div>
         <div><small>NEXT DECISION</small><b>{autonomous?.enabled ? autonomousCountdown === null ? "Waiting" : autonomousCountdown ? fmtTime(autonomousCountdown) : "Due now" : "Stopped"}</b></div>
       </div>
-      <p className="autonomous-reason">{autonomous?.nextReason ?? "The brain is ready. Start it here or let a player start it through /auto."}</p>
-      {autonomous?.enabled && <div className="autonomous-plan"><div className="autonomous-plan-heading"><span><b>NEXT SET</b><small>{autonomousPlanNews.length} of 2–3 headlines · baseline {controls.newsSpacing}s</small></span><strong>{autonomousCountdown === null ? "—" : autonomousCountdown === 0 ? "NOW" : `IN ${fmtTime(autonomousCountdown)}`}</strong></div>
-        <div className="autonomous-plan-stories">{autonomousPlanNews.map((news, index) => <article key={`${news.id}-${index}`}><span className={news.direction > 0 ? "positive" : "negative"}><NewsDirectionIcon direction={news.direction}/></span><div><small>{newsScope(news)}</small><b>{news.headline}</b></div></article>)}{autonomousPlanNews.length < 2 && <p className="host-card-copy">The next set will appear after the brain finishes its first live reading.</p>}</div>
-        <div className="autonomous-plan-actions"><button type="button" className="outline-button" disabled={working || autonomousPlanNews.length < 2} onClick={() => void act("autonomous-skip")}>Skip and reselect</button><button type="button" className="host-primary" disabled={working || world?.status !== "live" || autonomousPlanNews.length < 2} onClick={() => void act("autonomous-publish-now")}>Publish this set now</button>{selectedIndices.length >= 2 && selectedIndices.length <= 3 && <button type="button" className="outline-button" disabled={working} onClick={() => void act("autonomous-plan", { indices: selectedIndices })}>Use my {selectedIndices.length} picks</button>}</div>
-      </div>}
-      <details className="autonomous-history"><summary>Brain activity · {autonomous?.history.length ?? 0} recent records</summary>{autonomous?.history.length ? <div className="autonomous-history-list">{autonomous.history.map((entry, index) => <article key={`${entry.at}-${entry.kind}-${index}`}><span className={`autonomous-history-kind ${entry.kind}`}>{autonomousLabel(entry.kind)}</span><time>T+{fmtTime(Math.max(0, (entry.at - (world?.startedAt ?? entry.at)) / 1000))}</time><div>{entry.indices.map(newsIndex => world?.news[newsIndex]?.headline).filter(Boolean).join(" · ") || "No headlines selected"}<small>{entry.reason}</small></div><b>{entry.intervalSeconds}s</b></article>)}</div> : <p className="host-card-copy">The brain’s plans, publications, skips and host overrides will be recorded here for this batch.</p>}</details>
-    </section>
+    </details>
+      <details className="autonomous-history"><summary>Brain activity · {autonomous?.history.length ?? 0} recent records</summary>{autonomous?.history.length ? <div className="autonomous-history-list">{autonomous.history.map((entry, index) => <article key={`${entry.at}-${entry.kind}-${index}`}><span className={`autonomous-history-kind ${entry.kind}`}>{autonomousLabel(entry.kind)}</span><time>T+{fmtTime(Math.max(0, (entry.at - (world?.startedAt ?? entry.at)) / 1000))}</time><div>{entry.indices.map(newsIndex => world?.news[newsIndex]?.headline).filter(Boolean).join(" · ") || (entry.kind === "settings-adjusted" ? "Market difficulty" : "No headlines selected")}<small>{entry.reason}</small></div><b>{entry.intervalSeconds}s</b></article>)}</div> : <p className="host-card-copy">The brain’s plans, publications, skips and host overrides will be recorded here for this batch.</p>}</details>
       <details className="news-automation-fast"><summary>Brain pacing</summary>
             <label className="host-field">BASELINE NEWS INTERVAL · SECONDS<input type="number" min="50" max="90" value={controls.newsSpacing} onChange={e => setControls(c => ({ ...c, newsSpacing: Number(e.target.value) }))}/></label>
-            <p className="host-card-copy">The default is 75 seconds. The brain adjusts each gap between 50 and 90 seconds based on market movement, player activity and earlier news still affecting prices.</p>
+            <p className="host-card-copy">The baseline is 75 seconds. The brain can choose 50–105 seconds, usually letting earlier effects settle and allowing a small overlap when fresh action is useful.</p>
             <button className="outline-button full" disabled={working} onClick={() => void act("controls", { newsSpacing: controls.newsSpacing })}>Save baseline interval</button>
 </details>
-  </>;
+  </section>;
 
   const newsWorkspace = <div className="host-news-workspace">
-    <section className="brain-quick-control" aria-label="Autonomous news controls"><button type="button" className={autonomous?.enabled ? "outline-button" : "host-primary"} disabled={working || !world} onClick={() => void act(autonomous?.enabled ? "autonomous-stop" : "autonomous-start")}>{autonomous?.enabled ? "Stop brain" : "Start brain"}</button><p>{autonomous?.enabled ? `Running · ${autonomousCountdown === null ? "reading market" : `next set in ${fmtTime(autonomousCountdown)}`}` : "Let the brain choose what, when and how many stories to publish. Start it during any batch."}</p><button type="button" className="outline-button" onClick={() => setTab("brain")}>Brain controls <small className="host-button-shortcut">Alt + B</small></button></section>
+    <section className="brain-quick-control" aria-label="Autonomous news controls"><button type="button" className={autonomous?.enabled ? "outline-button" : "host-primary"} disabled={working || !world} onClick={() => void act(autonomous?.enabled ? "autonomous-stop" : "autonomous-start")}>{autonomous?.enabled ? "Stop brain" : "Start brain"}</button><p>{autonomous?.enabled ? `Running · ${autonomousCountdown === null ? "reading market" : `next set in ${fmtTime(autonomousCountdown)}`}` : "Automatic news · start or stop at any point in a batch."}</p><button type="button" className="outline-button" onClick={() => setTab("brain")}>Brain controls <small className="host-button-shortcut">Alt + B</small></button></section>
     <section className="host-card news-library-fast">
       <div className="host-card-title"><div><span className="eyebrow">NEWS LIBRARY</span><h2>Build your next move</h2></div><span className="secure-tag">{newsOptions.length} headlines</span></div>
       <label className="host-field news-fast-search">FIND NEWS<input type="search" value={newsSearch} onChange={event => setNewsSearch(event.target.value)} placeholder="Search a company, sector or headline…"/></label>
@@ -378,7 +388,7 @@ export function HostConsole() {
         </div>
         {HOST_SECTIONS.map(section => <button key={section.key} type="button" title={`${section.label} · ${section.keys}`} onClick={() => setTab(section.key)} className={tab === section.key ? "active" : ""} aria-current={tab === section.key ? "page" : undefined}><span className="host-nav-icon" aria-hidden="true">{section.icon}</span><span className="host-nav-label">{section.label}</span><small className="host-nav-shortcut">{section.keys}</small></button>)}
         <div className="host-nav-bottom"><span className={`server-state ${world ? "healthy" : ""}`}/><span><b>Market engine</b><small>{world ? "Connected · Supabase" : "Connecting…"}</small></span></div>
-      </aside>      <section className="host-content"><div className="host-page-title"><div><span className="eyebrow">MARKET OPERATIONS / {tab.toUpperCase()}</span><h1>{({ brain: "News brain", overview: "Overview", quick: "Quick access", market: "Market control", news: "News studio", sessions: "Participant sessions", leaderboard: "Participant leaderboard", notes: "Host notes", settings: "Batch settings", shortcuts: "Keyboard shortcuts" })[tab]}<span>.</span></h1><p>{({ brain: "Watch decisions, adjust the next set or start and stop autonomous news during any live batch.", overview: "Your batch, participant terminals and latest market activity at a glance.", quick: "Build and publish news, then reach the live controls beside it.", market: "Tune the conditions that shape every order and price tick.", news: "Build a mix of clear economy, sector and company news, then review its effects before publishing.", sessions: "Monitor connected participant devices and manage their participation.", leaderboard: "See current batch standings and each terminal’s best and worst closed trade.", notes: "Private reminders shared across host devices.", settings: "Choose the synchronized batch duration and market update rate.", shortcuts: "Alt plus a matching letter opens host sections or runs a live action." })[tab]}</p></div><div className={`host-status ${world?.status === "live" && !world.controls.paused ? "live" : ""}`}><i/>{world?.controls.paused ? "PAUSED" : world?.status === "countdown" ? "OPENING BELL" : world?.status === "live" ? "MARKET LIVE" : world?.status === "closed" ? "MARKET CLOSED" : "READY"}<b>{world?.status === "countdown" ? `OPENING IN ${Math.max(0, Math.ceil((world.startedAt - Date.now()) / 1000))}s` : world?.status === "live" ? fmtTime(world.remaining) : `BATCH ${String(world?.batch ?? 1).padStart(2, "0")}`}</b></div></div>
+      </aside>      <section className="host-content"><div className="host-page-title"><div><span className="eyebrow">MARKET OPERATIONS / {tab.toUpperCase()}</span><h1>{({ logs: "Game logs", brain: "News brain", overview: "Overview", quick: "Quick access", market: "Market control", news: "News studio", sessions: "Participant sessions", leaderboard: "Participant leaderboard", notes: "Host notes", settings: "Batch settings", shortcuts: "Keyboard shortcuts" })[tab]}<span>.</span></h1><p>{({ logs: "Review material activity across batches. The brain uses relevant recent events alongside live market readings.", brain: "Watch decisions, adjust the next set or start and stop autonomous news during any live batch.", overview: "Your batch, participant terminals and latest market activity at a glance.", quick: "Build and publish news, then reach the live controls beside it.", market: "Tune the conditions that shape every order and price tick.", news: "Build a mix of clear economy, sector and company news, then review its effects before publishing.", sessions: "Monitor connected participant devices and manage their participation.", leaderboard: "See current batch standings and each terminal’s best and worst closed trade.", notes: "Private reminders shared across host devices.", settings: "Choose the synchronized batch duration and market update rate.", shortcuts: "Alt plus a matching letter opens host sections or runs a live action." })[tab]}</p></div><div className={`host-status ${world?.status === "live" && !world.controls.paused ? "live" : ""}`}><i/>{world?.controls.paused ? "PAUSED" : world?.status === "countdown" ? "OPENING BELL" : world?.status === "live" ? "MARKET LIVE" : world?.status === "closed" ? "MARKET CLOSED" : "READY"}<b>{world?.status === "countdown" ? `OPENING IN ${Math.max(0, Math.ceil((world.startedAt - Date.now()) / 1000))}s` : world?.status === "live" ? fmtTime(world.remaining) : `BATCH ${String(world?.batch ?? 1).padStart(2, "0")}`}</b></div></div>
         {(error || connectionError) && <div className="host-error wide-error" role="alert">{error || connectionError}<button onClick={() => { setError(""); setConnectionError(""); }}>×</button></div>}
 
         {tab === "overview" && <div className="host-overview">
@@ -408,6 +418,7 @@ export function HostConsole() {
           }}>{intervention.delay ? `Schedule within batch · ${intervention.delay}s` : "Apply intervention now"} →</button></section>
         </div>}
 
+        {tab === "logs" && <HostLogs logs={world?.logs}/> }
         {tab === "brain" && brainPanel}
         {tab === "news" && newsWorkspace}
 

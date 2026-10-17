@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { recordGameLog } from "@/game/logs";
 import { hostAction, advance, indexValue } from "@/game/engine";
 import { isHost } from "@/game/host-auth";
 import { mutate } from "@/game/store";
@@ -6,9 +7,12 @@ import type { HostNote, World } from "@/game/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-function snapshot(world: World) {
+function snapshot(world: World, includeLogs = false, after?: string | null) {
   const index = indexValue(world);
-  return { ...world, stocks: world.stocks.map(stock => ({ ...stock, trend: stock.candles.slice(-18).map(bar => bar.close), candles: [] })), index, indexChange: (index / 10_000 - 1) * 100 };
+  const { logs = [], ...state } = world;
+  const cursor = after ? logs.findIndex(log => log.id === after) : -1;
+  const journal = includeLogs ? { logs: cursor >= 0 ? logs.slice(0, cursor) : logs, logsReset: cursor < 0 } : {};
+  return { ...state, ...journal, stocks: world.stocks.map(stock => ({ ...stock, trend: stock.candles.slice(-18).map(bar => bar.close), candles: [] })), index, indexChange: (index / 10_000 - 1) * 100 };
 }
 function updateHostNotes(world: World, action: string, payload: Record<string, unknown>) {
   const notes = world.hostNotes ?? [];
@@ -47,9 +51,9 @@ function updateHostNotes(world: World, action: string, payload: Record<string, u
     if (JSON.stringify(next) !== JSON.stringify(notes)) { world.hostNotes = next; world.version++; }
   }
 }
-export async function GET() {
+export async function GET(request: NextRequest) {
   if (!await isHost()) return NextResponse.json({ error: "Sign in to the Host Console." }, { status: 401 });
-  try { const { world } = await mutate("live", advance); return NextResponse.json(snapshot(world), { headers: { "Cache-Control": "no-store" } }); }
+  try { const { world } = await mutate("live", advance); return NextResponse.json(snapshot(world, request.nextUrl.searchParams.get("logs") === "1", request.nextUrl.searchParams.get("logsAfter")), { headers: { "Cache-Control": "no-store" } }); }
   catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : "Market unavailable." }, { status: 503 }); }
 }
 export async function POST(request: NextRequest) {
@@ -59,7 +63,7 @@ export async function POST(request: NextRequest) {
     const actionName = String(action);
     const { world } = await mutate("live", state => {
       advance(state);
-      if (["save-note", "delete-note", "import-notes"].includes(actionName)) updateHostNotes(state, actionName, payload);
+      if (["save-note", "delete-note", "import-notes"].includes(actionName)) { updateHostNotes(state, actionName, payload); recordGameLog(state, { at: Date.now(), kind: "host", message: `Host notes: ${actionName}.` }); }
       else hostAction(state, actionName, payload);
     });
     return NextResponse.json(snapshot(world), { headers: { "Cache-Control": "no-store" } });

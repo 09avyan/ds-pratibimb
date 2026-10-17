@@ -1,0 +1,32 @@
+const fs=require('node:fs'),ts=require('typescript'),assert=require('node:assert/strict'),path=require('node:path'),Module=require('node:module');
+require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,f);
+const resolve=Module._resolveFilename;Module._resolveFilename=function(id,parent,...args){return resolve.call(this,id.startsWith('@/')?path.join(process.cwd(),'src',id.slice(2)):id,parent,...args);};
+const E=require('../src/game/engine.ts'),{recordGameLog,MAX_GAME_LOGS}=require('../src/game/logs.ts'),{chooseAutonomousNewsPlan}=require('../src/game/autonomous-news.ts');
+const now=Date.now(),world=E.freshWorld('live',now);E.hostAction(world,'start',{},now-10000);E.advance(world,now);
+const storePath=require.resolve('../src/game/store.ts');require.cache[storePath]={id:storePath,filename:storePath,loaded:true,exports:{mutate:async(mode,fn)=>({result:await fn(world),world})}};
+const authPath=require.resolve('../src/game/host-auth.ts');require.cache[authPath]={id:authPath,filename:authPath,loaded:true,exports:{isHost:async()=>true}};const hostRoute=require('../app/api/host/route.ts');
+const route=require('../app/api/game/route.ts'),{NextRequest}=require('next/server');
+const post=body=>route.POST(new NextRequest('http://localhost/api/game',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({mode:'test',terminal:1,sessionId:'logs-player-01',...body})}));
+(async()=>{
+ const response=await route.GET(new NextRequest('http://localhost/api/game?mode=test&session=logs-player-01&terminal=1'));assert.equal(response.status,200);assert(world.logs.some(l=>l.kind==='terminal'));const pub=await response.json();assert(!('logs'in pub));assert(!('autonomousNews'in pub));
+ const before=structuredClone(world.sessions['logs-player-01']);const rejected=await post({action:'trade',side:'Buy',symbol:'RELIANCE',quantity:100000});assert.equal(rejected.status,400);assert.match((await rejected.json()).error,/cash/i);assert(world.logs.some(l=>l.kind==='order-rejected'));assert.deepEqual(world.sessions['logs-player-01'].holdings,before.holdings);assert.equal(world.sessions['logs-player-01'].cash,before.cash);
+ const order={action:'trade',side:'Buy',symbol:'RELIANCE',quantity:1,requestId:'repeat-order-123'};assert.equal((await post(order)).status,200);assert.equal((await post(order)).status,200);assert.equal(world.logs.filter(l=>l.kind==='trade'&&l.data.side==='Buy').length,1);
+ E.hostAction(world,'headline',{indices:[0]},Date.now());assert(world.logs.some(l=>l.kind==='news'&&l.message===world.news[0].headline));
+ E.hostAction(world,'end',{},Date.now());assert(world.logs.some(l=>l.kind==='trade'&&l.data.side==='Auto-sell'));const plainHost=await (await hostRoute.GET(new NextRequest('http://localhost/api/host'))).json();assert(!('logs'in plainHost));const fullHost=await (await hostRoute.GET(new NextRequest('http://localhost/api/host?logs=1'))).json();assert(fullHost.logs.length);const delta=await (await hostRoute.GET(new NextRequest('http://localhost/api/host?logs=1&logsAfter='+fullHost.logs[0].id))).json();assert.deepEqual(delta.logs,[]);assert.equal(delta.logsReset,false);
+ const ids=world.logs.map(l=>l.id);E.hostAction(world,'reset',{},Date.now());assert(ids.every(id=>world.logs.some(l=>l.id===id)),'reset retains logs');
+ const context=E.freshWorld('live',now);context.status='live';for(const stock of context.stocks)stock.candles=[];
+ for(let terminal=1;terminal<=2;terminal++){const p=E.newPlayer('signals-'+terminal,context.batch,now,true,terminal);context.sessions[p.id]=p;}
+ for(let i=0;i<3;i++)recordGameLog(context,{at:now,kind:'order-rejected',terminalNumber:i%2+1,message:'Not enough cash.'});const plan=chooseAutonomousNewsPlan(context,now);assert.equal(plan.strategy,'calm');assert.equal(plan.reading.rejectedOrders,3);assert.equal(plan.reading.strugglingTerminals,2);
+ for(let i=0;i<MAX_GAME_LOGS+5;i++)recordGameLog(context,{at:now+i,kind:'host',message:'Retention check.'});assert.equal(context.logs.length,MAX_GAME_LOGS);assert.equal(new Set(context.logs.map(l=>l.id)).size,MAX_GAME_LOGS);
+ // New failures must be able to change an unpublished set during live review.
+ const adaptive=E.freshWorld('live',now);adaptive.controls.volatility=12.8;adaptive.controls.bots=0;E.hostAction(adaptive,'start',{},now);E.advance(adaptive,adaptive.startedAt);
+ for(const stock of adaptive.stocks){stock.price=stock.previousClose;stock.candles=[];}
+ for(let n=1;n<=3;n++){const p=E.newPlayer('adaptive-'+n,adaptive.batch,adaptive.startedAt,true,n);adaptive.sessions[p.id]=p;}
+ E.hostAction(adaptive,'autonomous-start',{},adaptive.startedAt);const unchanged=structuredClone(adaptive),anchor=adaptive.autonomousNews.plannedAt;
+ for(let n=0;n<3;n++)recordGameLog(adaptive,{at:adaptive.startedAt+1000,kind:'order-rejected',terminalNumber:n%2+1,message:'Not enough cash.'});
+ E.advance(adaptive,adaptive.startedAt+5000);E.advance(unchanged,unchanged.startedAt+5000);
+ assert.equal(adaptive.autonomousNews.strategy,'calm');assert.equal(unchanged.autonomousNews.strategy,'lively');assert.notDeepEqual(adaptive.autonomousNews.nextIndices,unchanged.autonomousNews.nextIndices);assert.equal(adaptive.autonomousNews.plannedAt,anchor);assert(adaptive.autonomousNews.nextAt<=anchor+105000);assert.equal(adaptive.headlines.length,0);
+ const manual=[...unchanged.autonomousNews.nextIndices];E.hostAction(adaptive,'autonomous-plan',{indices:manual},adaptive.lastTickAt);E.advance(adaptive,adaptive.lastTickAt+5000);assert.deepEqual(adaptive.autonomousNews.nextIndices,manual,'host-selected mixes remain protected');
+ console.log('PASS: logged activity changes the pending mix mid-batch, with an anchored release time and protected host overrides.');
+ console.log('PASS: API join, persisted rejection, unchanged rejected portfolio, idempotent trade logging, news and settlements, cross-batch retention, private snapshots, bounded history, and brain use of logged difficulties.');
+})().catch(e=>{console.error(e);process.exit(1)});
