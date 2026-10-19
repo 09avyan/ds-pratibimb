@@ -81,15 +81,17 @@ export async function POST(request: NextRequest) {
       advance(state);
       const player = touchSession(state, sessionId, terminalNumber);
       if (action === "sell-all") {
+        const targetSymbol = typeof body.symbol === "string" ? body.symbol : undefined;
+        if (targetSymbol && !state.stocks.some(stock => stock.symbol === targetSymbol)) throw new Error("That company is no longer available.");
         const bulkRequestId = requestId ? `bulk-${requestId}` : undefined;
         if (requestId && player.history.some(trade => trade.requestId === requestId)) throw new Error("This submission ID already belongs to a different order.");
         const repeated = bulkRequestId ? player.history.filter(trade => trade.requestId === bulkRequestId) : [];
         if (repeated.length) {
-          if (repeated.some(trade => trade.side !== "Sell")) throw new Error("This submission ID already belongs to a different order.");
+          if (repeated.some(trade => trade.side !== "Sell" || targetSymbol && trade.symbol !== targetSymbol)) throw new Error("This submission ID already belongs to a different order.");
           return { bulkSale: true, duplicate: true, soldCount: repeated.length, shareCount: repeated.reduce((sum, trade) => sum + trade.qty, 0), symbols: [...new Set(repeated.map(trade => trade.symbol))] };
         }
-        const positions = Object.entries(player.holdings).filter(([, position]) => position.qty > 0);
-        if (!positions.length) throw new Error("You have no long holdings to sell.");
+        const positions = Object.entries(player.holdings).filter(([symbol, position]) => position.qty > 0 && (!targetSymbol || targetSymbol === symbol));
+        if (!positions.length) throw new Error(targetSymbol ? `You have no ${targetSymbol} shares to sell.` : "You have no long holdings to sell.");
         const sold = positions.map(([symbol, position]) => {
           const trade = executeTrade(state, player, "Sell", symbol, position.qty, Date.now(), { allowBulk: true });
           trade.requestId = bulkRequestId;

@@ -6,7 +6,7 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 
 - Each participant gets a device session and starts with ₹10,00,000 of simulated cash.
 - There are exactly 10 live terminals. Enter the assigned two-digit terminal code at `/play`, or open its direct URL from `/play/01` to `/play/10`; each code maps to that terminal's player session.
-- Players can buy shares, sell shares they own, or open short positions. A **Sell all** control liquidates every open long holding in one confirmed action; short positions remain open. Prices move as the market simulation, news events, and participant trades update the shared market.
+- Players can buy shares, sell shares they own, or open short positions. A **Sell all** button beside the order button sells the selected company’s entire owned quantity. It is disabled until shares are owned and leaves other companies and short positions untouched. Prices move as the market simulation, news events, and participant trades update the shared market.
 - A host can start, pause, and end a timed batch; set the next batch to 4–15 minutes; adjust market behavior; publish or schedule bulletins; and review participant sessions.
 - The curated news library has 61 fictional bulletins: 12 economy stories, 3 for each of the 8 sectors, and 25 company stories for 25 different stocks. The remaining stocks still respond to their sector and economy stories. Hosts can select any mix of categories in Quick Access or News Studio, review the combined stock-by-stock estimate, and expand a headline for its individual effect before publishing.
 - A new batch reset restores the market's starting stock prices as well as clearing its terminal sessions and published headlines.
@@ -154,3 +154,13 @@ Trading and audience dashboards show the latest published set only, with the ful
 - The brain excludes opposing stories at the same scope on the same companies, avoids stories whose direction is already blocked by a price limit, and rechecks its choices against the prices at publication. News can still reverse an earlier, different event; the newly published effective set then determines the new reaction.
 - `node scripts/news-live-check.cjs` checks actual prices relative to the moment of publication, including all 61 stories in mature markets, overlapping news reversals, both tick speeds and six complete brain-led rounds with three simulated player terminals. This complements the independent-scope and mixed-set checks in `scripts/news-direction-check.cjs`.
 - A negative headline means a negative reaction relative to its publication price; a stock can retain a positive overall batch return after that fall. Price retracements and ordinary trading after an effect settles remain part of the game.
+
+
+### Trading controls, chart direction and close-of-session results
+
+- The selected stock’s **Sell all** action always uses its complete server-held quantity, regardless of the quantity field. It becomes available immediately after a buy. The redundant “Trade”, “Order panel”, “Order ticket” and “Place a trade” headings have been removed; the chart view controls and trading inputs remain.
+- Line and mini-chart colours use the batch opening quote: green above it, red below it, and neutral at it. A drop while above the opening briefly flashes red; a rise while below briefly flashes green. The line then returns to its opening-relative colour. Candle bodies keep their usual per-candle direction colours.
+- The brain still selects 2–3 stories. It scores minor/major mixes separately from story count, allowing every combination for both sizes. Opening sets remain simpler; later intensity responds to participation, market movement, unresolved news and time remaining. The plan reason identifies the selected mix.
+- Automatic session-close sales and short covers remain clearly recorded in history and now receive the same accounting credit as other trades: total trades, wins/losses, badges and best/worst realised trades. Settlement remains idempotent.
+- `node scripts/trading-flow-check.cjs` checks per-stock liquidation, retries, other holdings, paused/empty orders and settlement statistics for individual and timed session endings.
+- `node scripts/brain-mix-check.cjs` verifies the brain chooses each of the three two-story and four three-story minor/major mixes under suitable game conditions.

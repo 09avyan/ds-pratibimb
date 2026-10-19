@@ -27,13 +27,13 @@ const post=body=>route.POST(new NextRequest('http://localhost/api/game',{method:
  for(let i=0;i<3;i++)recordGameLog(context,{at:now,kind:'order-rejected',terminalNumber:i%2+1,message:'Not enough cash.'});const plan=chooseAutonomousNewsPlan(context,now);assert.equal(plan.strategy,'calm');assert.equal(plan.reading.rejectedOrders,3);assert.equal(plan.reading.strugglingTerminals,2);
  for(let i=0;i<MAX_GAME_LOGS+5;i++)recordGameLog(context,{at:now+i,kind:'host',message:'Retention check.'});assert.equal(context.logs.length,MAX_GAME_LOGS);assert.equal(new Set(context.logs.map(l=>l.id)).size,MAX_GAME_LOGS);
  // New failures must be able to change an unpublished set during live review.
- const adaptive=E.freshWorld('live',now);adaptive.controls.volatility=12.8;adaptive.controls.bots=0;E.hostAction(adaptive,'start',{},now);E.advance(adaptive,adaptive.startedAt);
+ const adaptive=E.freshWorld('live',now);adaptive.controls.volatility=12.8;adaptive.controls.bots=0;E.hostAction(adaptive,'start',{},now);E.advance(adaptive,adaptive.startedAt+150000);adaptive.headlines=[{...adaptive.news[0],id:'earlier-set-one',createdAt:adaptive.startedAt+50000},{...adaptive.news[2],id:'earlier-set-two',createdAt:adaptive.startedAt+100000}];
  for(const stock of adaptive.stocks){stock.price=stock.previousClose;stock.candles=[];}
- for(let n=1;n<=3;n++){const p=E.newPlayer('adaptive-'+n,adaptive.batch,adaptive.startedAt,true,n);adaptive.sessions[p.id]=p;}
- E.hostAction(adaptive,'autonomous-start',{},adaptive.startedAt);const unchanged=structuredClone(adaptive),anchor=adaptive.autonomousNews.plannedAt;
- for(let n=0;n<3;n++)recordGameLog(adaptive,{at:adaptive.startedAt+1000,kind:'order-rejected',terminalNumber:n%2+1,message:'Not enough cash.'});
- E.advance(adaptive,adaptive.startedAt+5000);E.advance(unchanged,unchanged.startedAt+5000);
- assert.equal(adaptive.autonomousNews.strategy,'calm');assert.equal(unchanged.autonomousNews.strategy,'lively');assert.notDeepEqual(adaptive.autonomousNews.nextIndices,unchanged.autonomousNews.nextIndices);assert.equal(adaptive.autonomousNews.plannedAt,anchor);assert(adaptive.autonomousNews.nextAt<=anchor+105000);assert.equal(adaptive.headlines.length,0);
+ for(let n=1;n<=3;n++){const p=E.newPlayer('adaptive-'+n,adaptive.batch,adaptive.lastTickAt,true,n);adaptive.sessions[p.id]=p;}
+ E.hostAction(adaptive,'autonomous-start',{},adaptive.lastTickAt);const unchanged=structuredClone(adaptive),anchor=adaptive.autonomousNews.plannedAt;
+ for(let n=0;n<3;n++)recordGameLog(adaptive,{at:anchor+1000,kind:'order-rejected',terminalNumber:n%2+1,message:'Not enough cash.'});
+ E.advance(adaptive,anchor+5000);E.advance(unchanged,anchor+5000);
+ assert.equal(adaptive.autonomousNews.strategy,'calm');assert.equal(unchanged.autonomousNews.strategy,'lively');assert.notDeepEqual(adaptive.autonomousNews.nextIndices,unchanged.autonomousNews.nextIndices);assert.equal(adaptive.autonomousNews.plannedAt,anchor);assert(adaptive.autonomousNews.nextAt<=anchor+105000);assert.equal(adaptive.headlines.length,2);
  const manual=[...unchanged.autonomousNews.nextIndices];E.hostAction(adaptive,'autonomous-plan',{indices:manual},adaptive.lastTickAt);E.advance(adaptive,adaptive.lastTickAt+5000);assert.deepEqual(adaptive.autonomousNews.nextIndices,manual,'host-selected mixes remain protected');
  console.log('PASS: logged activity changes the pending mix mid-batch, with an anchored release time and protected host overrides.');
  console.log('PASS: API join, persisted rejection, unchanged rejected portfolio, idempotent trade and sell-all actions, news and settlements, cross-batch retention, private snapshots, bounded history, and brain use of logged difficulties.');

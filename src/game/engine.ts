@@ -798,27 +798,27 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
 
 export function performance(world: World, player: Player) {
   const value = equity(world, player), pnl = value - player.initialCash;
-  const trades = player.history.filter(t => t.side !== "Auto-cover" && t.side !== "Auto-sell");
+  const trades = player.history;
   const closedTrades = player.history.filter(t => t.side === "Sell" || t.side === "Auto-sell" || t.side === "Auto-cover" || (t.side === "Buy" && (t.coveredQty ?? (t.note?.startsWith("Covered") ? 1 : 0)) > 0));
-  const manualClosedTrades = closedTrades.filter(t => t.side !== "Auto-cover" && t.side !== "Auto-sell");
+  const creditedClosures = closedTrades;
   const winners = closedTrades.filter(t => t.realized > 0).length, losers = closedTrades.filter(t => t.realized < 0).length;
   const symbolsTraded = new Set(trades.map(trade => trade.symbol));
   const sectorsTraded = new Set(trades.map(trade => world.stocks.find(stock => stock.symbol === trade.symbol)?.sector).filter(Boolean));
-  const manualShortCover = trades.some(trade => trade.side === "Buy" && trade.note?.includes("Covered"));
+  const hasShortCover = trades.some(trade => trade.side === "Auto-cover" || trade.side === "Buy" && (trade.coveredQty ?? 0) > 0);
   const openedShort = trades.some(trade => trade.side === "Short");
   const earlyTrade = trades.some(trade => trade.time >= world.startedAt && trade.time - world.startedAt <= 60_000);
   const largestOrder = trades.reduce((largest, trade) => Math.max(largest, trade.qty * trade.price), 0);
   const sortedClosedTrades = [...closedTrades].sort((a, b) => b.realized - a.realized || b.time - a.time);
   const badgeChoices: [string, string, boolean][] = [
-    ["First Trade", "You placed an order in this round", trades.length >= 1],
+    ["First Trade", "You traded in this round", trades.length >= 1],
     ["Stock Explorer", "You traded at least four different companies", symbolsTraded.size >= 4],
     ["Sector Hopper", "You traded across at least three sectors", sectorsTraded.size >= 3],
-    ["Green Exit", "At least one trade you closed finished in profit", manualClosedTrades.some(trade => trade.realized > 0)],
-    ["Two Winners", "You closed at least two trades in profit", manualClosedTrades.filter(trade => trade.realized > 0).length >= 2],
+    ["Green Exit", "At least one trade you closed finished in profit", creditedClosures.some(trade => trade.realized > 0)],
+    ["Two Winners", "You closed at least two trades in profit", creditedClosures.filter(trade => trade.realized > 0).length >= 2],
     ["Short Seller", "You opened a short position", openedShort],
-    ["Short Cover", "You chose to buy back a short position", manualShortCover],
-    ["Opening Bell", "You placed an order within the first minute", earlyTrade],
-    ["Big Ticket", "You placed an order worth at least ₹1,00,000", largestOrder >= 100_000],
+    ["Short Cover", "You closed a short position", hasShortCover],
+    ["Opening Bell", "You traded within the first minute", earlyTrade],
+    ["Big Ticket", "A trade was worth at least ₹1,00,000", largestOrder >= 100_000],
   ];
   const badges = badgeChoices.filter(b => b[2]).map(b => ({ name: b[0], detail: b[1] }));
   const lessons = [
@@ -834,7 +834,7 @@ export function performance(world: World, player: Player) {
       ? "You tried short selling. A short can gain when its price falls, and its loss can grow when the price rises."
       : "A short position works in the opposite direction from a buy: it gains when price falls and loses when price rises.",
     trades.length >= 8
-      ? `You placed ${trades.length} orders. A quick pause between moves can help you check the latest price and your available cash.`
+      ? `Your account recorded ${trades.length} trades, including session-close sales. A quick pause between moves can help you check the latest price and your available cash.`
       : "News can affect the whole market, one sector, or a single company. Check a story’s target before reacting.",
   ];
   return { value, cash: player.cash, pnl, returnPct: pnl / player.initialCash * 100, holdings: player.holdings, shorts: player.shorts, trades: player.history, tradeCount: trades.length, winners, losers, bestTrade: sortedClosedTrades[0] ?? null, worstTrade: sortedClosedTrades.at(-1) ?? null, badges, sectors: sectorsTraded.size, symbols: symbolsTraded.size, lessons };

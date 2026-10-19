@@ -176,6 +176,7 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   const pool = [...new Map([
     ...ranked.slice(0, 14),
     ...(["economy", "sector", "stock"] as const).flatMap(scope => ranked.filter(item => scopeOf(item.news) === scope).slice(0, 6)),
+    ...(["minor", "major"] as const).flatMap(type => ranked.filter(item => item.news.type === type).slice(0, 4)),
   ].map(item => [item.index, item])).values()];
   let best: typeof ranked = [];
   let bestScore = -Infinity;
@@ -199,7 +200,15 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
     const sectors = new Set(items.filter(item => scopeOf(item.news) !== "economy").map(item => item.news.sector)).size;
     const balance = new Set(items.map(item => item.news.direction)).size > 1 ? .45 : -.15;
     const majorCount = items.filter(item => item.news.type === "major").length;
-    const intensity = strategy === "calm" ? -majorCount * .3 : strategy === "lively" && majorCount > 0 ? .2 : 0;
+    // Choose intensity independently of set size: every 2- and 3-story
+    // minor/major mix remains available, with suitability scored from play.
+    const preferredMajorCount = introductoryStage === 1 ? 0 : introductoryStage === 2 ? 1
+      : parentsStillExploring || strategy === "calm" ? 0
+        : strategy === "lively" ? Math.max(1, items.length - 1)
+          : participation >= .6 && reading.recentVolatility < .35 && reading.unresolvedNewsSeconds <= 6 && world.remaining > 100 ? items.length
+            : participation >= .6 ? Math.min(items.length, 2)
+              : reading.activeTerminals > 0 && participation < .35 ? 0 : 1;
+    const intensity = -Math.abs(majorCount - preferredMajorCount) * .9;
     const directions = new Set(items.map(item => item.news.direction));
     const continuationPenalty = elapsedSinceRelease < 45 && reading.unresolvedNewsSeconds > 20 && directions.size === 1 ? -.3 : 0;
     const score = intensity + continuationPenalty + items.reduce((sum, item) => sum + item.score, 0) / items.length + scopes * .18 + sectors * .1 + balance + (items.length === setSize ? .5 : 0);
@@ -220,6 +229,8 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
       : "Keeping a balance between interesting moves and time to react.";
   const overlapReason = reading.unresolvedNewsSeconds > 6 ? limitedOverlap ? " Only a light tail of earlier news may overlap." : " Earlier news gets time to settle before this release." : "";
   const coverage = [...new Set(indices.map(index => scopeOf(world.news[index])))].join(", ");
-  const reason = indices.length < 2 ? "Fewer than two compatible unused stories remain in this batch." : `${tempo} I selected ${indices.length} compatible stories across ${coverage}, considering current holdings and recent trades.${overlapReason}`;
+  const majorCount = indices.filter(index => world.news[index].type === "major").length;
+  const mix = `${indices.length - majorCount} minor + ${majorCount} major`;
+  const reason = indices.length < 2 ? "Fewer than two compatible unused stories remain in this batch." : `${tempo} I selected ${indices.length} compatible stories (${mix}) across ${coverage}, matching intensity to participation, reading time and current market movement.${overlapReason}`;
   return { indices: indices.slice(0, finalSize), setSize: finalSize, intervalSeconds, reason, reading, strategy, introductoryStage };
 }
