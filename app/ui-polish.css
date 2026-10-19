@@ -104,6 +104,7 @@
 
 .terminal .holdings-actions { display:flex;align-items:center;gap:7px; }
 .terminal .holdings-actions .sell-all-inline { min-height:27px;padding:5px 8px;border-radius:999px;font-size:8px; }
+.terminal .holdings-actions>button:last-child { border:0;background:none;color:var(--accent);font-size:9px;font-weight:700; }
 
 .host-shortcuts-panel { max-width: 1040px; }
 .host-shortcuts-intro,
