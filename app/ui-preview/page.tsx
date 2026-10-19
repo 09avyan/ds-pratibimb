@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UI_OPTIONS } from "@/ui-options";
-import { DalaalMark } from "@/components/trader-parts";
+import { DalaalMark, DalaalWordmark } from "@/components/trader-parts";
 
 const artLabels: Record<string, string> = {
   "2": "OBSERVATORY",
@@ -16,7 +16,7 @@ export default function UiPreviewPage() {
   if (process.env.NODE_ENV === "production") notFound();
   const versionCount = UI_OPTIONS.length + 1;
   return <main className="ui-preview-home">
-    <header className="preview-home-header"><a className="preview-wordmark" href="/play"><DalaalMark/> Dalaal Street</a><span className="preview-sandbox">LOCAL DESIGN REVIEW</span></header>
+    <header className="preview-home-header"><a className="preview-wordmark" href="/play"><DalaalMark/><DalaalWordmark/></a><span className="preview-sandbox">LOCAL DESIGN REVIEW</span></header>
     <section className="preview-home-hero">
       <span className="preview-kicker">SEVEN DISTINCT VIEWS · ONE SHARED MARKET</span>
       <h1>{versionCount} ways to<br/>play the market.</h1>

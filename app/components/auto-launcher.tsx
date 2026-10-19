@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DalaalMark } from "@/components/trader-parts";
+import { DalaalMark, DalaalWordmark } from "@/components/trader-parts";
 
 type AutoStatus = { status: "ready" | "countdown" | "live" | "closed"; batch: number; duration: number; remaining: number; startedAt: number; index: number; indexChange: number; autonomousNewsActive: boolean };
 const money = (value: number) => `₹${Math.round(value).toLocaleString("en-IN")}`;
@@ -48,7 +48,7 @@ export function AutoLauncher() {
   const live = status?.status === "live" || status?.status === "countdown";
   const closed = status?.status === "closed";
   return <main className="auto-launch-page">
-    <a className="auto-launch-brand" href="/"><DalaalMark/><span>DALAA<span>L</span> STREET</span></a>
+    <a className="auto-launch-brand" href="/"><DalaalMark/><DalaalWordmark/></a>
     <section className="auto-launch-card">
       <div className="auto-launch-kicker"><i/> DALAA<span>L</span> STREET · LIVE MARKET GAME</div>
       <h1>{live ? "The market is open." : closed ? "Ready for another round?" : "Ready to ring the bell?"}</h1>

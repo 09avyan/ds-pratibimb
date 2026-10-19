@@ -194,6 +194,16 @@ function publishAutonomousNews(world: World, at: number, hostOverride = false) {
     keepAutonomousHistory(world, { at, kind: "stopped", indices: [], intervalSeconds: auto.nextIntervalSeconds, reason: auto.nextReason });
     return [];
   }
+  if (!hostOverride && !auto.hostOverride) {
+    // Recheck against the prices at release, including a plan persisted before
+    // an engine update. A host-selected mix remains under host control.
+    const finalPlan = chooseAutonomousNewsPlan(world, at, world.controls.newsSpacing);
+    if (auto.nextIndices.join(",") !== finalPlan.indices.join(",")) keepAutonomousHistory(world, { at, kind: "planned", indices: [...finalPlan.indices], intervalSeconds: auto.nextIntervalSeconds, reason: `Publication check: ${finalPlan.reason}` });
+    auto.nextIndices = finalPlan.indices;
+    auto.nextSetSize = finalPlan.setSize;
+    auto.nextReason = finalPlan.reason;
+    auto.reading = finalPlan.reading;
+  }
   const indices = [...new Set(auto.nextIndices)].filter(index => Number.isInteger(index) && index >= 0 && index < world.news.length);
   if (indices.length < 2 || indices.length > 3) {
     restoreBrainSettings(world, at);
@@ -260,13 +270,15 @@ function pushHeadlines(world: World, presetIndices: number[], at = Date.now()) {
     // yields to its sector, and sector news yields to a stock-specific story.
     const impact = applicable.filter(item => item.rank === strongestRank).reduce((sum, item) => sum + item.impact, 0);
     const directionalDrift = Math.min(.0045, Math.max(.0011, Math.abs(impact) * .055)) * Math.sign(impact);
-    const previousBias = stock.newsBias ?? 0;
-    const biasDirection = Math.sign(directionalDrift || previousBias);
-    stock.newsBias = biasDirection * Math.min(.0045, Math.max(Math.abs(previousBias) * .55, Math.abs(directionalDrift)));
+    // The latest effective set replaces unfinished signals on this stock.
+    // Old news must not silently pull against the story players can now see.
+    stock.newsReferencePrice = stock.price;
+    stock.newsMoves = [];
+    stock.newsBias = directionalDrift;
     stock.newsBiasClock = stock.newsBias ? { elapsed: 0, duration: Math.max(1, Math.ceil(Math.log(NEWS_IMPACT_FADE_THRESHOLD / Math.abs(stock.newsBias)) / Math.log(NEWS_IMPACT_DECAY))) } : undefined;
     if (impact) {
       const target = clamp(stock.price * (1 + impact), stock.previousClose * .68, stock.previousClose * 1.32);
-      stock.newsMoves = [...(stock.newsMoves ?? []), { logReturn: Math.log(target / stock.price), elapsed: 0, duration: NEWS_REACTION_SECONDS }];
+      stock.newsMoves = [{ logReturn: Math.log(target / stock.price), elapsed: 0, duration: NEWS_REACTION_SECONDS }];
     }
   }
   world.controls.activeNews = Math.max(world.controls.activeNews ?? 0, ...published.map(item => item.range.high));
@@ -284,17 +296,16 @@ export type NewsImpactPreview = { headlines: { news: World["news"][number]; stoc
 export function previewNewsImpact(world: World, presetIndices: number[]): NewsImpactPreview {
   // Publishing now queues reactions without editing candle history. Reuse the
   // history here so a large selection does not copy thousands of candles per story.
-  const createPreviewWorld = (): World => ({ ...world, stocks: world.stocks.map(stock => ({ ...stock, newsMoves: stock.newsMoves?.map(move => ({ ...move })) })), controls: { ...world.controls }, headlines: [], sessions: {}, scheduledNews: [], scheduledInterventions: [] });
+  const createPreviewWorld = (): World => ({ ...world, stocks: world.stocks.map(stock => ({ ...stock, newsMoves: [] })), controls: { ...world.controls }, headlines: [], sessions: {}, scheduledNews: [], scheduledInterventions: [] });
   const preview = createPreviewWorld();
   const headlines: NewsImpactPreview["headlines"] = [];
   const indices = [...new Set(presetIndices)].filter(index => Number.isInteger(index) && index >= 0 && index < world.news.length);
   const startingPrices = new Map(preview.stocks.map(stock => [stock.symbol, stock.price] as const));
-  const existingMoveCounts = new Map(world.stocks.map(stock => [stock.symbol, stock.newsMoves?.length ?? 0]));
   for (const index of indices) {
     if (!Number.isInteger(index) || index < 0 || index >= preview.news.length) continue;
     const individual = createPreviewWorld();
     pushHeadlines(individual, [index]);
-    for (const stock of individual.stocks) stock.price = projectedNewsPrice(stock, existingMoveCounts.get(stock.symbol) ?? 0);
+    for (const stock of individual.stocks) stock.price = projectedNewsPrice(stock, 0);
     const stocks = individual.stocks.flatMap(stock => {
       const oldPrice = startingPrices.get(stock.symbol) ?? stock.price;
       if (stock.price === oldPrice) return [];
@@ -304,7 +315,7 @@ export function previewNewsImpact(world: World, presetIndices: number[]): NewsIm
     headlines.push({ news: world.news[index], stocks });
   }
   pushHeadlines(preview, indices);
-  for (const stock of preview.stocks) stock.price = projectedNewsPrice(stock, existingMoveCounts.get(stock.symbol) ?? 0);
+  for (const stock of preview.stocks) stock.price = projectedNewsPrice(stock, 0);
   const combined = preview.stocks.flatMap(stock => {
     const before = startingPrices.get(stock.symbol) ?? stock.price;
     if (stock.price === before) return [];
@@ -315,6 +326,14 @@ export function previewNewsImpact(world: World, presetIndices: number[]): NewsIm
 }
 
 export function advance(world: World, now = Date.now()): World {
+  // Adopt the new news reference for a persisted round without changing prices.
+  for (const stock of world.stocks) {
+    if (stock.newsReferencePrice === undefined && (stock.newsMoves?.length || stock.newsBias)) {
+      stock.newsReferencePrice = stock.price;
+      if ((stock.newsMoves?.length ?? 0) > 1) stock.newsMoves = stock.newsMoves!.slice(-1);
+      world.version++;
+    }
+  }
   if (!Array.isArray(world.hostNotes)) { world.hostNotes = []; world.version++; }
   if (typeof world.controls.activeNews !== "number") { world.controls.activeNews = 0; world.version++; }
   if (!Array.isArray(world.latestNewsIds)) { world.latestNewsIds = world.latestNewsId ? [world.latestNewsId] : []; world.version++; }
@@ -420,7 +439,9 @@ export function advance(world: World, now = Date.now()): World {
       const momentum = hist.length > 3 ? ((hist.at(-1)!.close - hist.at(-4)!.close) / hist.at(-4)!.close) * .055 : 0;
       const symbolSeed = world.tick * 37 + textSeed(stock.symbol) * 7;
       const noise = (rand(symbolSeed) - .5) * .009 * vol;
-      const meanRevert = ((stock.previousClose - stock.price) / stock.previousClose) * .009;
+      const reference = stock.newsReferencePrice ?? stock.previousClose;
+      const meanRevert = ((reference - stock.price) / reference) * .009;
+      const newsActive = Boolean(stock.newsMoves?.length || stock.newsBiasClock || Math.abs(stock.newsBias ?? 0) > NEWS_IMPACT_FADE_THRESHOLD);
       const tickSeconds = interval / 1000;
       const newsTrend = advanceNewsDrift(stock, tickSeconds);
       const sectorMove = (sectorPulse.get(stock.sector) ?? 0) * (rand(symbolSeed + 3) < .76 ? 1 : -.42);
@@ -436,16 +457,16 @@ export function advance(world: World, now = Date.now()): World {
       botOrders = botOrders / VIRTUAL_BOT_COUNT * botParticipation;
       botNews = botNews / VIRTUAL_BOT_COUNT * botParticipation;
       const institutional = (rand(Math.floor(world.tick / 11) + textSeed(stock.symbol) * 3) - .5) * .00009 * (world.controls.bots / 50);
-      // During the direct reaction, unrelated noise should not conceal a clear
-      // company announcement. Keep wiggles and player flow, and leave the
-      // news target and its integrated follow-through unchanged.
-      const reacting = stock.newsMoves?.some(move => move.elapsed < move.duration) ?? false;
-      const ambientWeight = reacting ? .15 : 1;
-      const ambient = scenarioDrift + bias + sectorMove + momentum + meanRevert + noise + botOrders - botNews + institutional;
-      const returnRate = clamp(ambient * ambientWeight + stock.flow / 10000 * .02 + newsTrend + botNews, -.009 * vol, .009 * vol);
-      const botVolume = Math.round((300 + rand(world.tick + stock.base) * 5_800) * (VIRTUAL_BOT_COUNT / 100));
+      const ambient = scenarioDrift + bias + sectorMove + momentum + meanRevert + noise + botOrders - botNews + institutional + stock.flow / 10000 * .02;
       const reactionMove = advanceNewsReaction(stock, tickSeconds);
-      applyMove(world, stock, (1 + returnRate) * (1 + reactionMove) - 1, botVolume, at);
+      const newsReturn = (1 + newsTrend + botNews) * (1 + reactionMove) - 1;
+      // Moderate the entire effect, including its tail. Keep the designed
+      // retracements, while preventing ordinary noise from reversing the story.
+      const ambientLimit = Math.max(.00001 * tickSeconds, Math.abs(newsReturn) * .3);
+      const ambientReturn = newsActive ? clamp(ambient * .15, -ambientLimit, ambientLimit) : clamp(ambient, -.009 * vol, .009 * vol);
+      if (newsActive) stock.newsReferencePrice = clamp((stock.newsReferencePrice ?? stock.price) * (1 + newsReturn), stock.previousClose * .68, stock.previousClose * 1.32);
+      const botVolume = Math.round((300 + rand(world.tick + stock.base) * 5_800) * (VIRTUAL_BOT_COUNT / 100));
+      applyMove(world, stock, (1 + ambientReturn) * (1 + newsReturn) - 1, botVolume, at);
     }
     world.remaining = Math.max(0, world.remaining - interval / 1000);
     if (hadActiveNews && newsImpactRemainingSeconds(world) === 0) recordGameLog(world, { at, kind: "news", message: "Published news effects have settled; ordinary market trading continues." });
@@ -766,7 +787,7 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
   const eligible = entrant && entrant.included && entrant.batch === world.batch && entrants.some(player => player.id === entrant.id);
   const standing = eligible ? { rank: 1 + entrants.filter(other => equity(world, other) > equity(world, entrant) + .005).length, total: entrants.length } : null;
   return { ...rest, standing, controls: publicControls, headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), revision: world.version, terminalSummaries, participants: terminalSummaries.length, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => {
-    const { newsBias: _newsBias, newsBiasClock: _newsBiasClock, newsMoves: _newsMoves, ...publicStock } = stock;
+    const { newsBias: _newsBias, newsReferencePrice: _newsReferencePrice, newsBiasClock: _newsBiasClock, newsMoves: _newsMoves, ...publicStock } = stock;
     const fullCandles = stock.candles.slice(-600);
     const since = options.candlesSince;
     const canSendDelta = typeof since === "number" && Number.isFinite(since) && fullCandles.length > 0 && since >= fullCandles[0].time && since <= fullCandles.at(-1)!.time;

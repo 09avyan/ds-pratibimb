@@ -145,3 +145,12 @@ Starting the brain from a ready or closed market also starts a fresh batch with 
 ### Restored full news cards
 
 Trading and audience dashboards show the latest published set only, with the full earlier card details restored: numbered stories, major/minor label, affected company/sector/economy, game-relative release time, headline count and story text. The close button stays inside the panel; older sets remain in the News desk. News is laid out in compact themed cards, with a fixed-height audience region that preserves the stock grid without page scrolling.
+
+### News direction in brain-led games and updated identity
+
+- The mark is now a compact vector D with a market line, paired with a shared “Dalaal Street” wordmark on terminals, audience screens, host access, terminal entry and the public launcher. The favicon uses the same mark.
+- A new news set replaces unfinished effects on the companies it targets. Within that set, company news still takes priority over sector news, and sector news over economy news. Unaffected companies keep their current effects.
+- Ordinary noise, bot pressure and old momentum are moderated for the full news effect, including its follow-through. Small retracements remain. The price reference follows the realised news change, so mean reversion does not automatically undo the announcement by pulling back toward the opening price.
+- The brain excludes opposing stories at the same scope on the same companies, avoids stories whose direction is already blocked by a price limit, and rechecks its choices against the prices at publication. News can still reverse an earlier, different event; the newly published effective set then determines the new reaction.
+- `node scripts/news-live-check.cjs` checks actual prices relative to the moment of publication, including all 61 stories in mature markets, overlapping news reversals, both tick speeds and six complete brain-led rounds with three simulated player terminals. This complements the independent-scope and mixed-set checks in `scripts/news-direction-check.cjs`.
+- A negative headline means a negative reaction relative to its publication price; a stock can retain a positive overall batch return after that fall. Price retracements and ordinary trading after an effect settles remain part of the game.

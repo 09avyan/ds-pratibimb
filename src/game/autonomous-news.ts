@@ -111,7 +111,15 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   const publishedKeys = new Set(world.headlines.map(storyKey));
   const reserved = world.scheduledNews.map(event => world.news[event.index]).filter(Boolean);
   const freshStories = world.news.map((news, index) => ({ news, index }))
-    .filter(item => (!introductoryStage || scopeOf(item.news) === "stock" || introductoryStage === 2 && scopeOf(item.news) === "sector") && !publishedKeys.has(storyKey(item.news)) && !reserved.some(news => storyKey(news) === storyKey(item.news)) && ![...world.headlines, ...reserved].some(other => newsContradicts(item.news, other)));
+    .filter(item => (!introductoryStage || scopeOf(item.news) === "stock" || introductoryStage === 2 && scopeOf(item.news) === "sector") && !publishedKeys.has(storyKey(item.news)) && !reserved.some(news => storyKey(news) === storyKey(item.news)) && ![...world.headlines, ...reserved].some(other => newsContradicts(item.news, other)))
+    .filter(({ news }) => {
+      const scope = scopeOf(news);
+      const affected = world.stocks.filter(stock => scope === "economy" || (scope === "sector" ? stock.sector === news.sector : news.symbols?.includes(stock.symbol)));
+      // Do not propose a direction that a circuit limit already prevents.
+      return affected.length > 0 && affected.every(stock => news.direction > 0
+        ? stock.previousClose * 1.32 / stock.price - 1 > .005
+        : 1 - stock.previousClose * .68 / stock.price > .005);
+    });
   const tradeSymbolScores = new Map<string, number>();
   const tradeSectorScores = new Map<string, number>();
   for (const player of activeTerminalPlayers(world, at)) {
@@ -179,6 +187,14 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
     if (introductoryStage === 2 && (!items.some(item => scopeOf(item.news) === "sector") || !items.some(item => scopeOf(item.news) === "stock"))) return;
     // Avoid teaching scope overrides before parents have had two straightforward sets.
     if (introductoryStage === 2 && items[0].news.sector === items[1].news.sector) return;
+    // Opposite stories at the same scope would cancel on the same companies.
+    // Scope overrides remain valid (company > sector > economy), but the brain
+    // should not publish an ambiguous pair of opposing economy/sector stories.
+    if (items.some((item, i) => items.slice(0, i).some(other => {
+      const scope = scopeOf(item.news);
+      return scope === scopeOf(other.news) && item.news.direction !== other.news.direction &&
+        (scope === "economy" || scope === "sector" && item.news.sector === other.news.sector || scope === "stock" && item.news.symbols?.some(symbol => other.news.symbols?.includes(symbol)));
+    }))) return;
     const scopes = new Set(items.map(item => scopeOf(item.news))).size;
     const sectors = new Set(items.filter(item => scopeOf(item.news) !== "economy").map(item => item.news.sector)).size;
     const balance = new Set(items.map(item => item.news.direction)).size > 1 ? .45 : -.15;

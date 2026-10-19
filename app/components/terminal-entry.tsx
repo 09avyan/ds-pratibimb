@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DalaalMark } from "@/components/trader-parts";
+import { DalaalMark, DalaalWordmark } from "@/components/trader-parts";
 
 export function TerminalEntry({ prefix = "", basePath }: { prefix?: string; basePath?: string }) {
   const router = useRouter();
@@ -18,7 +18,7 @@ export function TerminalEntry({ prefix = "", basePath }: { prefix?: string; base
     router.push(`${basePath ?? `${prefix}/play`}/${String(number).padStart(2, "0")}`);
   }
   return <main className="terminal-entry-page">
-    <a className="terminal-entry-brand" href="/"><DalaalMark/><span>DALAA<span>L</span> STREET</span></a>
+    <a className="terminal-entry-brand" href="/"><DalaalMark/><DalaalWordmark/></a>
     <section className="terminal-entry-card">
       <span className="eyebrow">PARTICIPANT ACCESS</span>
       <h1>Enter your terminal code<span>.</span></h1>

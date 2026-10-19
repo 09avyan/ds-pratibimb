@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Mode, News, Player, PublicWorld, Stock, Trade } from "@/game/types";
 import { equity, performance, shortValue } from "@/game/engine";
-import { DalaalMark, Logo } from "@/components/trader-parts";
+import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
 import { UI_OPTIONS, type UiVariant } from "@/ui-options";
 
 type Props = { mode?: Mode; audienceOnly?: boolean; terminal?: number; uiVariant?: UiVariant; preview?: boolean };
@@ -156,7 +156,7 @@ function Header({ world, player, onTheme, theme, clockNow }: { world: PublicWorl
   const value = world && player ? equity(world as never, player) : 1_000_000;
   const pnl = value - (player?.initialCash ?? 1_000_000);
   return <header className="topbar">
-    <div className="topbar-brand"><DalaalMark/><span>DALAA<span>L</span> STREET</span></div>
+    <div className="topbar-brand"><DalaalMark/><DalaalWordmark/></div>
     <div className="market-ribbon"><span className="ribbon-label">DALAAL-10</span><strong>{world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00"}</strong><span className={world && world.indexChange >= 0 ? "positive" : "negative"}>{world ? `${world.indexChange >= 0 ? "+" : ""}${world.indexChange.toFixed(2)}%` : "0.00%"}</span></div>
     <div className="topbar-metrics"><div className="terminal-standing"><small>POSITION</small><b>{world?.standing ? `${world.standing.rank} / ${world.standing.total}` : "—"}</b></div><div><small>SESSION</small><b className="timer-value">{world?.status === "countdown" ? fmtTime(Math.ceil((world.startedAt - clockNow) / 1000)) : world ? fmtTime(world.remaining) : "06:00"}</b></div><div><small>FREE CASH</small><b>{money(player?.cash ?? 1_000_000, 0)}</b></div><div><small>PORTFOLIO</small><b>{money(value, 0)}</b></div><div><small>DAY P&amp;L</small><b className={pnl >= 0 ? "positive" : "negative"}>{pnl >= 0 ? "+" : ""}{money(pnl, 0)}</b></div></div>
     <button className="theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
@@ -418,7 +418,7 @@ function Audience({ world, uiVariant, preview, theme, onTheme }: { world: Public
   useEffect(() => { const done = () => setFullscreen(Boolean(document.fullscreenElement)); document.addEventListener("fullscreenchange", done); return () => document.removeEventListener("fullscreenchange", done); }, []);
   return <main className={`audience-wall ui-${uiVariant ?? "default"}`}>
     <header className="wall-header">
-      <div className="wall-brand"><span className="brand-glyph"><DalaalMark/></span><span><small>PRATIBIMB · INTERACTIVE MARKET</small><b>DALAA<span>L</span> STREET</b></span></div>
+      <div className="wall-brand"><span className="brand-glyph"><DalaalMark/></span><span><small>PRATIBIMB · INTERACTIVE MARKET</small><DalaalWordmark/></span></div>
       <div className="wall-index-readout" aria-label={`Dalaal-10 index ${indexText}, ${signReturn(returnPct)}`}><span className="wall-index-kicker">DALAAL-10<small>INDEX</small></span><strong>{indexText}</strong><span className="wall-index-unit">PTS</span><b className={returnPct >= 0 ? "positive" : "negative"}>{signReturn(returnPct)}</b></div>
       <div className="wall-status"><span className="live-dot"/>{statusText}<b>{world?.status === "live" ? fmtTime(world.remaining) : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</b></div>
       <button className="theme-button wall-theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? <svg className="wall-theme-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2Z"/></svg> : <svg className="wall-theme-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>}</button>
