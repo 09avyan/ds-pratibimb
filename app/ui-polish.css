@@ -102,6 +102,9 @@
   object-fit: contain;
 }
 
+.terminal .holdings-actions { display:flex;align-items:center;gap:7px; }
+.terminal .holdings-actions .sell-all-inline { min-height:27px;padding:5px 8px;border-radius:999px;font-size:8px; }
+
 .host-shortcuts-panel { max-width: 1040px; }
 .host-shortcuts-intro,
 .host-shortcuts-note { color: var(--muted); font-size: 10px; line-height: 1.6; }

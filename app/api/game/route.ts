@@ -80,6 +80,24 @@ export async function POST(request: NextRequest) {
     const { world, result } = await mutate(mode, state => {
       advance(state);
       const player = touchSession(state, sessionId, terminalNumber);
+      if (action === "sell-all") {
+        const bulkRequestId = requestId ? `bulk-${requestId}` : undefined;
+        if (requestId && player.history.some(trade => trade.requestId === requestId)) throw new Error("This submission ID already belongs to a different order.");
+        const repeated = bulkRequestId ? player.history.filter(trade => trade.requestId === bulkRequestId) : [];
+        if (repeated.length) {
+          if (repeated.some(trade => trade.side !== "Sell")) throw new Error("This submission ID already belongs to a different order.");
+          return { bulkSale: true, duplicate: true, soldCount: repeated.length, shareCount: repeated.reduce((sum, trade) => sum + trade.qty, 0), symbols: [...new Set(repeated.map(trade => trade.symbol))] };
+        }
+        const positions = Object.entries(player.holdings).filter(([, position]) => position.qty > 0);
+        if (!positions.length) throw new Error("You have no long holdings to sell.");
+        const sold = positions.map(([symbol, position]) => {
+          const trade = executeTrade(state, player, "Sell", symbol, position.qty, Date.now(), { allowBulk: true });
+          trade.requestId = bulkRequestId;
+          return trade;
+        });
+        player.lastSeenAt = Date.now();
+        return { bulkSale: true, duplicate: false, soldCount: sold.length, shareCount: sold.reduce((sum, trade) => sum + trade.qty, 0), symbols: sold.map(trade => trade.symbol) };
+      }
       if (action === "trade") {
         const existing = requestId ? player.history.find(trade => trade.requestId === requestId) : null;
         if (existing) {

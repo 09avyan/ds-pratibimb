@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const { world, result } = await mutate("live", state => {
       advance(state);
       if (state.status === "live" || state.status === "countdown") return { started: false, message: "A batch is already in progress." };
-      hostAction(state, "start", { autonomous: true });
+      hostAction(state, "autonomous-start");
       return { started: true, message: "The batch is starting with autonomous news enabled." };
     });
     return NextResponse.json({ ...publicStatus(world), result }, { headers: { "Cache-Control": "no-store, max-age=0" } });

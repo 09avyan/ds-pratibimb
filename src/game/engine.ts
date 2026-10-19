@@ -552,11 +552,12 @@ export function settle(world: World, player: Player, at: number) {
   player.ended = true;
 }
 
-export function executeTrade(world: World, player: Player, action: "Buy" | "Sell" | "Short", symbol: string, quantity: number, at = Date.now()) {
+export function executeTrade(world: World, player: Player, action: "Buy" | "Sell" | "Short", symbol: string, quantity: number, at = Date.now(), options: { allowBulk?: boolean } = {}) {
   if (world.status === "closed" || player.ended) throw new Error("This market session has ended.");
   if (world.status !== "live") throw new Error("The market is not open yet.");
   if (player.paused || !player.included || world.controls.paused) throw new Error("Trading is paused for this participant.");
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100_000) throw new Error("Enter a whole-share quantity between 1 and 100,000.");
+  const maxQuantity = options.allowBulk ? Number.MAX_SAFE_INTEGER : 100_000;
+  if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > maxQuantity) throw new Error(options.allowBulk ? "The position is too large to close safely." : "Enter a whole-share quantity between 1 and 100,000.");
   const stock = world.stocks.find(s => s.symbol === symbol);
   if (!stock) throw new Error("That company is no longer available.");
   const px = stock.price, notional = quantity * px;
@@ -601,7 +602,7 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
   const direction = action === "Buy" ? 1 : -1;
   const impact = clamp(quantity / Math.max(30_000, stock.base * 80) * .018, .000015, .0008) * direction;
   stock.flow += direction * Math.min(12, quantity / 20);
-  applyMove(world, stock, impact, quantity, at);
+  applyMove(world, stock, impact, Math.min(quantity, 100_000), at);
   world.version++;
   return trade;
 }
