@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Mode, Player, PublicWorld, Stock, Trade } from "@/game/types";
-import { AudienceStage } from "./audience-stage";
+import { AudienceStage, Odometer } from "./audience-stage";
+import { announceTrade, TerminalMoments, TickPrice, TradeCelebration } from "./trading-motion";
 import { equity, performance, shortValue } from "@/game/engine";
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
-import { changePct, fmtTime, latestNewsSet, MiniChart, money, newsScope, smoothPath, useChartColour } from "./market-parts";
+import { changePct, fmtTime, latestNewsSet, MiniChart, money, newsScope, smoothPath, useChartColour, useSmoothRemaining } from "./market-parts";
 import { UI_OPTIONS, type UiVariant } from "@/ui-options";
 
 type Props = { mode?: Mode; audienceOnly?: boolean; terminal?: number; uiVariant?: UiVariant; preview?: boolean };
@@ -120,10 +121,11 @@ function MainChart({ stock, kind, trades, startedAt, position }: { stock: Stock;
 function Header({ world, player, onTheme, theme, clockNow }: { world: PublicWorld | null; player: Player | null; onTheme: () => void; theme: "light" | "dark"; clockNow: number }) {
   const value = world && player ? equity(world as never, player) : 1_000_000;
   const pnl = value - (player?.initialCash ?? 1_000_000);
+  const remaining = useSmoothRemaining(world);
   return <header className="topbar">
     <div className="topbar-brand"><DalaalMark/><DalaalWordmark/></div>
-    <div className="market-ribbon"><span className="ribbon-label">DALAAL-10</span><strong>{world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00"}</strong><span className={world && world.indexChange >= 0 ? "positive" : "negative"}>{world ? `${world.indexChange >= 0 ? "+" : ""}${world.indexChange.toFixed(2)}%` : "0.00%"}</span></div>
-    <div className="topbar-metrics"><div className="terminal-standing"><small>RANK</small><b>{world?.standing ? `${world.standing.rank} / ${world.standing.total}` : "—"}</b></div><div><small>SESSION</small><b className="timer-value">{world?.status === "countdown" ? fmtTime(Math.ceil((world.startedAt - clockNow) / 1000)) : world ? fmtTime(world.remaining) : "06:00"}</b></div><div><small>FREE CASH</small><b>{money(player?.cash ?? 1_000_000, 0)}</b></div><div><small>PORTFOLIO</small><b>{money(value, 0)}</b></div><div><small>DAY P&amp;L</small><b className={pnl >= 0 ? "positive" : "negative"}>{pnl >= 0 ? "+" : ""}{money(pnl, 0)}</b></div></div>
+    <div className="market-ribbon"><span className="ribbon-label">DALAAL-10</span><strong><Odometer text={world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00"}/></strong><span className={world && world.indexChange >= 0 ? "positive" : "negative"}>{world ? `${world.indexChange >= 0 ? "+" : ""}${world.indexChange.toFixed(2)}%` : "0.00%"}</span></div>
+    <div className="topbar-metrics"><div className="terminal-standing"><small>RANK</small><b>{world?.standing ? `${world.standing.rank} / ${world.standing.total}` : "—"}</b></div><div><small>SESSION</small><b className="timer-value">{world?.status === "countdown" ? fmtTime(Math.ceil((world.startedAt - clockNow) / 1000)) : world ? fmtTime(remaining) : "06:00"}</b></div><div><small>FREE CASH</small><b>{money(player?.cash ?? 1_000_000, 0)}</b></div><div><small>PORTFOLIO</small><b><Odometer text={money(value, 0)}/></b></div><div><small>DAY P&amp;L</small><b className={pnl >= 0 ? "positive" : "negative"}><Odometer text={`${pnl >= 0 ? "+" : ""}${money(pnl, 0)}`}/></b></div></div>
     <button className="theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
   </header>;
 }
@@ -261,8 +263,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       }
       worldRef.current = nextWorld;
       setWorld(nextWorld);
-      if (action === "trade") setToast(data.result?.note ? `Trade complete · ${data.result.note}` : `${payload.side} order executed · ${payload.quantity} ${payload.symbol}`);
-      else if (action === "sell-all") setToast(`Sold all ${payload.symbol} · ${data.result?.shareCount ?? 0} shares.`);
+      if (action === "trade") { setToast(data.result?.note ? `Trade complete · ${data.result.note}` : `${payload.side} order executed · ${payload.quantity} ${payload.symbol}`); announceTrade(String(payload.side), Number(payload.quantity), String(payload.symbol)); }
+      else if (action === "sell-all") { setToast(`Sold all ${payload.symbol} · ${data.result?.shareCount ?? 0} shares.`); announceTrade("Sell", Number(data.result?.shareCount ?? 0), String(payload.symbol)); }
       else if (action === "end") setView("report");
       else if (action === "sandbox-start") { setView("markets"); setToast("Your next practice round is starting."); }
       return data;
@@ -290,7 +292,11 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     <div className="order-submit-actions"><button className={`execute-button ${side.toLowerCase()}`} disabled={blocked || qty < 1 || (side === "Sell" && qty > ownedQty)} onClick={() => void send("trade", { side, symbol: stock.symbol, quantity: qty })}>{busy ? "Submitting order…" : blocked ? world?.status === "closed" ? "Market closed" : "Waiting for the batch" : `${side} ${qty || "—"} ${stock.symbol}`}</button><button type="button" className="sell-stock-all" aria-label={`Sell all ${ownedQty} ${stock.symbol} shares`} disabled={blocked || ownedQty < 1} onClick={() => void send("sell-all", { symbol: stock.symbol })}><span>Sell all</span><small>{ownedQty ? `${ownedQty.toLocaleString()} shares` : "No shares held"}</small></button></div>
     <div className="available-row"><span>Available cash</span><b>{money(player?.cash ?? 1_000_000, 0)}</b></div>
   </div>;
-  return <div className={`terminal${uiVariant ? ` ui-${uiVariant}` : ""}`}>
+  // The host can switch the terminal's animations off for every device.
+  const motion = world?.controls.animateTrading !== false;
+  return <div className={`terminal${uiVariant ? ` ui-${uiVariant}` : ""}${motion ? " has-motion" : " no-motion"}`}>
+    {motion && <TerminalMoments world={world} theme={theme} variant={uiVariant ?? "default"}/>}
+    <TradeCelebration enabled={motion}/>
     {preview && previewOption && <div className="ui-preview-strip"><a className="preview-back" href="/ui-preview">← Compare all</a><div className="preview-option-title"><b>VERSION {previewOption.number} · {previewOption.name}</b><small>{previewOption.tagline}</small></div><span className="preview-sandbox">ISOLATED PREVIEW MARKET · NO LIVE TRADES</span><nav className="preview-switcher" aria-label="Switch design preview">{UI_OPTIONS.map(option => <a key={option.slug} aria-current={option.slug === uiVariant ? "page" : undefined} href={`/ui-preview/${option.slug}/play/${String(terminal ?? 1).padStart(2, "0")}`}>V{option.number}</a>)}<a href={`/ui-preview/${uiVariant}/audience`}>Audience</a></nav></div>}
     <Header world={world} player={player} clockNow={clockNow} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />
     <nav className="terminal-tabs" aria-label="Primary navigation">
@@ -305,7 +311,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
         <StockPriceTicker stocks={world?.stocks ?? []}/>
         {latestNews.length > 0 && (dismissedNews === newsKey ? <button type="button" className="news-reopen" onClick={() => setDismissedNews("")}>News <span>{latestNews.length}</span></button> : <section className="market-news-feed" aria-label="Latest news set">
           <header className="news-set-heading"><span className="eyebrow">LATEST NEWS</span><span>{latestNews.length} {latestNews.length === 1 ? "headline" : "headlines"}</span><button type="button" className="news-popup-close" aria-label="Close latest news" onClick={() => setDismissedNews(newsKey)}>×</button></header>
-          <div className="market-news-list">{latestNews.map((item, index) => <article key={item.id}><div className="news-card-meta"><b className="market-news-number">News {index + 1}</b><span className={`news-tag ${item.type}`}>{item.type}</span><span className="market-news-scope">{newsScope(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div><strong>{item.headline}</strong></article>)}</div>
+          <div className="market-news-list">{latestNews.map((item, index) => <article key={item.id}><div className="news-card-meta"><b className="market-news-number">News {index + 1}</b><span className={`news-tag ${item.type}`}>{item.type}</span><span className="market-news-scope">{newsScope(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div><strong>{item.headline.split(" ").map((word, w) => <span className="news-word" key={w} style={{ "--w": w, "--i": index } as React.CSSProperties}>{word} </span>)}</strong></article>)}</div>
         </section>)}
         <div className="trading-grid">
           <section className="watch-area">
@@ -317,7 +323,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
               const onSelect = () => { setSelected(s.symbol); setQuantity("10"); setAmount(""); };
               return <button key={s.symbol} type="button" className={`stock-card ${selected === s.symbol ? "selected" : ""}`} onClick={onSelect} aria-pressed={selected === s.symbol} aria-label={`Select ${s.name} to view its chart and trade controls`}>
                   <div className="stock-card-top"><Logo stock={s}/><div className="stock-id"><strong>{s.symbol}</strong><span>{s.name}</span></div></div>
-                  <div className="stock-card-bottom"><strong>{money(s.price)}</strong><span className={`stock-change ${changePct(s) >= 0 ? "positive" : "negative"}`}>{changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</span></div>
+                  <div className="stock-card-bottom"><TickPrice value={s.price}>{money(s.price)}</TickPrice><span className={`stock-change ${changePct(s) >= 0 ? "positive" : "negative"}`}>{changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</span></div>
                   <MiniChart stock={s} startedAt={world?.startedAt}/>
                   <div className="stock-card-foot"><span>{s.sector}</span><span>{position}</span></div>
                 </button>;

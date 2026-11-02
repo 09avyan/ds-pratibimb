@@ -62,4 +62,24 @@ export function MiniChart({ stock, startedAt = 0 }: { stock: Stock; startedAt?: 
   return <svg className="mini-chart" data-chart-state={chart.state} data-chart-flash={chart.flash ?? "none"} viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><path d={smoothPath(points)} fill="none" className="chart-price-line" stroke={chart.color} strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" /></svg>;
 }
 
+/**
+ * The batch clock, counted down locally between updates. On a slow connection updates can arrive
+ * every two or three seconds; the clock still moves every second and corrects itself on each update.
+ * It never runs more than three seconds ahead of the last update, and stops while paused.
+ */
+export function useSmoothRemaining(world: PublicWorld | null) {
+  const remaining = world?.remaining ?? 0;
+  const live = world?.status === "live" && !world.controls.paused;
+  const mark = useRef({ remaining, at: 0 });
+  const [now, setNow] = useState(() => Date.now());
+  if (mark.current.remaining !== remaining || !mark.current.at) mark.current = { remaining, at: Date.now() };
+  useEffect(() => {
+    if (!live) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [live]);
+  if (!live) return remaining;
+  return Math.max(0, remaining - Math.min(3, Math.max(0, now - mark.current.at) / 1000));
+}
+
 export function fmtTime(seconds: number) { const s = Math.max(0, Math.floor(seconds)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }

@@ -24,10 +24,11 @@ for(const sign of [1,-1]) {
 }
 const a={headline:'Business loan rates fall',topic:'credit-cost',direction:1},b={headline:'Business loan rates rise',topic:'credit-cost',direction:-1};
 assert(newsContradicts(a,b));assert.throws(()=>validateNewsSelection([a,b]));assert.throws(()=>validateNewsSelection([b],[a]));
-const w=E.freshWorld('live',now);E.hostAction(w,'start',{},now);E.advance(w,w.startedAt+60_000);
+// The brain starts 10 s in, so its first set (50–75 s from the start) lands after the 40 s checked here.
+const w=E.freshWorld('live',now);E.hostAction(w,'start',{},now);E.advance(w,w.startedAt+10_000);
 const tickBefore=w.tick,batchBefore=w.batch;E.hostAction(w,'autonomous-start',{},w.lastTickAt);
 assert(w.autonomousNews.enabled);assert.equal(w.batch,batchBefore);assert.equal(w.tick,tickBefore);assert(w.autonomousNews.nextAt>w.lastTickAt);
-for(let second=5;second<=40;second+=5){E.advance(w,w.startedAt+60_000+second*1000);assert.equal(w.autonomousNews.plannedAt,w.startedAt+60_000);assert(w.autonomousNews.nextAt<=w.autonomousNews.plannedAt+105_000);}
+for(let second=5;second<=40;second+=5){E.advance(w,w.startedAt+10_000+second*1000);assert.equal(w.autonomousNews.plannedAt,w.startedAt+10_000);assert(w.autonomousNews.nextAt<=w.autonomousNews.plannedAt+105_000);}
 const pauseAt=w.lastTickAt,oldDue=w.autonomousNews.nextAt;E.hostAction(w,'pause',{},pauseAt);E.advance(w,pauseAt+10_000);E.hostAction(w,'resume',{},pauseAt+20_000);assert.equal(w.autonomousNews.nextAt,oldDue+20_000);
 // Keep duplicates, offline devices and finished participants from distorting rank.
 const rankWorld=E.freshWorld('live',now);rankWorld.batch=1;

@@ -10,3 +10,6 @@ node_modules/
 # Graphify: keep graph.json, GRAPH_REPORT.md and manifest; regenerate the rest
 graphify-out/cache/
 graphify-out/graph.html
+
+# Taste inspector screenshots and reports (regenerated on each run)
+.taste-skill/
