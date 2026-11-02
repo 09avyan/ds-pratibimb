@@ -293,6 +293,7 @@ function sprite(color: string, size: number) {
   return c;
 }
 function ParticleField({ text, light }: { text: string; light: boolean }) {
+  const speed = useRef(1);
   const ref = useRef<HTMLCanvasElement>(null);
   const state = useRef<{ particles: Particle[]; w: number; h: number; burst: boolean; step: number } | null>(null);
   // Build the field once.
@@ -319,6 +320,8 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
       return { x: w / 2 + Math.cos(a) * r, y: h / 2 + Math.sin(a) * r, vx: 0, vy: 0, tx: null, ty: null, size: .5 + Math.random() * 1.1, tone: Math.random() < .55 ? 0 : Math.random() < .6 ? 1 : 2, phase: Math.random() * Math.PI * 2, orbit: (.3 + Math.random() * .55) * Math.min(w, h), spin: (Math.random() < .5 ? -1 : 1) * (.15 + Math.random() * .35) };
     });
     state.current = { particles, w, h, burst: false, step: 8 };
+    // Hyperspace: streaks rush out from the centre, faster as the count falls.
+    const stars = Array.from({ length: 420 }, () => ({ a: Math.random() * Math.PI * 2, z: Math.random(), tone: Math.floor(Math.random() * 3) }));
     const onResize = () => resize();
     window.addEventListener("resize", onResize);
     const frame = (now: number) => {
@@ -330,6 +333,22 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
       ctx.fillRect(0, 0, w, h);
       ctx.globalCompositeOperation = light ? "source-over" : "lighter";
       const cx = w / 2, cy = h / 2, t = now / 1000;
+      const reach = Math.hypot(w, h) / 2;
+      ctx.lineCap = "round";
+      for (const star of stars) {
+        const before = star.z;
+        star.z += .0042 * speed.current * dt * (.4 + star.z);
+        if (star.z > 1) { star.z = Math.random() * .05; star.a = Math.random() * Math.PI * 2; continue; }
+        const r0 = Math.pow(before, 2.2) * reach, r1 = Math.pow(star.z, 2.2) * reach;
+        if (r1 < 40 * dpr) continue;
+        ctx.globalAlpha = Math.min(1, star.z * 1.6) * (light ? .5 : .85);
+        ctx.strokeStyle = colors[star.tone];
+        ctx.lineWidth = (.6 + star.z * 3.2) * dpr;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(star.a) * r0, cy + Math.sin(star.a) * r0);
+        ctx.lineTo(cx + Math.cos(star.a) * r1, cy + Math.sin(star.a) * r1);
+        ctx.stroke();
+      }
       for (const p of st.particles) {
         if (st.burst) { p.vy += .06 * dt * dpr; p.vx *= .985; p.vy *= .985; }
         else if (p.tx !== null && p.ty !== null) {
@@ -364,6 +383,7 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
     const points = glyphPoints(text, st.w, st.h, step);
     const cx = st.w / 2, cy = st.h / 2;
     st.burst = false;
+    speed.current = text === "GO" ? 9 : Math.max(1, 6 - Number(text));
     st.particles.forEach((p, i) => {
       const point = points[i];
       if (point) { p.tx = point.x; p.ty = point.y; } else { p.tx = null; p.ty = null; }
@@ -382,8 +402,14 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
 }
 
 function CountdownScene({ seconds, variant, light }: { seconds: number; variant: string; light: boolean }) {
+  const scene = useRef<HTMLDivElement>(null);
+  // Every second lands like a beat: the whole scene punches in and settles.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    scene.current?.animate([{ transform: "scale(1.06)", filter: "brightness(1.5)" }, { transform: "none", filter: "none" }], { duration: 520, easing: "cubic-bezier(.2,.8,.2,1)" });
+  }, [seconds]);
   return <div className={`stage-countdown${seconds === 0 ? " is-go" : ""}`} role="status" aria-live="assertive">
-    <div className="cd-scene" aria-hidden="true">
+    <div className="cd-scene" aria-hidden="true" ref={scene}>
       <svg className="cd-chart" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMax slice">
         {CANDLES.map((candle, i) => {
           const x = 18 + i * 35, top = 300 - Math.max(candle.open, candle.close) * 3.4, bottom = 300 - Math.min(candle.open, candle.close) * 3.4;
@@ -400,13 +426,15 @@ function CountdownScene({ seconds, variant, light }: { seconds: number; variant:
       {variant === "conservatory" && <div className="cd-motif cd-vinyl"><i/></div>}
       {variant === "tangram" && <div className="cd-motif cd-tangram"><i/><i/><i/><i/><i/></div>}
       {variant === "arcade" && <div className="cd-motif cd-beads"><i/><i/><i/><i/><i/><i/></div>}
+      <div className="cd-beams"><i/><i/><i/><i/></div>
       <i className="cd-pulse" key={`p${seconds}`}/>
       <i className="cd-pulse late" key={`q${seconds}`}/>
     </div>
+    <ParticleField text={seconds ? String(seconds) : "GO"} light={light}/>
+    {seconds === 0 && <i className="cd-flash" aria-hidden="true"/>}
     <div className="cd-dial">
       <svg className="cd-ring" viewBox="0 0 100 100" key={`r${seconds}`} aria-hidden="true"><circle className="cd-ring-track" cx="50" cy="50" r="46"/><circle className="cd-ring-sweep" cx="50" cy="50" r="46" pathLength={1}/></svg>
       <span>Trading opens in</span>
-      <ParticleField text={seconds ? String(seconds) : "GO"} light={light}/>
       <strong key={seconds}>{seconds || "GO"}</strong>
     </div>
   </div>;

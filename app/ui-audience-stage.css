@@ -431,7 +431,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 /* Countdown: particles gather into each number. */
 .cd-particles { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
 .cd-chart { opacity: .42; }
-.cd-dial { width: calc(640 * var(--u)); height: calc(640 * var(--u)); background: transparent; }
+.cd-dial { z-index: 3; width: calc(640 * var(--u)); height: calc(640 * var(--u)); background: transparent; }
 .cd-dial span { top: calc(-70 * var(--u)); z-index: 3; color: var(--ink); font-size: calc(46 * var(--u)); letter-spacing: -.01em; }
 .cd-dial strong { position: relative; z-index: 3; color: #fff; font-size: calc(560 * var(--u)); line-height: .9; text-shadow: 0 0 calc(30 * var(--u)) var(--accent), 0 0 calc(90 * var(--u)) color-mix(in srgb, var(--accent) 70%, transparent); animation: cd-materialise 1s cubic-bezier(.2, .8, .2, 1) both; }
 .stage-light .cd-dial strong { color: var(--ink); text-shadow: 0 0 calc(40 * var(--u)) color-mix(in srgb, var(--accent) 45%, transparent); }
@@ -442,6 +442,20 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 @media (prefers-reduced-motion: reduce) {
   .cd-particles { display: none; }
 }
+
+/* Stage spotlights sweep across the scene. */
+.cd-beams { position: absolute; inset: 0; z-index: 1; overflow: hidden; mix-blend-mode: screen; }
+.stage-light .cd-beams { mix-blend-mode: multiply; opacity: .35; }
+.cd-beams i { position: absolute; bottom: -20%; width: 34vmax; height: 140vh; background: linear-gradient(to top, color-mix(in srgb, var(--accent) 55%, transparent), transparent 85%); clip-path: polygon(46% 100%, 54% 100%, 100% 0, 0 0); filter: blur(6px); opacity: .55; transform-origin: 50% 100%; animation: cd-beam 3.2s ease-in-out infinite alternate; }
+.cd-beams i:nth-child(1) { left: -8%; --from: 32deg; --to: 2deg; }
+.cd-beams i:nth-child(2) { left: 12%; --from: 12deg; --to: -22deg; animation-delay: -.8s; background: linear-gradient(to top, color-mix(in srgb, var(--gold) 50%, transparent), transparent 85%); }
+.cd-beams i:nth-child(3) { right: 12%; --from: -12deg; --to: 22deg; animation-delay: -1.6s; background: linear-gradient(to top, color-mix(in srgb, var(--up) 45%, transparent), transparent 85%); }
+.cd-beams i:nth-child(4) { right: -8%; --from: -32deg; --to: -2deg; animation-delay: -2.4s; }
+@keyframes cd-beam { from { transform: rotate(var(--from)); } to { transform: rotate(var(--to)); } }
+/* GO: a white flash and a shockwave. */
+.cd-flash { position: absolute; inset: 0; z-index: 4; background: radial-gradient(circle at 50% 50%, #fff, color-mix(in srgb, var(--up) 60%, transparent) 30%, transparent 70%); pointer-events: none; animation: cd-flash .9s ease-out both; }
+@keyframes cd-flash { 0% { opacity: 0; transform: scale(.4); } 15% { opacity: 1; } 100% { opacity: 0; transform: scale(2.4); } }
+@media (prefers-reduced-motion: reduce) { .cd-beams, .cd-flash { display: none; } }
 
 /* Market open: a burst of light and the words, for under three seconds. */
 .stage-open { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; overflow: hidden; pointer-events: none; }
