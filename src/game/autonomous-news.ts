@@ -113,7 +113,11 @@ export function readNewsResponse(world: World, at: number): AutonomousNewsRespon
   };
 }
 
-export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalSeconds = 75, opening = false) {
+/**
+ * keep: stories already shown as the next set. They stay unless they have become invalid
+ * (published, excluded, contradicted or blocked by a price limit), so the host's preview is stable.
+ */
+export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalSeconds = 75, opening = false, keep: number[] = []) {
   const reading = readAutonomousNewsSignals(world, at);
   const recentIndexChange = reading.recentIndexChange ?? 0;
   const latestAt = Math.max(0, ...world.headlines.map(news => news.createdAt));
@@ -275,7 +279,10 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   };
   // Score complete sets rather than forcing one fixed category recipe.
   const ranked = freshStories.map(item => ({ ...item, score: scoreStory(item) })).sort((a, b) => b.score - a.score || a.index - b.index);
-  const pinned = requestedPins.filter(index => ranked.some(item => item.index === index)).slice(0, 3);
+  const pinned = [...new Set([...requestedPins, ...keep])].filter(index => ranked.some(item => item.index === index)).slice(0, 3);
+  const hostPins = requestedPins.filter(index => pinned.includes(index));
+  // A kept set keeps its size, so the preview does not quietly grow a third story.
+  const keptSize = keep.length && keep.every(index => pinned.includes(index)) ? keep.length : 0;
   const pool = [...new Map([
     ...ranked.filter(item => pinned.includes(item.index)),
     ...ranked.slice(0, 14),
@@ -324,11 +331,13 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   };
   for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) {
     evaluate([pool[i], pool[j]]);
-    if (setSize === 3 || pinned.length === 3) for (let k = j + 1; k < pool.length; k++) evaluate([pool[i], pool[j], pool[k]]);
+    if ((setSize === 3 || pinned.length === 3) && keptSize !== 2) for (let k = j + 1; k < pool.length; k++) evaluate([pool[i], pool[j], pool[k]]);
   }
-  const indices = best.map(item => item.index);
+  let indices = best.map(item => item.index);
+  // Same stories as the kept set: keep their shown order too.
+  if (keep.length && indices.length === keep.length && keep.every(index => indices.includes(index))) indices = [...keep];
   const finalSize: 2 | 3 = indices.length === 3 ? 3 : 2;
-  const tempo = pinned.length ? `Building around ${pinned.length === 1 ? "the story" : "the stories"} the host kept, with the best compatible ${pinned.length === 1 ? "partners" : "partner"}.`
+  const tempo = hostPins.length ? `Building around ${hostPins.length === 1 ? "the story" : "the stories"} the host kept, with the best compatible ${hostPins.length === 1 ? "partners" : "partner"}.`
     : finalSet ? "Closing set: no time for another release after this, so clear company stories that can play out before the bell."
     : ignored ? "Nobody traded the last set, so this one uses clearer company stories."
     : introductoryStage === 1 ? "Opening set: two clear company stories in different sectors, so parents can follow one company at a time."

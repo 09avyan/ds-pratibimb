@@ -190,12 +190,18 @@ function planAutonomousNews(world: World, at: number, opening = false) {
 }
 
 /** Re-plan the next set from the current readings while keeping the original timing anchor. */
-function reviewAutonomousNews(world: World, at: number, label = "Live review", logAlways = false) {
+/** Re-plan from current readings. The shown set is kept (fresh = false) so the host can rely on it; in the
+ *  last 20 seconds before release both the set and its release time are locked. */
+function reviewAutonomousNews(world: World, at: number, label = "Live review", logAlways = false, fresh = false) {
   const auto = world.autonomousNews;
   if (!auto?.enabled) return;
-  const plan = chooseAutonomousNewsPlan(world, at, world.controls.newsSpacing);
+  const locked = !fresh && auto.nextAt > 0 && auto.nextAt - at <= 20_000 && auto.nextIndices.length >= 2;
+  let plan = chooseAutonomousNewsPlan(world, at, world.controls.newsSpacing, false, fresh ? [] : auto.nextIndices);
+  // A switch between calm, balanced and lively is a material change: choose stories afresh (not when locked).
+  if (!fresh && !locked && auto.strategy && plan.strategy !== auto.strategy) plan = chooseAutonomousNewsPlan(world, at, world.controls.newsSpacing);
   const latestAt = Math.max(0, ...world.headlines.map(news => news.createdAt));
   const anchor = Math.max(auto.plannedAt ?? (auto.nextAt - auto.nextIntervalSeconds * 1000), latestAt);
+  if (locked && plan.indices.join(",") === auto.nextIndices.join(",")) { auto.lastReviewedAt = at; auto.reading = plan.reading; auto.response = plan.response; return; }
   const nextAt = anchor + plan.intervalSeconds * 1000;
   const changed = auto.nextIndices.join(",") !== plan.indices.join(",") || auto.nextIntervalSeconds !== plan.intervalSeconds;
   const lastPlan = auto.history.find(entry => entry.kind === "planned");
@@ -227,7 +233,7 @@ function publishAutonomousNews(world: World, at: number, hostOverride = false) {
   if (!hostOverride && !auto.hostOverride) {
     // Recheck against the prices at release, including a plan persisted before
     // an engine update. A host-selected mix remains under host control.
-    const finalPlan = chooseAutonomousNewsPlan(world, at, world.controls.newsSpacing);
+    const finalPlan = chooseAutonomousNewsPlan(world, at, world.controls.newsSpacing, false, auto.nextIndices);
     if (auto.nextIndices.join(",") !== finalPlan.indices.join(",")) keepAutonomousHistory(world, { at, kind: "planned", indices: [...finalPlan.indices], intervalSeconds: auto.nextIntervalSeconds, reason: `Publication check: ${finalPlan.reason}` });
     auto.nextIndices = finalPlan.indices;
     auto.nextSetSize = finalPlan.setSize;
@@ -661,8 +667,8 @@ export function hostAction(world: World, action: string, payload: Record<string,
     world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0;
     world.status = "countdown"; world.controls.paused = false; world.remaining = world.duration; world.tick = 0;
     if (world.mode === "test") { world.testRulesVersion = 2; world.controls.majorAuto = 1; world.controls.minorAuto = 2; world.controls.newsEnabled = true; }
-    // Live batches open with a 10-second countdown on the audience stage; practice keeps 3 seconds.
-    world.startedAt = at + (world.mode === "live" ? 10_000 : 3000); world.lastTickAt = at; world.newsNextAt = world.startedAt + world.controls.newsSpacing * 1000;
+    // Live batches open with a 5-second countdown on the audience stage; practice keeps 3 seconds.
+    world.startedAt = at + (world.mode === "live" ? 5000 : 3000); world.lastTickAt = at; world.newsNextAt = world.startedAt + world.controls.newsSpacing * 1000;
     world.scheduledNews = []; world.scheduledInterventions = [];
     for (const player of Object.values(world.sessions)) {
       if (!player.included) continue;
@@ -727,7 +733,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     // Skipped stories stay out of this set (they may return later); the release time is kept.
     auto.excludedIndices = [...new Set([...(auto.excludedIndices ?? []), ...auto.nextIndices])];
     auto.pinnedIndices = [];
-    if (world.status === "live" || world.status === "countdown") { auto.hostOverride = false; reviewAutonomousNews(world, at, "After skip", true); } else planAutonomousNews(world, at);
+    if (world.status === "live" || world.status === "countdown") { auto.hostOverride = false; reviewAutonomousNews(world, at, "After skip", true, true); } else planAutonomousNews(world, at);
   } else if (action === "autonomous-intensity") {
     const auto = world.autonomousNews;
     if (!auto) throw new Error("The news brain is not available.");
@@ -735,7 +741,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (!["auto", "calm", "balanced", "lively"].includes(value)) throw new Error("Choose Auto, Calm, Balanced or Lively.");
     auto.hostIntensity = value === "auto" ? null : value as "calm" | "balanced" | "lively";
     keepAutonomousHistory(world, { at, kind: "host-control", indices: [...auto.nextIndices], intervalSeconds: auto.nextIntervalSeconds, reason: value === "auto" ? "The host returned intensity to the brain." : `The host set the brain's intensity to ${value}.` });
-    if (auto.enabled && !auto.hostOverride && (world.status === "live" || world.status === "countdown")) reviewAutonomousNews(world, at, "Intensity change", true);
+    if (auto.enabled && !auto.hostOverride && (world.status === "live" || world.status === "countdown")) reviewAutonomousNews(world, at, "Intensity change", true, true);
     world.version++;
   } else if (action === "autonomous-nudge") {
     const auto = world.autonomousNews;

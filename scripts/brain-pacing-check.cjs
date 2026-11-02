@@ -136,4 +136,21 @@ const trade = (w, p, symbol, at) => { p.lastSeenAt = at; return E.executeTrade(w
   assert(w.status === 'closed');
 }
 
+// 7. The shown set stays the same across live reviews (host preview is reliable).
+{
+  const w = roundAfterFirstSet(6);
+  let shown = w.autonomousNews.nextIndices.join(','), strategy = w.autonomousNews.strategy, stable = 0;
+  let at = w.lastTickAt;
+  for (let i = 0; i < 8; i++) {
+    at += 5_000; for (const p of Object.values(w.sessions)) p.lastSeenAt = at;
+    const published = w.headlines.length;
+    E.advance(w, at);
+    if (w.headlines.length !== published) break;
+    // Only a strategy switch (or an invalid story) may change the shown set.
+    if (w.autonomousNews.strategy === strategy) { assert.equal(w.autonomousNews.nextIndices.join(','), shown, 'the previewed set does not churn'); stable++; }
+    shown = w.autonomousNews.nextIndices.join(','); strategy = w.autonomousNews.strategy;
+  }
+  assert(stable >= 2, 'several reviews kept the same set');
+}
+
 console.log('brain pacing checks passed');
