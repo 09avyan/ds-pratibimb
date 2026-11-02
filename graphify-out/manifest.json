@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793639170.6524346,
-    "seen": 1793640815.6293545,
-    "ast_hash": "1263feca7b3f2cf8568a6e3c1af4cc75",
+    "mtime": 1793641410.6849225,
+    "seen": 1793642110.2885685,
+    "ast_hash": "a4f23062395344c5e01b0507047b26d4",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793640772.9755502,
-    "seen": 1793640815.6303754,
-    "ast_hash": "71c57b8a2495849229dd95a5266f625e",
+    "mtime": 1793642107.3006313,
+    "seen": 1793642110.2896943,
+    "ast_hash": "74713a6f95ec81814368a5307cdb4acd",
     "semantic_hash": ""
   },
   "app/icon.png": {
