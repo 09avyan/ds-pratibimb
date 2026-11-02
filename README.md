@@ -174,14 +174,14 @@ Trading and audience dashboards show the latest published set only, with the ful
 ### Audience stage (every version: `/audience`, `/v1/audience` … `/v7/audience`)
 - Built for a 100" smart board read from 12–15 feet (1080p or 4K) and adapts to any screen shape: 16:9, 16:10, 21:9, 4:3, portrait screens and phones. The market takes most of the screen; each company panel sizes its type from its own width and height, so names and prices stay large and never clip.
 - Behaviour: the clock (always labelled: Time left, Paused, Starting, ready, closed), the Dalaal-10 index, every story of the latest news set, all 25 companies with short brand names and prices in ₹0.05 steps, the standings with gold, silver and bronze for the top three, final standings after the closing bell, the 5-second countdown and the bells.
-- **Seven different looks**, each with its own layout and motion, in light and dark:
-  - V1 exchange floor: standings on the right, news under the board; panels rise from the centre.
-  - V2 observatory: standings on the left, brass-rimmed plates that spiral in; prices flare like stars on a tick.
-  - V3 clay workshop: news in a column, standings as a strip of tablets below; panels drop and bounce, prices squash on a tick.
-  - V4 colour field (the event display): a heat map where each panel fills with the colour of its move; panels wash in, a wave crosses on a tick.
-  - V5 departure board: the market as rows like trains in three columns, news across the top; rows flip in, prices flip on a tick.
-  - V6 record shop: companies filed by sector with a coloured spine, news over the racks; sleeves slide in, logos spin on a tick.
-  - V7 cut paper: a heat map of cut-corner pieces, standings as a strip across the top, news in a column; pieces turn into place and snap on a tick.
+- **One layout, seven different looks.** Every version keeps the same sections — latest news above the market on the left, standings on the right — and has its own panels, background and motion, in light and dark:
+  - V1 LED stock board: dot-matrix panels, prices glowing in their own colour, a band of light sweeping the board.
+  - V2 observatory: a twinkling starfield, glass panels with brass corner brackets, a ring round each logo in the colour of its move; panels spiral in.
+  - V3 clay workshop: soft clay tiles tinted by their move on a thick pressed edge, breathing gently; panels drop and bounce, prices squash.
+  - V4 colour field (the event display): a heat map; colour washes in, a wave crosses on each tick.
+  - V5 departure board: the market as split-flap rows with a seam and dark letter cells; rows flip in, a shimmer runs down the board.
+  - V6 record shop: companies filed by sector with a coloured spine and a spinning record sliding out of each sleeve.
+  - V7 cut paper: a heat map of cut-corner pieces casting hard paper shadows on a geometric ground; pieces turn in and snap.
 - **Shared moments:** the countdown light show with pixel numbers and each version's own motif; "Market open" in the version's colour; news landing word by word with the companies it touches glowing; rank changes that break rows into pixels and reassemble; a new-leader banner; the last ten seconds (pixel ghost number and red edge); the closing shutter; final standings revealed from last place up, then confetti. All motion stops under reduced motion or from the host's Settings → Screen animations.
 - **Leaderboard:** ranks only terminals that are actually playing — the current login must have placed at least one buy or short in this batch. Equal portfolio values share a rank. Each terminal’s **Position** uses the same rule and ranking.
 

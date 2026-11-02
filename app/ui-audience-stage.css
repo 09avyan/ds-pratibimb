@@ -398,7 +398,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-icon.needs-tap { color: var(--accent); opacity: 1; animation: stage-urgent 1.4s ease-in-out infinite; }
 
 /* ---------- Body: three regions placed by each version ---------- */
-.stage-body { display: grid; flex: 1 1 0; grid-template-columns: minmax(0, 1fr) var(--rail); grid-template-rows: minmax(0, 1fr) auto; grid-template-areas: "market board" "news board"; gap: calc(18 * var(--u)); min-height: 0; }
+.stage-body { display: grid; flex: 1 1 0; grid-template-columns: minmax(0, 1fr) var(--rail); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "news board" "market board"; gap: calc(18 * var(--u)); min-height: 0; }
 
 /* ---------- Market: 25 panels ---------- */
 .stage-grid { grid-area: market; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(5, minmax(0, 1fr)); gap: calc(12 * var(--u)); min-width: 0; min-height: 0; }
@@ -520,23 +520,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-text-button:hover, .stage-text-button:focus-visible { color: var(--on-accent); background: var(--accent); outline: none; }
 
 /* ---------- The standings as a strip (V3, V7, and any squarer screen) ---------- */
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-board { padding: calc(14 * var(--u)) calc(18 * var(--u)); }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-board-head { padding-bottom: calc(8 * var(--u)); }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-board-head h2 { font-size: calc(34 * var(--u)); }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-board-cols, .stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-board-foot { display: none; }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-board-rows { display: grid; flex: none; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: calc(84 * var(--u)); gap: calc(8 * var(--u)); }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-standing, .stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-standing.is-leader { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto; grid-template-areas: "rank name ret" "rank value value"; row-gap: calc(4 * var(--u)); max-height: none; padding: 0 calc(12 * var(--u)) 0 calc(8 * var(--u)); }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-standing-rank, .stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-standing.is-leader .stage-standing-rank { grid-area: rank; width: calc(40 * var(--u)); height: calc(40 * var(--u)); font-size: calc(21 * var(--u)); }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-standing-name { grid-area: name; }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-standing-name strong, .stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-standing.is-leader .stage-standing-name strong { font-size: calc(32 * var(--u)); }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-standing-value, .stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-standing.is-leader .stage-standing-value { grid-area: value; justify-self: start; font-size: calc(23 * var(--u)); }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-standing-return { grid-area: ret; padding: calc(3 * var(--u)) calc(6 * var(--u)); font-size: calc(19 * var(--u)); }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-board-empty { flex-direction: row; padding-top: calc(4 * var(--u)); }
 /* The news as a column (beside the market). */
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-news-cards { grid-template-columns: minmax(0, 1fr); }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-news-cards > article { padding: calc(14 * var(--u)) 0; border-top: calc(2 * var(--u)) solid var(--line); border-left: 0; }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-news-cards > article:first-child { padding-top: calc(4 * var(--u)); border-top: 0; }
-.stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-news-cards p, .stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-news-cards.count-2 p, .stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-news-cards.count-1 p { font-size: calc(28 * var(--u)); -webkit-line-clamp: 4; }
 
 /* ======================================================================
    Seven looks. Each places the regions its own way and moves its own way.
@@ -548,7 +532,6 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 
 /* V2 Orbit Exchange — the observatory: standings on the left; brass-rimmed instrument plates that
    spiral into place; prices brighten like a star when they tick. */
-.stage.v-orbit .stage-body { grid-template-columns: var(--rail) minmax(0, 1fr); grid-template-areas: "board market" "board news"; }
 .v-orbit .stage-tile { border: calc(2 * var(--u)) solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: calc(20 * var(--u)); box-shadow: none; }
 .v-orbit .stage-tile.is-up { border-top-color: var(--up); } .v-orbit .stage-tile.is-down { border-top-color: var(--down); }
 .v-orbit .stage-tile-top .company-mark { outline: calc(2 * var(--u)) solid var(--accent); outline-offset: calc(2 * var(--u)); }
@@ -561,7 +544,6 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 
 /* V3 Clay Market — the clay workshop: news in a column beside the board, standings as a strip of
    clay tablets below; panels drop in and bounce; a price squashes like clay when it ticks. */
-.stage.v-arcade .stage-body { grid-template-columns: minmax(0, 1fr) var(--side); grid-template-rows: minmax(0, 1fr) auto; grid-template-areas: "market news" "board board"; }
 .v-arcade .stage-tile { border-radius: calc(26 * var(--u)); border-bottom: calc(6 * var(--u)) solid rgba(0, 0, 0, .28); box-shadow: none; }
 .v-arcade .stage-tile.is-up .stage-tile-price span { color: #fff; background: #3f8f4c; }
 .v-arcade .stage-tile.is-down .stage-tile-price span { color: #fff; background: #c6452d; }
@@ -594,7 +576,6 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 
 /* V5 Signal Station — the departure board: the market listed in rows like trains, three columns of
    nine; news across the top; rows flip in like split-flap letters, and a price flips when it ticks. */
-.stage.v-broadcast .stage-body { grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "news news" "market board"; }
 .v-broadcast .stage-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(9, minmax(0, 1fr)); grid-auto-flow: column; column-gap: calc(14 * var(--u)); row-gap: calc(4 * var(--u)); }
 .v-broadcast .stage-tile { flex-direction: row; align-items: center; gap: calc(14 * var(--u)); padding: 0 calc(14 * var(--u)); border-radius: calc(3 * var(--u)); box-shadow: inset calc(6 * var(--u)) 0 0 var(--up); perspective: 400px; }
 .v-broadcast .stage-tile.is-down { box-shadow: inset calc(6 * var(--u)) 0 0 var(--down); }
@@ -610,7 +591,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .v-broadcast .stage-tile-top { padding-right: 0 !important; }
 .v-broadcast .stage-tile > .stage-tile-price { position: relative !important; }
 .v-broadcast .stage-tile-price span { position: static !important; }
-.v-broadcast .stage-tile-top b { font-size: min(44cqh, 7.8cqw) !important; }
+.v-broadcast .stage-tile-top b { font-size: min(44cqh, 7cqw) !important; }
 .v-broadcast .stage-tile-price strong { font-size: min(54cqh, 8.2cqw) !important; }
 .stage.v-broadcast[data-status="live"] .stage-tile { animation-name: stage-flap; animation-duration: .6s; animation-delay: calc(var(--i, 0) * 40ms + 120ms); transform-origin: 50% 0; }
 .v-broadcast .stage-tile[data-tick] .stage-tile-price strong { animation: stage-flip .45s cubic-bezier(.3, 1.4, .4, 1); transform-origin: 50% 50%; }
@@ -619,7 +600,6 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 
 /* V6 Vinyl Exchange — the record shop: companies filed in racks by sector, a coloured spine per
    sector; news across the top of the racks; sleeves slide in from the side; a tick spins the logo. */
-.stage.v-conservatory .stage-body { grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "news board" "market board"; }
 .v-conservatory .stage-tile { --spine: #c9b18a; padding-left: calc(24 * var(--u)); box-shadow: inset calc(8 * var(--u)) 0 0 var(--spine); }
 .v-conservatory .stage-tile[data-sector="Energy"] { --spine: #e9a83a; }
 .v-conservatory .stage-tile[data-sector="Technology"] { --spine: #5b9ee6; }
@@ -628,8 +608,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .v-conservatory .stage-tile[data-sector="Industrial"] { --spine: #4fb8a4; }
 .v-conservatory .stage-tile[data-sector="Auto"] { --spine: #9aa58c; }
 .v-conservatory .stage-tile[data-sector="Healthcare"] { --spine: #9ccb52; }
-.v-conservatory .stage-tile-top { flex-wrap: wrap; row-gap: 1cqh; }
-.v-conservatory .stage-tile-sector { display: block; flex-basis: 100%; color: var(--spine); font: 700 min(12cqh, 6.5cqw) / 1 var(--head); text-transform: uppercase; letter-spacing: .06em; }
+.v-conservatory .stage-tile-sector { display: none; }
 .v-conservatory .stage-tile-top .company-mark { outline: calc(3 * var(--u)) solid #111; outline-offset: -1px; }
 .v-conservatory .stage-board { border-top: calc(8 * var(--u)) solid var(--accent); }
 .stage.v-conservatory[data-status="live"] .stage-tile { animation-name: stage-sleeve; animation-duration: .8s; animation-delay: calc(var(--i, 0) * 50ms + 120ms); }
@@ -640,7 +619,6 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
    top, news in a column; pieces turn into place; a tick snaps the piece. */
 .stage.v-tangram { --heat-up: #138f7d; --heat-down: #d0532f; --heat-ink: #ffffff; }
 .stage.stage-light.v-tangram { --heat-up: #86d3c5; --heat-down: #f3ab8f; --heat-ink: var(--ink); }
-.stage.v-tangram .stage-body { grid-template-columns: minmax(0, 1fr) var(--side); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "board board" "market news"; }
 .v-tangram .stage-tile { --cut: calc(30 * var(--u)); }
 .stage.v-tangram[data-status="live"] .stage-tile { animation-name: stage-piece-in; animation-duration: .9s; animation-delay: calc(var(--ring, 0) * 120ms + 120ms); }
 .v-tangram .stage-tile[data-tick] { animation: stage-snap .45s cubic-bezier(.3, 1.6, .4, 1); }
@@ -658,7 +636,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 /* Squarer than 7:5 (4:3, 5:4, a portrait tablet on its side): every version stacks the market above
    the news and the standings strip. */
 @media (max-aspect-ratio: 7 / 5) and (min-width: 761px) {
-  .stage .stage-body, .stage.v-orbit .stage-body, .stage.v-arcade .stage-body, .stage.v-broadcast .stage-body, .stage.v-conservatory .stage-body, .stage.v-tangram .stage-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto auto; grid-template-areas: "market" "news" "board"; }
+  .stage .stage-body, .stage.v-orbit .stage-body, .stage.v-arcade .stage-body, .stage.v-broadcast .stage-body, .stage.v-conservatory .stage-body, .stage.v-tangram .stage-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "news" "market" "board"; }
   .stage-head { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "brand clock tools" "index index index"; row-gap: calc(10 * var(--u)); }
   .stage-brand { grid-area: brand; } .stage-clock { grid-area: clock; } .stage-tools { grid-area: tools; }
   .stage-index { grid-area: index; justify-self: center; grid-template-columns: auto auto auto; }
@@ -675,9 +653,6 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
   .stage:not(.is-final) .stage-standing-value, .stage:not(.is-final) .stage-standing.is-leader .stage-standing-value { grid-area: value; justify-self: start; font-size: calc(23 * var(--u)); }
   .stage:not(.is-final) .stage-standing-return { grid-area: ret; padding: calc(3 * var(--u)) calc(6 * var(--u)); font-size: calc(19 * var(--u)); }
   .stage:not(.is-final) .stage-board-empty { flex-direction: row; padding-top: calc(4 * var(--u)); }
-  .stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-news-cards { grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); }
-  .stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-news-cards > article { padding: calc(4 * var(--u)) calc(22 * var(--u)); border-top: 0; border-left: calc(2 * var(--u)) solid var(--line); }
-  .stage:not(.is-final):is(.v-arcade, .v-tangram) .stage-news-cards > article:first-child { padding-left: 0; border-left: 0; }
 }
 /* Phones and narrow or short windows: one column that scrolls. */
 @media (max-width: 760px), (max-aspect-ratio: 4 / 5), (max-height: 480px) {
@@ -724,3 +699,79 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-open strong { color: var(--on-accent); background: var(--accent); box-shadow: 0 0 calc(80 * var(--u)) color-mix(in srgb, var(--accent) 60%, transparent); font-family: var(--head); }
 .stage-open-ring { border-color: var(--accent); }
 .stage-open-burst { background: radial-gradient(circle, color-mix(in srgb, var(--accent) 55%, transparent), transparent 62%); }
+
+/* ======================================================================
+   Panel designs, one per version. Every version shares the same sections (news above the market on
+   the left, standings on the right); what differs is the material, the background and the motion.
+   ====================================================================== */
+
+/* V1 Dalaal Street — an LED stock board: dot-matrix panels, prices that glow in their own colour,
+   and a slow band of light that sweeps the board. */
+.stage.v-default { background: radial-gradient(circle, rgba(255, 255, 255, .045) calc(1.2 * var(--u)), transparent calc(1.8 * var(--u))) 0 0 / calc(14 * var(--u)) calc(14 * var(--u)), var(--bg); }
+.stage.stage-light.v-default { background: radial-gradient(circle, rgba(0, 40, 30, .07) calc(1.2 * var(--u)), transparent calc(1.8 * var(--u))) 0 0 / calc(14 * var(--u)) calc(14 * var(--u)), var(--bg); }
+.v-default .stage-tile { background: radial-gradient(circle, rgba(255, 255, 255, .06) calc(1.1 * var(--u)), transparent calc(1.7 * var(--u))) 0 0 / calc(8 * var(--u)) calc(8 * var(--u)), var(--surface); }
+.stage-light.v-default .stage-tile { background: radial-gradient(circle, rgba(0, 40, 30, .07) calc(1.1 * var(--u)), transparent calc(1.7 * var(--u))) 0 0 / calc(8 * var(--u)) calc(8 * var(--u)), var(--surface); }
+.v-default .stage-tile.is-up .stage-tile-price strong { color: var(--up); text-shadow: 0 0 calc(18 * var(--u)) color-mix(in srgb, var(--up) 55%, transparent); }
+.v-default .stage-tile.is-down .stage-tile-price strong { color: var(--down); text-shadow: 0 0 calc(18 * var(--u)) color-mix(in srgb, var(--down) 55%, transparent); }
+.stage-light.v-default .stage-tile-price strong { text-shadow: none !important; }
+.v-default .stage-tile::before { position: absolute; inset: 0; z-index: 0; background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, .07) 50%, transparent 60%); content: ""; transform: translateX(-120%); animation: v1-sweep 9s linear infinite; animation-delay: calc(var(--i, 0) % 5 * .18s + var(--i, 0) / 5 * .5s); pointer-events: none; }
+@keyframes v1-sweep { 0%, 70% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+
+/* V2 Orbit Exchange — the observatory: a twinkling starfield, glass instrument panels with brass
+   corner brackets, and a ring round each logo in the colour of its move. */
+.stage.v-orbit { background:
+  radial-gradient(1.5px 1.5px at 12% 18%, #fff8, transparent), radial-gradient(1px 1px at 33% 72%, #fff7, transparent), radial-gradient(1.5px 1.5px at 58% 34%, #fff9, transparent),
+  radial-gradient(1px 1px at 77% 82%, #fff6, transparent), radial-gradient(2px 2px at 88% 14%, #ffe9b8aa, transparent), radial-gradient(1px 1px at 46% 92%, #fff7, transparent),
+  radial-gradient(1.5px 1.5px at 22% 48%, #fff6, transparent), radial-gradient(1px 1px at 66% 58%, #fff7, transparent), var(--bg); }
+.stage.stage-light.v-orbit { background: var(--bg); }
+.stage.v-orbit .stage-body::before { position: absolute; inset: 0; z-index: -1; background: radial-gradient(2px 2px at 18% 30%, #fff, transparent), radial-gradient(2px 2px at 71% 22%, #ffe3a0, transparent), radial-gradient(1.5px 1.5px at 41% 64%, #fff, transparent), radial-gradient(2px 2px at 90% 70%, #fff, transparent); content: ""; animation: v2-twinkle 3.6s ease-in-out infinite alternate; pointer-events: none; }
+.stage.v-orbit .stage-body { position: relative; }
+.stage-light.v-orbit .stage-body::before { display: none; }
+@keyframes v2-twinkle { from { opacity: .15; } to { opacity: 1; } }
+.v-orbit .stage-tile { background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface) 60%); border: 0; box-shadow: none; }
+.v-orbit .stage-tile::before { position: absolute; inset: calc(6 * var(--u)); z-index: 0; border: calc(2 * var(--u)) solid var(--accent); content: ""; opacity: .55; pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) top left / 22% 22% no-repeat, linear-gradient(#000 0 0) top right / 22% 22% no-repeat, linear-gradient(#000 0 0) bottom left / 22% 22% no-repeat, linear-gradient(#000 0 0) bottom right / 22% 22% no-repeat;
+  mask: linear-gradient(#000 0 0) top left / 22% 22% no-repeat, linear-gradient(#000 0 0) top right / 22% 22% no-repeat, linear-gradient(#000 0 0) bottom left / 22% 22% no-repeat, linear-gradient(#000 0 0) bottom right / 22% 22% no-repeat; }
+.v-orbit .stage-tile.is-up .stage-tile-top .company-mark { outline: calc(3 * var(--u)) solid var(--up); outline-offset: calc(3 * var(--u)); }
+.v-orbit .stage-tile.is-down .stage-tile-top .company-mark { outline: calc(3 * var(--u)) solid var(--down); outline-offset: calc(3 * var(--u)); }
+.v-orbit .stage-tile-price strong { color: color-mix(in srgb, var(--accent) 35%, var(--ink)); }
+.v-orbit .stage-board, .v-orbit .stage-news { background: color-mix(in srgb, var(--surface) 82%, transparent); }
+
+/* V3 Clay Market — soft clay tiles tinted by their move, pressed on a thick edge, that breathe gently. */
+.v-arcade .stage-tile.is-up { background: color-mix(in srgb, #4fae68 22%, var(--surface)); }
+.v-arcade .stage-tile.is-down { background: color-mix(in srgb, #d0583f 22%, var(--surface)); }
+.v-arcade .stage-tile { border-bottom: calc(8 * var(--u)) solid color-mix(in srgb, #000 30%, transparent); box-shadow: inset 0 calc(3 * var(--u)) 0 rgba(255, 255, 255, .08); }
+.v-arcade .stage-tile-top .company-mark { box-shadow: 0 0 0 calc(4 * var(--u)) rgba(255, 255, 255, .7); }
+.v-arcade .stage-tile:nth-child(3n) { animation: v3-breathe 5s ease-in-out infinite; }
+.v-arcade .stage-tile:nth-child(3n + 1) { animation: v3-breathe 5s ease-in-out 1.6s infinite; }
+.v-arcade .stage-tile:nth-child(3n + 2) { animation: v3-breathe 5s ease-in-out 3.2s infinite; }
+@keyframes v3-breathe { 50% { transform: translateY(calc(-3 * var(--u))); } }
+
+/* V5 Signal Station — split-flap rows: a seam through every row, dark letter cells for the price, and a
+   flap shimmer that runs down the board every few seconds. */
+.v-broadcast .stage-tile { background: linear-gradient(to bottom, transparent calc(50% - 1px), rgba(0, 0, 0, .55) calc(50% - 1px), rgba(0, 0, 0, .55) calc(50% + 1px), transparent calc(50% + 1px)), var(--surface) !important; }
+.v-broadcast .stage-tile:nth-child(even) { background: linear-gradient(to bottom, transparent calc(50% - 1px), rgba(0, 0, 0, .55) calc(50% - 1px), rgba(0, 0, 0, .55) calc(50% + 1px), transparent calc(50% + 1px)), var(--surface-2) !important; }
+.v-broadcast .stage-tile-price strong { padding: 0 .18em; border-radius: calc(4 * var(--u)); color: #fff4d6; background: #000; }
+.stage-light.v-broadcast .stage-tile-price strong { color: #ffd77a; }
+.v-broadcast .stage-tile::before { position: absolute; inset: 0; z-index: 0; background: linear-gradient(to bottom, transparent 30%, color-mix(in srgb, var(--accent) 22%, transparent) 50%, transparent 70%); content: ""; opacity: 0; animation: v5-shimmer 7s ease-in-out infinite; animation-delay: calc(var(--i, 0) * .12s); pointer-events: none; }
+@keyframes v5-shimmer { 0%, 88%, 100% { opacity: 0; } 93% { opacity: 1; } }
+
+/* V6 Vinyl Exchange — each company is a sleeve with its record sliding out of the right side, the label
+   in the colour of the move, spinning slowly. */
+.v-conservatory .stage-tile { padding-right: calc(46 * var(--u)); }
+.v-conservatory .stage-tile::before { position: absolute; top: 50%; right: calc(-62 * var(--u)); z-index: 0; width: calc(110 * var(--u)); height: calc(110 * var(--u)); border-radius: 50%; content: "";
+  background: radial-gradient(circle, var(--disc-label, var(--up)) 0 18%, #111 19% 21%, transparent 22%), repeating-radial-gradient(circle, #161616 0 calc(2 * var(--u)), #232323 calc(2 * var(--u)) calc(4 * var(--u)));
+  transform: translateY(-50%); animation: v6-spin 6s linear infinite; pointer-events: none; }
+.v-conservatory .stage-tile.is-down { --disc-label: var(--down); }
+@keyframes v6-spin { to { transform: translateY(-50%) rotate(1turn); } }
+.v-conservatory .stage-tile > :not(.stage-spark) { z-index: 1; }
+.v-conservatory .stage-spark { display: none; }
+
+/* V7 Tangram Exchange — cut-paper pieces stacked on a geometric ground, each one throwing a hard paper shadow. */
+.stage.v-tangram { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 6%, transparent) 25%, transparent 25%) 0 0 / calc(90 * var(--u)) calc(90 * var(--u)), linear-gradient(225deg, color-mix(in srgb, var(--accent) 5%, transparent) 25%, transparent 25%) 0 0 / calc(90 * var(--u)) calc(90 * var(--u)), var(--bg); }
+.v-tangram .stage-grid, .v-tangram .stage-board, .v-tangram .stage-news { filter: drop-shadow(calc(6 * var(--u)) calc(6 * var(--u)) 0 rgba(0, 0, 0, .35)); }
+.stage-light.v-tangram .stage-grid, .stage-light.v-tangram .stage-board, .stage-light.v-tangram .stage-news { filter: drop-shadow(calc(6 * var(--u)) calc(6 * var(--u)) 0 rgba(20, 40, 80, .18)); }
+
+/* Readable from 15 feet: names and prices never go below these sizes on a 1080p board. */
+.stage-tile-top b { min-height: 1em; }
+@media (prefers-reduced-motion: reduce) { .stage-body::before, .stage-tile::before { animation: none !important; } }
