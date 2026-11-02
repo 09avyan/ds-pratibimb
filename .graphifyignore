@@ -1,0 +1,4 @@
+# Index the game's own code only; vendored skills and generated output stay out.
+.claude/
+graphify-out/
+public/
