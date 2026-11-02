@@ -299,7 +299,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .cd-candle line { stroke: var(--up); stroke-width: 2; opacity: 0; animation: stage-fade .3s ease-out both; animation-delay: var(--d); }
 .cd-candle rect { fill: var(--up); transform-box: fill-box; transform-origin: 50% 100%; animation: stage-candle .55s cubic-bezier(.2, 1.3, .4, 1) both; animation-delay: var(--d); }
 .cd-candle.down line { stroke: var(--down); } .cd-candle.down rect { fill: var(--down); }
-.cd-line { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 70%, transparent)); animation: stage-draw 3.8s cubic-bezier(.4, 0, .2, 1) .2s forwards; }
+.cd-line { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: stage-draw 3.8s cubic-bezier(.4, 0, .2, 1) .2s forwards; }
 .cd-pulse { position: absolute; top: 50%; left: 50%; width: calc(520 * var(--u)); height: calc(520 * var(--u)); margin: calc(-260 * var(--u)) 0 0 calc(-260 * var(--u)); border: calc(3 * var(--u)) solid var(--accent); border-radius: 50%; opacity: 0; animation: stage-pulse 1s ease-out both; }
 .cd-pulse.late { animation-delay: .25s; border-width: calc(2 * var(--u)); }
 .cd-dial { position: relative; display: grid; place-items: center; width: calc(560 * var(--u)); height: calc(560 * var(--u)); border-radius: 50%; background: color-mix(in srgb, var(--bg) 82%, transparent); text-align: center; }
@@ -437,25 +437,19 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-light .cd-dial strong { color: var(--ink); text-shadow: 0 0 calc(40 * var(--u)) color-mix(in srgb, var(--accent) 45%, transparent); }
 .stage-countdown.is-go .cd-dial strong { font-size: calc(380 * var(--u)); color: #fff; text-shadow: 0 0 calc(40 * var(--u)) var(--up), 0 0 calc(110 * var(--u)) var(--up); animation: cd-materialise .7s cubic-bezier(.2, 1.3, .3, 1) both; }
 @keyframes cd-materialise { 0% { opacity: 0; transform: scale(1.35); filter: blur(14px); } 30% { opacity: 0; } 65% { opacity: 1; transform: scale(.98); filter: blur(0); } 100% { opacity: 1; transform: none; filter: none; } }
-.cd-ring { z-index: 1; filter: drop-shadow(0 0 calc(10 * var(--u)) color-mix(in srgb, var(--accent) 60%, transparent)); }
+.cd-ring { z-index: 1; }
 .cd-pulse { width: calc(640 * var(--u)); height: calc(640 * var(--u)); margin: calc(-320 * var(--u)) 0 0 calc(-320 * var(--u)); }
 @media (prefers-reduced-motion: reduce) {
   .cd-particles { display: none; }
 }
 
-/* Stage spotlights sweep across the scene. */
-.cd-beams { position: absolute; inset: 0; z-index: 1; overflow: hidden; mix-blend-mode: screen; }
-.stage-light .cd-beams { mix-blend-mode: multiply; opacity: .35; }
-.cd-beams i { position: absolute; bottom: -20%; width: 34vmax; height: 140vh; background: linear-gradient(to top, color-mix(in srgb, var(--accent) 55%, transparent), transparent 85%); clip-path: polygon(46% 100%, 54% 100%, 100% 0, 0 0); filter: blur(6px); opacity: .55; transform-origin: 50% 100%; animation: cd-beam 3.2s ease-in-out infinite alternate; }
-.cd-beams i:nth-child(1) { left: -8%; --from: 32deg; --to: 2deg; }
-.cd-beams i:nth-child(2) { left: 12%; --from: 12deg; --to: -22deg; animation-delay: -.8s; background: linear-gradient(to top, color-mix(in srgb, var(--gold) 50%, transparent), transparent 85%); }
-.cd-beams i:nth-child(3) { right: 12%; --from: -12deg; --to: 22deg; animation-delay: -1.6s; background: linear-gradient(to top, color-mix(in srgb, var(--up) 45%, transparent), transparent 85%); }
-.cd-beams i:nth-child(4) { right: -8%; --from: -32deg; --to: -2deg; animation-delay: -2.4s; }
-@keyframes cd-beam { from { transform: rotate(var(--from)); } to { transform: rotate(var(--to)); } }
+/* A slow machine keeps the particles, streaks and spotlights and drops the heavier layers. */
+.stage-countdown.is-lite .cd-motif, .stage-countdown.is-lite .cd-chart, .stage-countdown.is-lite .cd-scene::before { display: none; }
+
 /* GO: a white flash and a shockwave. */
 .cd-flash { position: absolute; inset: 0; z-index: 4; background: radial-gradient(circle at 50% 50%, #fff, color-mix(in srgb, var(--up) 60%, transparent) 30%, transparent 70%); pointer-events: none; animation: cd-flash .9s ease-out both; }
 @keyframes cd-flash { 0% { opacity: 0; transform: scale(.4); } 15% { opacity: 1; } 100% { opacity: 0; transform: scale(2.4); } }
-@media (prefers-reduced-motion: reduce) { .cd-beams, .cd-flash { display: none; } }
+@media (prefers-reduced-motion: reduce) { .cd-flash { display: none; } }
 
 /* Market open: a burst of light and the words, for under three seconds. */
 .stage-open { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; overflow: hidden; pointer-events: none; }

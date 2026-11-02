@@ -302,11 +302,14 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const dpr = Math.min(1.5, window.devicePixelRatio || 1);
+    // Rendered at about 60% resolution and scaled up: the glow is soft and the crisp number is ordinary text.
+    const dpr = Math.min(1.2, (window.devicePixelRatio || 1) * .62);
     const css = getComputedStyle(canvas);
     const colors = [css.getPropertyValue("--accent").trim() || "#a993ff", css.getPropertyValue("--gold").trim() || "#f3c74f", css.getPropertyValue("--up").trim() || "#2fd68f"];
     const sprites = colors.map(color => sprite(color, 48));
     let w = 0, h = 0, raf = 0, last = performance.now();
+    // Adaptive quality: measure the first frames and draw fewer points on a slow machine.
+    let stride = 1, frames = 0, spent = 0;
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
       w = Math.max(1, Math.round(rect.width * dpr)); h = Math.max(1, Math.round(rect.height * dpr));
@@ -325,8 +328,10 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
     const onResize = () => resize();
     window.addEventListener("resize", onResize);
     const frame = (now: number) => {
-      const dt = Math.min(2, (now - last) / 16.7);
+      const gap = now - last;
+      const dt = Math.min(2, gap / 16.7);
       last = now;
+      if (frames < 90) { frames++; spent += gap; if (frames === 45 || frames === 90) { const fps = 1000 / (spent / frames); if (fps < 42 && stride < 4) stride *= 2; if (fps < 30) canvas.parentElement?.classList.add("is-lite"); } }
       const st = state.current!;
       ctx.globalCompositeOperation = "destination-out";
       ctx.fillStyle = `rgba(0,0,0,${light ? .45 : .34})`;
@@ -334,8 +339,23 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
       ctx.globalCompositeOperation = light ? "source-over" : "lighter";
       const cx = w / 2, cy = h / 2, t = now / 1000;
       const reach = Math.hypot(w, h) / 2;
+      // Four stage spotlights sweep up from the floor.
+      for (let b = 0; b < 4; b++) {
+        const ox = w * (b < 2 ? (b === 0 ? .04 : .3) : (b === 2 ? .7 : .96)), oy = h * 1.06;
+        const swing = Math.sin(t * .9 + b * 1.7) * .32 + (b < 2 ? .22 : -.22);
+        const len = h * 1.25, spread = .085;
+        const ax = ox + Math.sin(swing - spread) * len, ay = oy - Math.cos(swing - spread) * len;
+        const bx = ox + Math.sin(swing + spread) * len, by = oy - Math.cos(swing + spread) * len;
+        const grad = ctx.createLinearGradient(ox, oy, (ax + bx) / 2, (ay + by) / 2);
+        grad.addColorStop(0, colors[b === 1 ? 1 : b === 2 ? 2 : 0]);
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.globalAlpha = light ? .12 : .2;
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ax, ay); ctx.lineTo(bx, by); ctx.closePath(); ctx.fill();
+      }
       ctx.lineCap = "round";
-      for (const star of stars) {
+      for (let si = 0; si < stars.length; si += stride) {
+        const star = stars[si];
         const before = star.z;
         star.z += .0042 * speed.current * dt * (.4 + star.z);
         if (star.z > 1) { star.z = Math.random() * .05; star.a = Math.random() * Math.PI * 2; continue; }
@@ -349,7 +369,8 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
         ctx.lineTo(cx + Math.cos(star.a) * r1, cy + Math.sin(star.a) * r1);
         ctx.stroke();
       }
-      for (const p of st.particles) {
+      for (let pi = 0; pi < st.particles.length; pi++) {
+        const p = st.particles[pi];
         if (st.burst) { p.vy += .06 * dt * dpr; p.vx *= .985; p.vy *= .985; }
         else if (p.tx !== null && p.ty !== null) {
           p.vx += (p.tx - p.x) * .045 * dt; p.vy += (p.ty - p.y) * .045 * dt;
@@ -362,6 +383,7 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
           p.vx *= .9; p.vy *= .9;
         }
         p.x += p.vx * dt; p.y += p.vy * dt;
+        if (pi % stride !== 0 && p.tx === null) continue; // on a slow machine, skip some drifting points but keep every point of the number
         const twinkle = .55 + .45 * Math.sin(t * 3 + p.phase);
         const formed = p.tx !== null;
         const size = formed ? st.step * (1.25 + p.size * .35) : 10 * p.size * dpr * (st.burst ? 1.3 : 1);
@@ -406,7 +428,7 @@ function CountdownScene({ seconds, variant, light }: { seconds: number; variant:
   // Every second lands like a beat: the whole scene punches in and settles.
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    scene.current?.animate([{ transform: "scale(1.06)", filter: "brightness(1.5)" }, { transform: "none", filter: "none" }], { duration: 520, easing: "cubic-bezier(.2,.8,.2,1)" });
+    scene.current?.animate([{ transform: "scale(1.06)", opacity: .7 }, { transform: "none", opacity: 1 }], { duration: 520, easing: "cubic-bezier(.2,.8,.2,1)" });
   }, [seconds]);
   return <div className={`stage-countdown${seconds === 0 ? " is-go" : ""}`} role="status" aria-live="assertive">
     <div className="cd-scene" aria-hidden="true" ref={scene}>
@@ -426,7 +448,6 @@ function CountdownScene({ seconds, variant, light }: { seconds: number; variant:
       {variant === "conservatory" && <div className="cd-motif cd-vinyl"><i/></div>}
       {variant === "tangram" && <div className="cd-motif cd-tangram"><i/><i/><i/><i/><i/></div>}
       {variant === "arcade" && <div className="cd-motif cd-beads"><i/><i/><i/><i/><i/><i/></div>}
-      <div className="cd-beams"><i/><i/><i/><i/></div>
       <i className="cd-pulse" key={`p${seconds}`}/>
       <i className="cd-pulse late" key={`q${seconds}`}/>
     </div>
