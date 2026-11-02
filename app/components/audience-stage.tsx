@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { PublicLeaderboardEntry, PublicWorld, Stock } from "@/game/types";
+import type { PublicLeaderboardEntry, PublicWorld } from "@/game/types";
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
 import { changePct, fmtTime, latestNewsSet, MiniChart, money, newsScope } from "./market-parts";
 
 /*
-  Audience stage for every version: a 100" smart board read from 12–15 feet, and a 24" monitor.
-  Everything people must read is at least ~28px at 1080p; prices, ranks and the clock are far larger.
+  V4 audience stage for a 100" smart board read from about 12 feet, and for a 24" monitor.
+  Everything people must read is at least ~24px at 1080p; key numbers are larger.
   The leaderboard ranks only terminals that have bought or shorted at least once.
 */
 
@@ -123,8 +123,9 @@ function MoveBadge({ delta }: { delta?: number }) {
 }
 
 /*
-  The standings board. The top three ranks sit in gold, silver and bronze blocks and the leader's
-  row is a full field of the version's accent, so the room can see who is ahead from the back.
+  The standings board: a ruled exchange board, not a podium. Rank, terminal, portfolio value and
+  return are set in large tabular figures; the leader gets the tallest row and a solid accent rule.
+  Colour is used only on data (returns and rank moves).
 */
 function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null; final: boolean; onShowMarket?: () => void }) {
   const entries = world?.leaderboard ?? [];
@@ -142,133 +143,31 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
       const before = previous.indexOf(terminal);
       const row = rows.current.get(terminal);
       if (!row || before === index) return;
-      if (before < 0) { row.animate([{ opacity: 0, transform: "translateX(24px)" }, { opacity: 1, transform: "none" }], { duration: 450, easing: "cubic-bezier(.2,.8,.2,1)" }); return; }
-      row.animate([{ transform: `translateY(${(before - index) * 70}%)` }, { transform: "none" }], { duration: 650, easing: "cubic-bezier(.2,.8,.2,1)" });
+      if (before < 0) { row.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400 }); return; }
+      row.animate([{ opacity: .35, transform: `translateY(${(before - index) * 12}px)` }, { opacity: 1, transform: "none" }], { duration: 500, easing: "cubic-bezier(.2,.8,.2,1)" });
     });
   }, [orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const leader = entries[0];
-  const ref = (terminal: number) => (element: HTMLElement | null) => { if (element) rows.current.set(terminal, element); else rows.current.delete(terminal); };
-  const row = (entry: PublicLeaderboardEntry, index: number) => <li key={entry.terminalNumber} ref={ref(entry.terminalNumber)} className={`stage-standing rank-${Math.min(index + 1, 4)} status-${entry.status}`}>
-    <b className="stage-standing-rank">{entry.rank}</b>
-    <span className="stage-standing-name"><small>Terminal</small><strong>{pad2(entry.terminalNumber)}</strong><MoveBadge delta={moves[entry.terminalNumber]?.delta}/></span>
-    <span className="stage-standing-figures">
-      <span className="stage-standing-value">{money(entry.totalValue, 0)}</span>
-      <span className={`stage-standing-return ${entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat"}`}>{signedPct(entry.returnPct)}</span>
-    </span>
-    {!final && entry.status !== "live" && <small className="stage-standing-status">{STATUS_LABEL[entry.status]}</small>}
-  </li>;
-
-  if (final && leader) return <section className="stage-final" aria-label="Final standings">
-    <div className="stage-champion" ref={ref(leader.terminalNumber)}>
-      <h2>Batch {pad2(world?.batch ?? 1)} winner</h2>
-      <p className="stage-champion-name"><small>Terminal</small><strong>{pad2(leader.terminalNumber)}</strong></p>
-      <p className="stage-champion-value">{money(leader.totalValue, 0)}</p>
-      <p className="stage-champion-gain">{signedMoney(leader.pnl)} · {signedPct(leader.returnPct)}</p>
-    </div>
-    <div className="stage-final-rest">
-      <h2>Final standings</h2>
-      {entries.length > 1 ? <ol className="stage-board-rows" start={2}>{entries.slice(1).map((entry, index) => row(entry, index + 1))}</ol> : <p className="stage-board-note">Only one terminal traded this batch.</p>}
-      {onShowMarket && <button type="button" className="stage-text-button" onClick={onShowMarket}>Show the market</button>}
-    </div>
-  </section>;
-
-  return <section className="stage-board" aria-label="Standings">
+  return <section className={`stage-board${final ? " is-final" : ""}`} aria-label={final ? "Final standings" : "Standings"}>
     <header className="stage-board-head">
-      <h2>Standings</h2>
-      <span className="stage-board-meta">{entries.length ? `${entries.length} trading` : "No trades yet"}</span>
+      <h2>{final ? "Final standings" : "Standings"}</h2>
+      <span className="stage-board-meta">{final ? `Batch ${pad2(world?.batch ?? 1)} · closed` : entries.length ? `${entries.length} ${entries.length === 1 ? "terminal" : "terminals"} trading` : "No trades yet"}</span>
     </header>
-    {entries.length === 0
-      ? <div className="stage-board-empty"><strong>Waiting for the first trade</strong><span>A terminal joins the board with its first buy or short. Everyone starts with ₹10,00,000.</span></div>
-      : <ol className="stage-board-rows">{entries.map(row)}</ol>}
+    {entries.length === 0 ? <div className="stage-board-empty"><strong>Waiting for the first trade</strong><span>A terminal joins the board with its first buy or short.</span></div> : <>
+      <div className="stage-board-cols" aria-hidden="true"><span>Rank</span><span>Terminal</span><span>Portfolio</span><span>Return</span></div>
+      <ol className="stage-board-rows" style={{ "--rows": entries.length } as React.CSSProperties}>
+        {entries.map((entry, index) => <li key={entry.terminalNumber} ref={element => { if (element) rows.current.set(entry.terminalNumber, element); else rows.current.delete(entry.terminalNumber); }} className={`stage-standing${index === 0 ? " is-leader" : ""} status-${entry.status}`}>
+          <b className="stage-standing-rank">{entry.rank}</b>
+          <span className="stage-standing-name"><strong>{pad2(entry.terminalNumber)}</strong><MoveBadge delta={moves[entry.terminalNumber]?.delta}/>{!final && entry.status !== "live" && <small>{STATUS_LABEL[entry.status]}</small>}</span>
+          <span className="stage-standing-value">{money(entry.totalValue, 0)}</span>
+          <span className={`stage-standing-return ${entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat"}`}>{signedPct(entry.returnPct)}</span>
+        </li>)}
+      </ol>
+      {final && leader && <p className="stage-winner-line">Terminal {pad2(leader.terminalNumber)} finishes first with {money(leader.totalValue, 0)}, {signedMoney(leader.pnl)} on the starting ₹10,00,000.</p>}
+    </>}
+    {!final && <p className="stage-board-foot">Every terminal starts with ₹10,00,000 and is ranked by portfolio value.</p>}
+    {final && onShowMarket && <button type="button" className="stage-text-button" onClick={onShowMarket}>Show the market</button>}
   </section>;
-}
-
-/* ---------- Market board ---------- */
-
-function Arrow({ up }: { up: boolean }) {
-  return <svg className="stage-arrow" viewBox="0 0 10 10" aria-hidden="true"><path d={up ? "M5 1 10 9H0z" : "M5 9 0 1h10z"}/></svg>;
-}
-
-/** One company as a lit panel: its fill deepens with the size of the move, and it flashes on each tick. */
-function StockTile({ stock, startedAt }: { stock: Stock; startedAt?: number }) {
-  const move = changePct(stock);
-  const last = useRef(stock.price);
-  const [tick, setTick] = useState<"up" | "down" | null>(null);
-  useEffect(() => {
-    const before = last.current;
-    last.current = stock.price;
-    if (stock.price === before) return;
-    setTick(stock.price > before ? "up" : "down");
-    const timer = window.setTimeout(() => setTick(null), 650);
-    return () => window.clearTimeout(timer);
-  }, [stock.price]);
-  const direction = move > .005 ? "up" : move < -.005 ? "down" : "flat";
-  const heat = .22 + .78 * Math.min(1, Math.abs(move) / 4);
-  return <article className={`stage-tile is-${direction}`} data-tick={tick ?? undefined} style={{ "--heat": heat.toFixed(3) } as React.CSSProperties} aria-label={`${stock.name}, ${money(stock.price, 2)}, ${signedPct(move)}`}>
-    <div className="stage-tile-top"><Logo stock={stock} compact/><b>{stock.symbol}</b></div>
-    <strong className="stage-tile-price">{money(stock.price, stock.price < 100 ? 2 : 0)}</strong>
-    <span className="stage-tile-move">{direction !== "flat" && <Arrow up={direction === "up"}/>}{Math.abs(move).toFixed(2)}%</span>
-    <MiniChart stock={stock} startedAt={startedAt}/>
-  </article>;
-}
-
-/* ---------- News ---------- */
-
-const newsTime = (item: PublicWorld["headlines"][number], world: PublicWorld | null) => `T+${fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}`;
-
-function StoryMeta({ item, world }: { item: PublicWorld["headlines"][number]; world: PublicWorld | null }) {
-  return <><span className="stage-tag">{item.type === "major" ? "Major" : "Minor"}</span><span className="stage-story-scope">{newsScope(item)}</span><time>{newsTime(item, world)}</time></>;
-}
-
-function NewsCards({ items, world }: { items: PublicWorld["headlines"]; world: PublicWorld | null }) {
-  return <>{items.map(item => <article key={item.id} className={`stage-story type-${item.type}`}>
-    <div className="stage-story-meta"><StoryMeta item={item} world={world}/></div>
-    <p>{item.headline}</p>
-  </article>)}</>;
-}
-
-/** Docked news: one story at a time in a single band, turning every seven seconds, so the board keeps its size. */
-const TURN_MS = 7_000;
-function NewsBand({ items, world, onClose }: { items: PublicWorld["headlines"]; world: PublicWorld | null; onClose: () => void }) {
-  const [turn, setTurn] = useState(0);
-  const key = items.map(item => item.id).join(",");
-  useEffect(() => {
-    setTurn(0);
-    if (items.length < 2) return;
-    const timer = window.setInterval(() => setTurn(value => value + 1), TURN_MS);
-    return () => window.clearInterval(timer);
-  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  const index = turn % items.length;
-  const item = items[index];
-  return <section className="stage-news" aria-label="Latest news">
-    <article key={item.id} className={`stage-story type-${item.type}`}>
-      <div className="stage-story-meta">
-        <h2 className="stage-news-label"><i className="stage-live-dot" aria-hidden="true"/>Latest news</h2>
-        <StoryMeta item={item} world={world}/>
-        {items.length > 1 && <span className="stage-news-count">{index + 1} of {items.length}</span>}
-        <button type="button" className="stage-close" aria-label="Hide latest news" onClick={onClose}>×</button>
-      </div>
-      <p>{item.headline}</p>
-      {items.length > 1 && <i className="stage-flash-timer" aria-hidden="true" style={{ animationDuration: `${TURN_MS}ms` }}/>}
-    </article>
-  </section>;
-}
-
-/** A new set of headlines takes the stage for a few seconds, then docks above the board. */
-const FLASH_MS = 7_000;
-function useNewsFlash(key: string, hasNews: boolean, ready: boolean) {
-  const seen = useRef<string | null>(null);
-  const [flashKey, setFlashKey] = useState("");
-  useEffect(() => {
-    if (!ready) return;
-    const first = seen.current === null;
-    seen.current = key;
-    if (first || !hasNews) return; // nothing flashes for the set already on screen when the wall opens
-    setFlashKey(key);
-    const timer = window.setTimeout(() => setFlashKey(current => current === key ? "" : current), FLASH_MS);
-    return () => window.clearTimeout(timer);
-  }, [key, hasNews, ready]);
-  return { flashing: flashKey === key && hasNews, dismiss: () => setFlashKey("") };
 }
 
 /* ---------- Stage ---------- */
@@ -284,7 +183,6 @@ function Icon({ name }: { name: "sound" | "mute" | "moon" | "sun" | "expand" | "
   };
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={paths[name]}/></svg>;
 }
-
 
 export function AudienceStage({ world, preview, theme, onTheme, variant = "gallery" }: { world: PublicWorld | null; preview?: boolean; theme: "light" | "dark"; onTheme: () => void; variant?: string }) {
   const [fullscreen, setFullscreen] = useState(false);
@@ -302,29 +200,22 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const visibleNews = latestNewsSet(world);
   const newsSetKey = `${world?.batch ?? 0}:${visibleNews.map(item => item.id).join(",")}`;
   const showNews = visibleNews.length > 0 && dismissedSet !== newsSetKey;
-  const flash = useNewsFlash(newsSetKey, visibleNews.length > 0, world !== null);
   const stocks = world?.stocks ?? [];
   const returnPct = world?.indexChange ?? 0;
   const status = world?.status ?? "ready";
-  const paused = status === "live" && Boolean(world?.controls.paused);
-  const statusText = status === "live" ? paused ? "Paused" : "Live" : status === "countdown" ? "Starting" : status === "closed" ? "Closed" : "Ready";
+  const statusText = status === "live" ? world?.controls.paused ? "Paused" : "Live" : status === "countdown" ? "Starting" : status === "closed" ? "Closed" : "Ready";
   const indexText = world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00";
-  // At the closing bell the winner takes the whole stage until the next batch or a tap on "Show the market".
+  // At the closing bell the leaderboard takes the whole stage until the next batch or a tap on "Show the market".
   const final = status === "closed" && (world?.leaderboard.length ?? 0) > 0 && marketAfterClose !== world?.batch;
   const countdownSeconds = counting && world ? Math.max(0, Math.ceil((world.startedAt - clock) / 1000)) : 0;
   const lowTime = status === "live" && (world?.remaining ?? 999) <= 30;
-  const up = returnPct >= 0;
 
-  return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}${showNews ? " has-news" : ""} news-${visibleNews.length}`} data-status={status}>
+  return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}`} data-status={status}>
     <header className="stage-head">
-      <div className="stage-brand"><span className="stage-mark"><DalaalMark/></span><h1 className="stage-title"><DalaalWordmark/><small>Pratibimb live market · fictional prices</small></h1></div>
-      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}>
-        <span className="stage-index-label">Dalaal-10</span>
-        <strong>{indexText}</strong>
-        <b className={up ? "up" : "down"}><Arrow up={up}/>{Math.abs(returnPct).toFixed(2)}%</b>
-      </div>
-      <div className={`stage-status status-${status}${paused ? " is-paused" : ""}`}><i aria-hidden="true"/>{statusText}</div>
-      <div className={`stage-clock${lowTime ? " is-low" : ""}`} aria-label={status === "live" ? "Time left" : "Batch"}>{status === "live" ? fmtTime(world?.remaining ?? 0) : <><small>Batch</small>{pad2(world?.batch || 1)}</>}</div>
+      <div className="stage-brand"><span className="stage-mark"><DalaalMark/></span><h1 className="stage-title"><small>Pratibimb live market</small><DalaalWordmark/></h1></div>
+      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10</span><strong>{indexText}</strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b></div>
+      <div className={`stage-status status-${status}${world?.controls.paused ? " is-paused" : ""}`}><i aria-hidden="true"/>{statusText}</div>
+      <div className={`stage-clock${lowTime ? " is-low" : ""}`} aria-label="Time left">{status === "live" ? fmtTime(world?.remaining ?? 0) : `BATCH ${pad2(world?.batch || 1)}`}</div>
       <div className="stage-tools">
         <button type="button" className={`stage-icon${bells.needsTap ? " needs-tap" : ""}`} onClick={() => setSound(value => !value)} aria-pressed={sound} title={sound ? "Bells on" : "Bells off"} aria-label={sound ? "Turn bells off" : "Turn bells on"}><Icon name={sound ? "sound" : "mute"}/></button>
         <button type="button" className="stage-icon" onClick={onTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}><Icon name={theme === "light" ? "moon" : "sun"}/></button>
@@ -334,18 +225,26 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
 
     <div className="stage-body">
       {!final && <div className="stage-main">
-        {showNews && <NewsBand items={visibleNews} world={world} onClose={() => setDismissedSet(newsSetKey)}/>}
-        <section className="stage-grid" aria-label={`All ${stocks.length} companies`}>{stocks.map(stock => <StockTile key={stock.symbol} stock={stock} startedAt={world?.startedAt}/>)}</section>
+        {showNews && <section className="stage-news" aria-label="Latest news">
+          <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>Latest news</span><button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button></header>
+          <div className={`stage-news-cards count-${visibleNews.length}`}>{visibleNews.map(item => <article key={item.id} className={`type-${item.type}`}>
+            <div className="stage-news-meta"><span className={`stage-tag ${item.type}`}>{item.type}</span><span className="stage-news-scope">{newsScope(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div>
+            <p>{item.headline}</p>
+          </article>)}</div>
+        </section>}
+        <section className="stage-grid" aria-label="All 25 companies">{stocks.map(stock => {
+          const move = changePct(stock);
+          return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}`} key={stock.symbol}>
+            <div className="stage-tile-top"><Logo stock={stock} compact/><b title={stock.name}>{stock.symbol}</b></div>
+            <div className="stage-tile-price"><strong>{money(stock.price, stock.price < 100 ? 2 : 0)}</strong><span>{move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(2)}%</span></div>
+            <MiniChart stock={stock} startedAt={world?.startedAt}/>
+          </article>;
+        })}</section>
       </div>}
       <Leaderboard world={world} final={final} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
-      {flash.flashing && !final && <section className={`stage-flash count-${visibleNews.length}`} role="status" aria-live="polite" onClick={flash.dismiss}>
-        <h2><i className="stage-live-dot" aria-hidden="true"/>Breaking news</h2>
-        <div className="stage-flash-stories"><NewsCards items={visibleNews} world={world}/></div>
-        <i className="stage-flash-timer" aria-hidden="true" style={{ animationDuration: `${FLASH_MS}ms` }}/>
-      </section>}
     </div>
 
-    {counting && <div className="stage-countdown" role="status" aria-live="assertive"><span>Trading opens in</span><strong key={countdownSeconds}>{countdownSeconds || "Go"}</strong></div>}
-    {preview && <footer className="stage-foot"><a href="/ui-preview">Preview: compare all versions</a></footer>}
+    {counting && <div className="stage-countdown" role="status" aria-live="assertive"><span>Trading opens in</span><strong key={countdownSeconds}>{countdownSeconds || "GO"}</strong></div>}
+    <footer className="stage-foot">{preview && <><a href="/ui-preview">Preview: compare all versions</a> · </>}Fictional prices, no real money</footer>
   </main>;
 }
