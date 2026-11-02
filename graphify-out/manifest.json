@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/components/trader.tsx": {
-    "mtime": 1793650320.6629193,
-    "seen": 1793650933.0443213,
-    "ast_hash": "e5f15e13b701a2020317654b3f5fbb74",
+    "mtime": 1793662740.0398483,
+    "seen": 1793662918.8138893,
+    "ast_hash": "688e5c365623df2cee6e2c0c8fb17445",
     "semantic_hash": ""
   },
   "app/host/page.tsx": {
@@ -396,9 +396,9 @@
     "semantic_hash": ""
   },
   "app/components/trading-motion.tsx": {
-    "mtime": 1793651396.0005808,
-    "seen": 1793651780.0875695,
-    "ast_hash": "660da60a1c89dfd50cf2a625b1ee90e3",
+    "mtime": 1793662740.038766,
+    "seen": 1793662918.8138914,
+    "ast_hash": "1b77460585634cda152e914d918317ee",
     "semantic_hash": ""
   },
   "scripts/brain-window-check.cjs": {

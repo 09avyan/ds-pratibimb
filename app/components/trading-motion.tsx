@@ -99,17 +99,23 @@ export function TradeCelebration({ enabled }: { enabled: boolean }) {
   return null;
 }
 
-/** A price that glows green or red for a moment whenever it changes. */
+/**
+ * A price coloured by its last move: green after a rise, red after a fall, until the next change.
+ * It also glows for a moment as it ticks. Uses the theme's own positive and negative colours.
+ */
 export function TickPrice({ value, children }: { value: number; children: React.ReactNode }) {
   const last = useRef(value);
+  const [dir, setDir] = useState<"up" | "down" | null>(null);
   const [tick, setTick] = useState<"up" | "down" | null>(null);
   useEffect(() => {
     const before = last.current;
     last.current = value;
     if (value === before) return;
-    setTick(value > before ? "up" : "down");
+    const next = value > before ? "up" : "down";
+    setDir(next);
+    setTick(next);
     const timer = window.setTimeout(() => setTick(null), 800);
     return () => window.clearTimeout(timer);
   }, [value]);
-  return <strong className="tick-price" data-tick={tick ?? undefined}>{children}</strong>;
+  return <strong className={`tick-price${dir === "up" ? " positive" : dir === "down" ? " negative" : ""}`} data-dir={dir ?? undefined} data-tick={tick ?? undefined}>{children}</strong>;
 }
