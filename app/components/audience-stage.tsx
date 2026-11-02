@@ -177,7 +177,20 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
     tops.current = next;
   }, [orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const leader = entries[0];
+  // When first place changes hands, a banner names the new leader for a few seconds.
+  const lastLeader = useRef<number | null>(null);
+  const [leadBanner, setLeadBanner] = useState<{ terminal: number; key: number } | null>(null);
+  useEffect(() => {
+    const now = leader?.terminalNumber ?? null;
+    const before = lastLeader.current;
+    lastLeader.current = now;
+    if (final || now === null || before === null || before === now) return;
+    setLeadBanner({ terminal: now, key: Date.now() });
+    const timer = window.setTimeout(() => setLeadBanner(null), 3600);
+    return () => window.clearTimeout(timer);
+  }, [leader?.terminalNumber, final]);
   return <section className={`stage-board${final ? " is-final" : ""}`} aria-label={final ? "Final standings" : "Standings"}>
+    {leadBanner && <div className="stage-lead" key={leadBanner.key} role="status"><span>New leader</span><strong>Terminal {pad2(leadBanner.terminal)} takes the lead</strong></div>}
     <header className="stage-board-head">
       <h2>{final ? "Final standings" : "Standings"}</h2>
       <span className="stage-board-meta">{final ? `Batch ${pad2(world?.batch ?? 1)} · closed` : entries.length ? `${entries.length} ${entries.length === 1 ? "terminal" : "terminals"} trading` : "No trades yet"}</span>
@@ -212,10 +225,10 @@ function Spark({ stock }: { stock: Stock }) {
   </svg>;
 }
 
-function StockTile({ stock, index }: { stock: Stock; index: number }) {
+function StockTile({ stock, index, mark }: { stock: Stock; index: number; mark?: "top" | "bottom" }) {
   const move = changePct(stock);
   const tick = useTick(stock.price);
-  return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}`} data-tick={tick ?? undefined} style={{ "--i": index } as React.CSSProperties} title={stock.name}>
+  return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}${mark ? ` is-${mark}` : ""}`} data-tick={tick ?? undefined} style={{ "--i": index } as React.CSSProperties} title={stock.name}>
     <div className="stage-tile-top"><Logo stock={stock} compact/><b>{shortName(stock.symbol)}</b></div>
     <div className="stage-tile-price"><strong>{money(stock.price, stock.price < 100 ? 2 : 0)}</strong><span>{move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(2)}%</span></div>
     <Spark stock={stock}/>
@@ -245,7 +258,130 @@ const CANDLES = Array.from({ length: 28 }, (_, i) => {
 const CANDLE_LINE = smoothPath(CANDLES.map((candle, i) => ({ x: 18 + i * 35, y: 300 - candle.close * 3.4 })));
 const CONFETTI = Array.from({ length: 46 }, (_, i) => ({ x: (i * 37) % 100, delay: (i % 9) * .16, drift: ((i * 53) % 40) - 20, spin: 280 + (i * 71) % 540, size: 8 + (i * 13) % 10, tone: i % 3 }));
 
-function CountdownScene({ seconds, variant }: { seconds: number; variant: string }) {
+/*
+  The particle field behind the countdown. Glowing points swirl round the dial and gather into each
+  number; on GO they form the word and burst like a firework. Canvas 2D, one pre-rendered glow sprite,
+  about 1,600 points, capped device-pixel ratio so a 4K board keeps 60 fps.
+*/
+type Particle = { x: number; y: number; vx: number; vy: number; tx: number | null; ty: number | null; size: number; tone: number; phase: number; orbit: number; spin: number };
+function glyphPoints(text: string, w: number, h: number, step: number) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const g = c.getContext("2d");
+  if (!g) return [];
+  g.fillStyle = "#fff";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.font = `900 ${Math.round(h * (text.length > 1 ? .42 : .6))}px "Archivo Stage", system-ui, sans-serif`;
+  g.fillText(text, w / 2, h * .53);
+  const data = g.getImageData(0, 0, w, h).data;
+  const points: { x: number; y: number }[] = [];
+  for (let y = 0; y < h; y += step) for (let x = 0; x < w; x += step) if (data[(y * w + x) * 4 + 3] > 140) points.push({ x: x + (Math.random() - .5) * step * .2, y: y + (Math.random() - .5) * step * .2 });
+  for (let i = points.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [points[i], points[j]] = [points[j], points[i]]; }
+  return points;
+}
+function sprite(color: string, size: number) {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const g = c.getContext("2d")!;
+  const grad = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  grad.addColorStop(0, "#ffffff");
+  grad.addColorStop(.22, color);
+  grad.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, size, size);
+  return c;
+}
+function ParticleField({ text, light }: { text: string; light: boolean }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const state = useRef<{ particles: Particle[]; w: number; h: number; burst: boolean; step: number } | null>(null);
+  // Build the field once.
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const dpr = Math.min(1.5, window.devicePixelRatio || 1);
+    const css = getComputedStyle(canvas);
+    const colors = [css.getPropertyValue("--accent").trim() || "#a993ff", css.getPropertyValue("--gold").trim() || "#f3c74f", css.getPropertyValue("--up").trim() || "#2fd68f"];
+    const sprites = colors.map(color => sprite(color, 48));
+    let w = 0, h = 0, raf = 0, last = performance.now();
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      w = Math.max(1, Math.round(rect.width * dpr)); h = Math.max(1, Math.round(rect.height * dpr));
+      canvas.width = w; canvas.height = h;
+      if (state.current) { state.current.w = w; state.current.h = h; }
+    };
+    resize();
+    const count = Math.round(Math.min(2800, Math.max(1400, (w * h) / 900)));
+    const particles: Particle[] = Array.from({ length: count }, () => {
+      const a = Math.random() * Math.PI * 2, r = (.25 + Math.random() * .6) * Math.min(w, h);
+      return { x: w / 2 + Math.cos(a) * r, y: h / 2 + Math.sin(a) * r, vx: 0, vy: 0, tx: null, ty: null, size: .5 + Math.random() * 1.1, tone: Math.random() < .55 ? 0 : Math.random() < .6 ? 1 : 2, phase: Math.random() * Math.PI * 2, orbit: (.3 + Math.random() * .55) * Math.min(w, h), spin: (Math.random() < .5 ? -1 : 1) * (.15 + Math.random() * .35) };
+    });
+    state.current = { particles, w, h, burst: false, step: 8 };
+    const onResize = () => resize();
+    window.addEventListener("resize", onResize);
+    const frame = (now: number) => {
+      const dt = Math.min(2, (now - last) / 16.7);
+      last = now;
+      const st = state.current!;
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = `rgba(0,0,0,${light ? .45 : .34})`;
+      ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = light ? "source-over" : "lighter";
+      const cx = w / 2, cy = h / 2, t = now / 1000;
+      for (const p of st.particles) {
+        if (st.burst) { p.vy += .06 * dt * dpr; p.vx *= .985; p.vy *= .985; }
+        else if (p.tx !== null && p.ty !== null) {
+          p.vx += (p.tx - p.x) * .045 * dt; p.vy += (p.ty - p.y) * .045 * dt;
+          p.vx *= .78; p.vy *= .78;
+        } else {
+          // Drift on a slow orbit round the dial.
+          const a = Math.atan2(p.y - cy, p.x - cx) + p.spin * .006 * dt;
+          const r = p.orbit + Math.sin(t * .8 + p.phase) * 18 * dpr;
+          p.vx += (cx + Math.cos(a) * r - p.x) * .02 * dt; p.vy += (cy + Math.sin(a) * r * .62 - p.y) * .02 * dt;
+          p.vx *= .9; p.vy *= .9;
+        }
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        const twinkle = .55 + .45 * Math.sin(t * 3 + p.phase);
+        const formed = p.tx !== null;
+        const size = formed ? st.step * (1.25 + p.size * .35) : 10 * p.size * dpr * (st.burst ? 1.3 : 1);
+        ctx.globalAlpha = formed ? .7 + .3 * twinkle : .4 * twinkle;
+        ctx.drawImage(sprites[p.tone], p.x - size / 2, p.y - size / 2, size, size);
+      }
+      ctx.globalAlpha = 1;
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
+  }, [light]);
+  // Gather the points into each new number, with a swirl as they travel.
+  useEffect(() => {
+    const st = state.current;
+    if (!st) return;
+    const step = Math.max(4, Math.round(Math.min(st.w, st.h) / 125));
+    st.step = step;
+    const points = glyphPoints(text, st.w, st.h, step);
+    const cx = st.w / 2, cy = st.h / 2;
+    st.burst = false;
+    st.particles.forEach((p, i) => {
+      const point = points[i];
+      if (point) { p.tx = point.x; p.ty = point.y; } else { p.tx = null; p.ty = null; }
+      const a = Math.atan2(p.y - cy, p.x - cx);
+      p.vx += -Math.sin(a) * 14 * p.spin; p.vy += Math.cos(a) * 14 * p.spin;
+    });
+    if (text === "GO") {
+      const timer = window.setTimeout(() => {
+        st.burst = true;
+        st.particles.forEach(p => { const a = Math.random() * Math.PI * 2, v = 6 + Math.random() * 22; p.tx = p.ty = null; p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v - 6; });
+      }, 520);
+      return () => window.clearTimeout(timer);
+    }
+  }, [text]);
+  return <canvas className="cd-particles" ref={ref} aria-hidden="true"/>;
+}
+
+function CountdownScene({ seconds, variant, light }: { seconds: number; variant: string; light: boolean }) {
   return <div className={`stage-countdown${seconds === 0 ? " is-go" : ""}`} role="status" aria-live="assertive">
     <div className="cd-scene" aria-hidden="true">
       <svg className="cd-chart" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMax slice">
@@ -270,6 +406,7 @@ function CountdownScene({ seconds, variant }: { seconds: number; variant: string
     <div className="cd-dial">
       <svg className="cd-ring" viewBox="0 0 100 100" key={`r${seconds}`} aria-hidden="true"><circle className="cd-ring-track" cx="50" cy="50" r="46"/><circle className="cd-ring-sweep" cx="50" cy="50" r="46" pathLength={1}/></svg>
       <span>Trading opens in</span>
+      <ParticleField text={seconds ? String(seconds) : "GO"} light={light}/>
       <strong key={seconds}>{seconds || "GO"}</strong>
     </div>
   </div>;
@@ -303,11 +440,25 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const counting = world?.status === "countdown";
   useEffect(() => { if (!counting) return; const timer = window.setInterval(() => setClock(Date.now()), 200); return () => window.clearInterval(timer); }, [counting]);
   const indexTick = useTick(world?.index ?? 0);
+  // The moment trading opens: a burst of light and "Market open".
+  const [opening, setOpening] = useState(false);
+  const lastStatus = useRef(world?.status);
+  useEffect(() => {
+    const before = lastStatus.current;
+    lastStatus.current = world?.status;
+    if (before !== "countdown" || world?.status !== "live") return;
+    setOpening(true);
+    const timer = window.setTimeout(() => setOpening(false), 2800);
+    return () => window.clearTimeout(timer);
+  }, [world?.status]);
 
   const visibleNews = latestNewsSet(world);
   const newsSetKey = `${world?.batch ?? 0}:${visibleNews.map(item => item.id).join(",")}`;
   const showNews = visibleNews.length > 0 && dismissedSet !== newsSetKey;
   const stocks = world?.stocks ?? [];
+  const ranked = [...stocks].sort((a, b) => changePct(b) - changePct(a));
+  const gainer = ranked.length && changePct(ranked[0]) > .005 ? ranked[0] : undefined;
+  const loser = ranked.length && changePct(ranked[ranked.length - 1]) < -.005 ? ranked[ranked.length - 1] : undefined;
   const returnPct = world?.indexChange ?? 0;
   const status = world?.status ?? "ready";
   const statusText = status === "live" ? world?.controls.paused ? "Paused" : "Live" : status === "countdown" ? "Starting" : status === "closed" ? "Closed" : "Ready";
@@ -325,6 +476,11 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     </defs></svg>
     <header className="stage-head">
       <div className="stage-brand"><span className="stage-mark"><DalaalMark/></span><h1 className="stage-title"><small>Pratibimb live market</small><DalaalWordmark/></h1></div>
+      {gainer && loser && <div className="stage-movers" aria-label="Biggest movers">
+        <small>Biggest movers</small>
+        <span className="up" key={`g${gainer.symbol}`}><b>▲</b>{shortName(gainer.symbol)}<em>{changePct(gainer).toFixed(2)}%</em></span>
+        <span className="down" key={`l${loser.symbol}`}><b>▼</b>{shortName(loser.symbol)}<em>{Math.abs(changePct(loser)).toFixed(2)}%</em></span>
+      </div>}
       <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10</span><strong data-tick={indexTick ?? undefined}>{indexText}</strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b></div>
       <div className={`stage-status status-${status}${world?.controls.paused ? " is-paused" : ""}`}><i aria-hidden="true"/>{statusText}</div>
       <div className={`stage-clock${lowTime ? " is-low" : ""}`} aria-label="Time left">
@@ -347,13 +503,14 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
             <p>{item.headline}</p>
           </article>)}</div>
         </section>}
-        <section className="stage-grid" aria-label="All 25 companies">{stocks.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index}/>)}</section>
+        <section className="stage-grid" aria-label="All 25 companies">{stocks.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} mark={stock.symbol === gainer?.symbol ? "top" : stock.symbol === loser?.symbol ? "bottom" : undefined}/>)}</section>
       </div>}
       <Leaderboard world={world} final={final} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
     </div>
 
     {final && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": `${piece.size}px` } as React.CSSProperties}/>)}</div>}
-    {counting && <CountdownScene seconds={countdownSeconds} variant={variant}/>}
+    {counting && <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/>}
+    {opening && <div className="stage-open" aria-hidden="true"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
     <Ticker stocks={stocks} preview={preview}/>
   </main>;
 }

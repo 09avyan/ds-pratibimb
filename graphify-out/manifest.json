@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793641410.6849225,
-    "seen": 1793642110.2885685,
-    "ast_hash": "a4f23062395344c5e01b0507047b26d4",
+    "mtime": 1793644162.8038652,
+    "seen": 1793644535.531006,
+    "ast_hash": "a3a1e375d34233171a670c74c7dfe827",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
