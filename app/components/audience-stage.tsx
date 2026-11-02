@@ -12,7 +12,7 @@ import { changePct, fmtTime, latestNewsSet, MiniChart, money, newsScope } from "
 */
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
-const signedPct = (value: number) => `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}%`;
+const signedPct = (value: number) => Math.abs(value) < .005 ? "0.00%" : `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}%`;
 const signedMoney = (value: number) => `${value >= 0 ? "+" : "−"}${money(Math.abs(value), 0)}`;
 const STATUS_LABEL: Record<PublicLeaderboardEntry["status"], string> = { live: "Trading", paused: "Paused", ready: "Ready", finished: "Finished", offline: "Offline" };
 
@@ -133,9 +133,9 @@ function Podium({ entries, moves, final }: { entries: PublicLeaderboardEntry[]; 
         {place === 1 && <span className="stage-crown" aria-hidden="true">♛</span>}
         <span className="stage-medal">{entry.rank}</span>
         <span className="stage-pillar-label">TERMINAL <MoveBadge delta={moves[entry.terminalNumber]?.delta}/></span>
-        <strong className="stage-pillar-number">{pad2(entry.terminalNumber)}</strong>
+        <strong className="stage-pillar-number">{pad2(entry.terminalNumber)}</strong>{entry.status === "finished" && !final && <small className="stage-pillar-status">Finished</small>}
         <span className="stage-pillar-value">{money(entry.totalValue, 0)}</span>
-        <span className={`stage-pillar-return ${entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : ""}`}>{signedPct(entry.returnPct)}</span>
+        <span className={`stage-pillar-return ${entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat"}`}>{signedPct(entry.returnPct)}</span>
         <span className="stage-pillar-base" aria-hidden="true"/>
       </div>;
     })}
@@ -175,7 +175,7 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
         {rest.map(entry => <li key={entry.terminalNumber} ref={element => { if (element) rows.current.set(entry.terminalNumber, element); else rows.current.delete(entry.terminalNumber); }} className={`stage-row status-${entry.status}`}>
           <b className="stage-row-rank">{entry.rank}</b>
           <span className="stage-row-name"><strong>Terminal {pad2(entry.terminalNumber)}</strong><MoveBadge delta={moves[entry.terminalNumber]?.delta}/>{entry.status !== "live" && <small>{STATUS_LABEL[entry.status]}</small>}</span>
-          <span className="stage-row-value"><strong>{money(entry.totalValue, 0)}</strong><small className={entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : ""}>{signedPct(entry.returnPct)}</small></span>
+          <span className="stage-row-value"><strong>{money(entry.totalValue, 0)}</strong><small className={entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat"}>{signedPct(entry.returnPct)}</small></span>
         </li>)}
       </ol>}
       {final && entries[0] && <p className="stage-winner-line">Top portfolio: Terminal {pad2(entries[0].terminalNumber)} with {money(entries[0].totalValue, 0)} ({signedMoney(entries[0].pnl)})</p>}
@@ -236,7 +236,6 @@ export function AudienceStage({ world, preview, theme, onTheme }: { world: Publi
         <button type="button" className="stage-icon" onClick={() => document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen()} aria-label={fullscreen ? "Exit full screen" : "Full screen"} title={fullscreen ? "Exit full screen" : "Full screen"}><Icon name={fullscreen ? "shrink" : "expand"}/></button>
       </div>
     </header>
-    {bells.needsTap && sound && <button type="button" className="stage-sound-hint" onClick={() => bells.test("open")}>Tap here once to enable the opening and closing bells</button>}
 
     <div className="stage-body">
       {!final && <div className="stage-main">

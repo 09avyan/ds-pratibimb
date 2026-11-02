@@ -176,14 +176,23 @@ Trading and audience dashboards show the latest published set only, with the ful
 - Opens in dark mode (its own setting, separate from the trading screens). Shows the index, status and clock; the latest news set; all 25 companies in a 5 × 5 board; and the leaderboard.
 - **Leaderboard:** ranks only terminals that are actually playing — the current login must have placed at least one buy or short in this batch. Logged-in terminals that have not traded do not appear. Top three stand on a podium; ranks 4–10 follow below. ▲/▼ badges mark rank changes for a few seconds and rows glide to their new place. Equal portfolio values share a rank. Each terminal’s **Position** uses the same rule and ranking.
 - When the batch closes the stage switches to **Final standings** (podium, full ranking and the top portfolio) until the next batch starts or someone taps **Show the market**.
-- **Bells:** an opening bell when trading starts (after the three-second countdown, which the stage shows full screen) and a closing bell when the batch closes. The sounds are generated in the browser. Browsers allow sound only after one tap on the page, so the stage asks for a tap once; the speaker button turns bells on or off.
+- **Bells:** an opening bell when trading starts (after the 10-second countdown, shown full screen) and a closing bell when the timer ends — see **Audience bells** below.
 
 ### V4 trading screens
 - Small labels and figures were raised for parents on a 24" monitor: labels ≥ 11px, body text ≥ 13px, prices 15–18px and the header figures (clock, cash, portfolio, P&L) 18px. Layout and other versions are unchanged.
 
+### Round timing and market
+- Live batches default to **5 minutes** (changeable in host Settings, 4–15 minutes) and open with a **10-second countdown** on the audience stage; practice rounds keep 6 minutes and a 3-second countdown.
+- Bots were retuned so news explains most of a stock's move: trend-following, random noise and the bots' amplification of news are all smaller. Without news, a stock now drifts at most about 6% in 5 minutes (previously about 10%).
+- When the clock shows one minute left, players who still hold shares or shorts see a warning that these will be sold or covered automatically at the closing price; the Portfolio tab says so too. Automatic close-outs still count as trades in the report, and **Toughest closed trade** only ever shows a losing trade.
+
+### Audience bells
+- Bells ring automatically on the audience stage only: the opening bell when trading starts (host or `/auto`) and the closing bell when the timer ends. Trading terminals stay silent.
+- Browsers allow sound only after one interaction with the page, so tap **Full screen** on the board once at setup (that unlocks the bells). If sound is still blocked, the speaker icon pulses. To remove the tap entirely, start the board's browser with autoplay allowed (Chrome/Edge: `--autoplay-policy=no-user-gesture-required`, or Edge site permissions → Media autoplay → Allow).
+
 ### News brain
-- **Pacing from the room:** after each set the brain reads every active terminal’s trades — who acted on the affected companies, how quickly (median first trade), whether trading is still going, how long the room has been quiet and recent rejected orders. Players who acted and went quiet bring the next set about 15s sooner; quick reactions a little sooner; ongoing trading +10s; slow reactions +8s; three or more rejected orders +12s. A short tail of the previous effect (kept under 18s) may overlap. Near the close the last set is brought forward so it can play out.
-- **Story choice across the round:** spreads news across sectors not yet covered, limits whole-economy stories, balances good and bad news over the round, and ends with a deliberate **closing set** of clear company stories. If nobody traded the last set, the next one uses clearer company stories. It never targets an individual player’s wealth.
-- **Host controls (News brain tab, Alt + B):** intensity Auto / Calm / Balanced / Lively; **Sooner 15s / Later 15s** for the next release; **Keep** a story or **Swap** one story for the best compatible replacement; **Skip and reselect** now avoids the skipped stories and keeps the release time.
-- **Clearer tab:** a round timeline of published and planned sets, a countdown bar, the expected direct move of each upcoming story on its companies, how players responded to the last set, and each factor (in seconds) behind the chosen gap.
+- **Cadence:** a set every **50–75 seconds**. The brain picks the exact gap from the logs — who acted on the last set's companies and how fast, whether trading is still going, how long the room has been quiet, and rejected orders. It waits only for the previous set's 35-second direct reaction; slower follow-through may continue underneath. Terminals that have never placed an order are ignored when judging reactions.
+- **Story choice:** most sets are chosen to move a large part of the market (sector and economy stories are favoured after the opening sets), news is spread across sectors and balanced between good and bad over the round, and the round ends with a closing set.
+- **Host controls (News brain tab, Alt + B):** intensity Auto / Calm / Balanced / Lively; **Sooner 15s / Later 15s**; **Keep** or **Swap** a story; **Skip and reselect** avoids the skipped stories and keeps the release time.
+- **Clearer tab:** a round timeline, a countdown bar, the expected direct move of each upcoming story, how players responded to the last set, and each factor (in seconds) behind the chosen gap.
 - Regression: `node scripts/brain-pacing-check.cjs` and `node scripts/audience-leaderboard-check.cjs`.

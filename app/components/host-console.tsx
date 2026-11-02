@@ -68,7 +68,7 @@ export function HostConsole() {
   const [newsSector, setNewsSector] = useState("ALL");
   const [newsDirection, setNewsDirection] = useState("all");
   const [headlineDelay, setHeadlineDelay] = useState(0);
-  const [controls, setControls] = useState({ volatility: 48 * .85, bots: 58, tickRate: 1, marketBias: 50, duration: 360, newsEnabled: true, majorAuto: 1, minorAuto: 2, newsSpacing: 75 });
+  const [controls, setControls] = useState({ volatility: 48 * .85, bots: 58, tickRate: 1, marketBias: 50, duration: 300, newsEnabled: true, majorAuto: 1, minorAuto: 2, newsSpacing: 62 });
   const [intervention, setIntervention] = useState({ sector: "ALL", direction: "up", magnitude: 1.5, delay: 0 });
   const logCursor = useRef("");
   const activeTab = useRef<Tab>(tab);
@@ -416,8 +416,8 @@ export function HostConsole() {
       </section>
       <section className="autonomous-history brain-visible-section" aria-labelledby="brain-activity-title"><div className="brain-section-heading"><h2 id="brain-activity-title">Recent brain activity</h2><button type="button" className="text-link" onClick={() => setTab("logs")}>Full game logs <small>Alt + G</small></button></div>{autonomous?.history.length ? <div className="autonomous-history-list">{autonomous.history.slice(0, 12).map((entry, index) => <article key={`${entry.at}-${entry.kind}-${index}`}><span className={`autonomous-history-kind ${entry.kind}`}>{autonomousLabel(entry.kind)}</span><time>T+{fmtTime(Math.max(0, (entry.at - (world?.startedAt ?? entry.at)) / 1000))}</time><div>{entry.indices.map(newsIndex => world?.news[newsIndex]?.headline).filter(Boolean).join(" · ") || (entry.kind === "settings-adjusted" ? "Market difficulty" : "Brain control")}<small>{entry.reason}</small></div><b>{entry.intervalSeconds}s</b></article>)}</div> : <p className="host-card-copy">Decisions, publications and host overrides will appear here as they happen.</p>}<p className="host-card-copy">Latest {Math.min(12, autonomous?.history.length ?? 0)} records shown. The Logs section contains the retained game journal.</p></section>
       <section className="news-automation-fast brain-visible-section"><div className="brain-section-heading"><h2>Brain pacing</h2></div>
-            <label className="host-field brain-baseline-setting"><span className="brain-baseline-label">NEWS INTERVAL BASELINE <b>{controls.newsSpacing}s</b></span><input aria-label="News interval baseline in seconds" type="range" min="50" max="90" step="1" value={controls.newsSpacing} onChange={e => setControls(c => ({ ...c, newsSpacing: Number(e.target.value) }))}/><span className="brain-baseline-scale"><small>50s · quicker</small><small>75s · default</small><small>90s · more time</small></span></label>
-            <p className="host-card-copy">This is the brain’s normal starting point. It can adjust the next release between 50 and 105 seconds after reviewing player activity and how much news is still moving the market.</p>
+            <label className="host-field brain-baseline-setting"><span className="brain-baseline-label">NEWS INTERVAL BASELINE <b>{controls.newsSpacing}s</b></span><input aria-label="News interval baseline in seconds" type="range" min="50" max="75" step="1" value={controls.newsSpacing} onChange={e => setControls(c => ({ ...c, newsSpacing: Number(e.target.value) }))}/><span className="brain-baseline-scale"><small>50s · quicker</small><small>75s · default</small><small>90s · more time</small></span></label>
+            <p className="host-card-copy">This is the brain’s normal starting point. It chooses each release between 50 and 75 seconds from player activity in the logs and how much earlier news is still moving the market.</p>
             <button className="outline-button full" disabled={working || controls.newsSpacing === (world?.controls.newsSpacing ?? 75)} onClick={() => void act("controls", { newsSpacing: controls.newsSpacing })}>Save baseline interval</button>
 </section>
       </div>

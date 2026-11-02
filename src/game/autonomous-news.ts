@@ -93,7 +93,8 @@ function latestSet(world: World) {
 export function readNewsResponse(world: World, at: number): AutonomousNewsResponse | null {
   const latest = latestSet(world);
   if (!latest) return null;
-  const players = activeTerminalPlayers(world, at);
+  // Only terminals that have placed an order count; a logged-in screen nobody uses is not "slow".
+  const players = activeTerminalPlayers(world, at).filter(player => player.history.some(trade => trade.side !== "Auto-cover" && trade.side !== "Auto-sell"));
   const manual = (trade: World["sessions"][string]["history"][number]) => trade.side !== "Auto-cover" && trade.side !== "Auto-sell" && trade.time <= at;
   const firstReactions = players.flatMap(player => {
     const times = player.history.filter(trade => manual(trade) && trade.time >= latest.at && latest.affected.has(trade.symbol)).map(trade => trade.time);
@@ -145,9 +146,9 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   const elapsedSincePlan = Math.max(0, (at - planningAnchor) / 1000);
   const limitedOverlap = strategy === "lively" && reading.activeTerminals > 0 && reacting <= 8 && reading.unresolvedNewsSeconds <= 18;
   const startGap = opening && !world.headlines.length ? base
-    : strategy === "calm" || reading.unresolvedNewsSeconds > 20 ? Math.max(base, 85)
-      : strategy === "lively" ? Math.min(base, 55)
-        : activeCrowd ? Math.max(60, base - 5) : base;
+    : strategy === "calm" || reading.unresolvedNewsSeconds > 20 ? Math.max(base, 70)
+      : strategy === "lively" ? Math.min(base, 54)
+        : activeCrowd ? Math.max(56, base - 5) : base;
   let intervalSeconds = startGap;
   const pacing: AutonomousPacingFactor[] = [{ kind: "base", label: opening && !world.headlines.length ? `Host baseline for the opening set` : `Starting gap for a ${strategy} set${hostIntensity ? " (host intensity)" : ""}`, seconds: startGap }];
   const adjust = (label: string, seconds: number, kind: AutonomousPacingFactor["kind"] = "adjust") => {
@@ -166,14 +167,12 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
     if (ignored) adjust("Nobody traded the last set yet; a clearer set comes a little sooner", -6);
   }
   if ((reading.rejectedOrders ?? 0) >= 3) adjust(`${reading.rejectedOrders} rejected orders in the last minute`, 12);
-  // Reviews use remaining effect time plus elapsed time from the original plan. This waits for
-  // settling without moving the due time further away on every tick. Once players have clearly
-  // finished with a set (or ignored it), a longer tail of the previous effect may overlap.
-  // A short tail may overlap (kept under 18s with margin): enough to keep pace without stacking two strong reactions.
-  const allowedTail = absorbed ? 15 : limitedOverlap ? 12 : 3;
-  if (world.headlines.length && reading.unresolvedNewsSeconds > allowedTail + 3) {
-    const settled = elapsedSincePlan + reading.unresolvedNewsSeconds - allowedTail;
-    if (settled > intervalSeconds) adjust(`Letting the previous news settle (${Math.round(reading.unresolvedNewsSeconds)}s of its effect left${allowedTail > 3 ? `, ${allowedTail}s may overlap` : ""})`, settled - intervalSeconds, "limit");
+  // With a set every 50–75 seconds, earlier follow-through always overlaps a little. The brain only
+  // waits for the previous set's direct reaction (about 35s) to finish, so players see each story's
+  // move before the next set; the slower tail continues underneath.
+  if (world.headlines.length && reacting > 0) {
+    const reactionDone = elapsedSincePlan + reacting;
+    if (reactionDone > intervalSeconds) adjust(`Letting the last set's direct reaction finish (${Math.round(reacting)}s left)`, reactionDone - intervalSeconds, "limit");
   }
   const bounded = clamp(Math.round(intervalSeconds), NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_AUTO_MAX_INTERVAL_SECONDS);
   if (bounded !== Math.round(intervalSeconds)) adjust(`Kept within the brain's ${NEWS_BASE_INTERVAL_MIN_SECONDS}–${NEWS_AUTO_MAX_INTERVAL_SECONDS}s range`, bounded - intervalSeconds, "limit");
@@ -182,7 +181,7 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   if (world.status === "live" && world.headlines.length) {
     const leftAtRelease = world.remaining - Math.max(0, intervalSeconds - elapsedSincePlan);
     // Never overlap more than a short tail of the previous effect, even to fit the last set in.
-    const earliest = Math.max(elapsedSincePlan + 5, elapsedSincePlan + reading.unresolvedNewsSeconds - 15, NEWS_BASE_INTERVAL_MIN_SECONDS);
+    const earliest = Math.max(elapsedSincePlan + 5, elapsedSincePlan + reacting, NEWS_BASE_INTERVAL_MIN_SECONDS);
     if (leftAtRelease < finalTail && world.remaining > finalTail + 5) adjust("Brought forward so the final set has time to play out before the close", Math.max(earliest, intervalSeconds - (finalTail - leftAtRelease)) - intervalSeconds, "limit");
   }
   const nudge = world.autonomousNews?.nudgeSeconds ?? 0;
@@ -266,7 +265,7 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
       const covered = sectorCounts.get(item.news.sector) ?? 0;
       score += covered === 0 ? .35 : -.22 * (covered - 1);
     }
-    if (scope === "economy" && economySets >= Math.max(1, Math.ceil(publishedSetCount / 3))) score -= .4;
+    if (scope === "economy" && economySets >= Math.max(1, Math.ceil(publishedSetCount / 2))) score -= .15;
     if (roundDirection >= 3 && item.news.direction < 0 || roundDirection <= -3 && item.news.direction > 0) score += .3;
     if (finalSet) score += scope === "stock" ? .4 : scope === "economy" ? -.5 : 0;
     if (ignored) score += scope === "stock" ? .35 + (item.news.type === "major" ? .15 : 0) : scope === "economy" ? -.3 : 0;
@@ -317,7 +316,10 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
     const intensity = -Math.abs(majorCount - preferredMajorCount) * .9;
     const directions = new Set(items.map(item => item.news.direction));
     const continuationPenalty = elapsedSinceRelease < 45 && reading.unresolvedNewsSeconds > 20 && directions.size === 1 ? -.3 : 0;
-    const score = intensity + continuationPenalty + items.reduce((sum, item) => sum + item.score, 0) / items.length + scopes * .18 + sectors * .1 + balance + (items.length === setSize ? .5 : 0);
+    // Most sets should move a large part of the market, so every trader has something to act on.
+    const touched = new Set(items.flatMap(item => { const scope = scopeOf(item.news); return world.stocks.filter(stock => scope === "economy" || (scope === "sector" ? stock.sector === item.news.sector : item.news.symbols?.includes(stock.symbol))).map(stock => stock.symbol); }));
+    const breadth = introRules ? 0 : touched.size / Math.max(1, world.stocks.length) * 1.6;
+    const score = breadth + intensity + continuationPenalty + items.reduce((sum, item) => sum + item.score, 0) / items.length + scopes * .18 + sectors * .1 + balance + (items.length === setSize ? .5 : 0);
     if (score > bestScore) { bestScore = score; best = items; }
   };
   for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) {
@@ -336,7 +338,7 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
           : strategy === "calm" ? "Giving players room to read: a smaller, gentler set while the market is unsettled."
     : strategy === "lively" ? "The market is quiet, so I’m choosing fresh opportunities to bring the round back to life."
       : "Keeping a balance between interesting moves and time to react.";
-  const overlapReason = reading.unresolvedNewsSeconds > 6 ? limitedOverlap ? " Only a light tail of earlier news may overlap." : " Earlier news gets time to settle before this release." : "";
+  const overlapReason = reacting > 0 ? " The last set's direct reaction finishes before this release." : "";
   const coverage = [...new Set(indices.map(index => scopeOf(world.news[index])))].join(", ");
   const majorCount = indices.filter(index => world.news[index].type === "major").length;
   const mix = `${indices.length - majorCount} minor + ${majorCount} major`;

@@ -11,6 +11,10 @@ export { TERMINAL_ACTIVE_WINDOW_MS } from "./terminals";
 export const START_CASH = 1_000_000;
 export const VIRTUAL_BOT_COUNT = 128;
 const MARKET_RULES_VERSION = 1;
+// Bot tuning: news should explain most of a stock's move. Bots add texture, not runaway trends.
+const BOT_TREND_SCALE = .45;
+const BOT_NOISE_SCALE = .6;
+const BOT_NEWS_SCALE = .3;
 const MIN_VOLATILITY = 12.8;
 const MAX_VOLATILITY = 85;
 const BOT_PERSONALITIES = [
@@ -100,10 +104,10 @@ export function freshWorld(mode: Mode, now = Date.now(), batch = 1): World {
   const stocks = makeStocks(batch);
   const startedAt = test ? now + 3000 : 0;
   return {
-    mode, batch: test ? batch : 0, status: test ? "countdown" : "ready", duration: 6 * 60, remaining: 6 * 60,
+    mode, batch: test ? batch : 0, status: test ? "countdown" : "ready", duration: test ? 6 * 60 : 5 * 60, remaining: test ? 6 * 60 : 5 * 60,
     startedAt, lastTickAt: now, tick: 0, testRulesVersion: test ? 2 : undefined,
-    controls: { scenario: "Sideways", volatility: 48 * .85, bots: 58, tickRate: 1, marketBias: 50, paused: false, majorAuto: 1, minorAuto: 2, newsSpacing: 75, newsEnabled: test, activeNews: 0 },
-    stocks, news: makeNews(test ? batch : 1), newsCatalogVersion: NEWS_CATALOG_VERSION, marketRulesVersion: MARKET_RULES_VERSION, newsSettingsVersion: NEWS_SETTINGS_VERSION, autonomousNews: newAutonomousNewsState(), headlines: [], sessions: {}, hostNotes: [], latestNewsId: null, latestNewsIds: [], newsNextAt: test ? startedAt + 75_000 : now + 75_000, error: null, version: 1, scheduledInterventions: [], scheduledNews: [],
+    controls: { scenario: "Sideways", volatility: 48 * .85, bots: 58, tickRate: 1, marketBias: 50, paused: false, majorAuto: 1, minorAuto: 2, newsSpacing: 62, newsEnabled: test, activeNews: 0 },
+    stocks, news: makeNews(test ? batch : 1), newsCatalogVersion: NEWS_CATALOG_VERSION, marketRulesVersion: MARKET_RULES_VERSION, newsSettingsVersion: NEWS_SETTINGS_VERSION, autonomousNews: newAutonomousNewsState(), headlines: [], sessions: {}, hostNotes: [], latestNewsId: null, latestNewsIds: [], newsNextAt: test ? startedAt + 62_000 : now + 62_000, error: null, version: 1, scheduledInterventions: [], scheduledNews: [],
   };
 }
 
@@ -469,9 +473,9 @@ export function advance(world: World, now = Date.now()): World {
         sectorPulse.set(stock.sector, rand(pulseSeed) < .19 ? (rand(pulseSeed + 1) - .5) * .0011 * vol : 0);
       }
       const hist = stock.candles;
-      const momentum = hist.length > 3 ? ((hist.at(-1)!.close - hist.at(-4)!.close) / hist.at(-4)!.close) * .055 : 0;
+      const momentum = hist.length > 3 ? ((hist.at(-1)!.close - hist.at(-4)!.close) / hist.at(-4)!.close) * .055 * BOT_TREND_SCALE : 0;
       const symbolSeed = world.tick * 37 + textSeed(stock.symbol) * 7;
-      const noise = (rand(symbolSeed) - .5) * .009 * vol;
+      const noise = (rand(symbolSeed) - .5) * .009 * vol * BOT_NOISE_SCALE;
       const reference = stock.newsReferencePrice ?? stock.previousClose;
       const meanRevert = ((reference - stock.price) / reference) * .009;
       const newsActive = Boolean(stock.newsMoves?.length || stock.newsBiasClock || Math.abs(stock.newsBias ?? 0) > NEWS_IMPACT_FADE_THRESHOLD);
@@ -488,7 +492,7 @@ export function advance(world: World, now = Date.now()): World {
         botOrders += momentum * personality.momentum + meanRevert * personality.reversion + newsTrend * personality.news + flowSignal * personality.flow + (rand(agentSeed) - .5) * personality.noise;
       }
       botOrders = botOrders / VIRTUAL_BOT_COUNT * botParticipation;
-      botNews = botNews / VIRTUAL_BOT_COUNT * botParticipation;
+      botNews = botNews / VIRTUAL_BOT_COUNT * botParticipation * BOT_NEWS_SCALE;
       const institutional = (rand(Math.floor(world.tick / 11) + textSeed(stock.symbol) * 3) - .5) * .00009 * (world.controls.bots / 50);
       const ambient = scenarioDrift + bias + sectorMove + momentum + meanRevert + noise + botOrders - botNews + institutional + stock.flow / 10000 * .02;
       const reactionMove = advanceNewsReaction(stock, tickSeconds);
@@ -600,7 +604,7 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
   const maxQuantity = options.allowBulk ? Number.MAX_SAFE_INTEGER : 100_000;
   if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > maxQuantity) throw new Error(options.allowBulk ? "The position is too large to close safely." : "Enter a whole-share quantity between 1 and 100,000.");
   const stock = world.stocks.find(s => s.symbol === symbol);
-  if (!stock) throw new Error("That company is no longer available.");
+  if (!stock) throw new Error(`${String(symbol).slice(0, 20)} is not one of the listed companies.`);
   const px = stock.price, notional = quantity * px;
   let realized = 0, note: string | undefined, coveredQty = 0;
   if (action === "Buy") {
@@ -657,7 +661,8 @@ export function hostAction(world: World, action: string, payload: Record<string,
     world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0;
     world.status = "countdown"; world.controls.paused = false; world.remaining = world.duration; world.tick = 0;
     if (world.mode === "test") { world.testRulesVersion = 2; world.controls.majorAuto = 1; world.controls.minorAuto = 2; world.controls.newsEnabled = true; }
-    world.startedAt = at + 3000; world.lastTickAt = at; world.newsNextAt = world.startedAt + world.controls.newsSpacing * 1000;
+    // Live batches open with a 10-second countdown on the audience stage; practice keeps 3 seconds.
+    world.startedAt = at + (world.mode === "live" ? 10_000 : 3000); world.lastTickAt = at; world.newsNextAt = world.startedAt + world.controls.newsSpacing * 1000;
     world.scheduledNews = []; world.scheduledInterventions = [];
     for (const player of Object.values(world.sessions)) {
       if (!player.included) continue;
@@ -918,5 +923,5 @@ export function performance(world: World, player: Player) {
       ? `Your account recorded ${trades.length} trades, including session-close sales. A quick pause between moves can help you check the latest price and your available cash.`
       : "News can affect the whole market, one sector, or a single company. Check a story’s target before reacting.",
   ];
-  return { value, cash: player.cash, pnl, returnPct: pnl / player.initialCash * 100, holdings: player.holdings, shorts: player.shorts, trades: player.history, tradeCount: trades.length, winners, losers, bestTrade: sortedClosedTrades[0] ?? null, worstTrade: sortedClosedTrades.at(-1) ?? null, badges, sectors: sectorsTraded.size, symbols: symbolsTraded.size, lessons };
+  return { value, cash: player.cash, pnl, returnPct: pnl / player.initialCash * 100, holdings: player.holdings, shorts: player.shorts, trades: player.history, tradeCount: trades.length, winners, losers, bestTrade: sortedClosedTrades[0] ?? null, worstTrade: (sortedClosedTrades.at(-1)?.realized ?? 0) < 0 ? sortedClosedTrades.at(-1)! : null, badges, sectors: sectorsTraded.size, symbols: symbolsTraded.size, lessons };
 }
