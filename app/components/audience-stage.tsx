@@ -268,7 +268,7 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
         {entries.map((entry, index) => <li key={entry.terminalNumber} ref={element => { if (element) rows.current.set(entry.terminalNumber, element); else rows.current.delete(entry.terminalNumber); }} className={`stage-standing${index === 0 ? " is-leader" : ""} medal-${Math.min(entry.rank, 4)} status-${entry.status}`} style={{ "--i": index, "--reveal": entries.length - 1 - index } as React.CSSProperties}>
           <b className="stage-standing-rank"><span>{entry.rank}</span></b>
           <span className="stage-standing-name"><strong>{pad2(entry.terminalNumber)}</strong><MoveBadge delta={moves[entry.terminalNumber]?.delta}/>{!final && entry.status !== "live" && <small>{STATUS_LABEL[entry.status]}</small>}</span>
-          <span className="stage-standing-value"><Odometer text={money(entry.totalValue, 0)}/></span>
+          <span className="stage-standing-value">{money(entry.totalValue, 0)}</span>
           <span className={`stage-standing-return ${entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat"}`}>{signedPct(entry.returnPct)}</span>
         </li>)}
       </ol>
@@ -298,7 +298,7 @@ function StockTile({ stock, index, news }: { stock: Stock; index: number; news?:
   const ring = Math.max(Math.abs((index % 5) - 2), Math.abs(Math.floor(index / 5) - 2));
   return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}${news ? " is-news" : ""}`} data-tick={tick ?? undefined} style={{ "--i": index, "--ring": ring } as React.CSSProperties} title={stock.name}>
     <div className="stage-tile-top"><Logo stock={stock} compact/><b>{shortName(stock.symbol)}</b></div>
-    <div className="stage-tile-price"><strong>{money(stock.price, stock.price < 100 ? 2 : 0)}</strong><span>{move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(2)}%</span></div>
+    <div className="stage-tile-price"><strong>{money(stock.price, 2)}</strong><span>{move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(2)}%</span></div>
     <Spark stock={stock}/>
   </article>;
 }
@@ -307,7 +307,7 @@ function StockTile({ stock, index, news }: { stock: Stock; index: number; news?:
 function Ticker({ stocks, preview }: { stocks: Stock[]; preview?: boolean }) {
   const run = (copy: number) => <span className="stage-ticker-run" aria-hidden={copy === 1 || undefined} key={copy}>{stocks.map(stock => {
     const move = changePct(stock);
-    return <span className={`stage-ticker-item ${move >= 0 ? "up" : "down"}`} key={stock.symbol}><b>{shortName(stock.symbol)}</b>{money(stock.price, stock.price < 100 ? 2 : 0)}<em>{move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(2)}%</em></span>;
+    return <span className={`stage-ticker-item ${move >= 0 ? "up" : "down"}`} key={stock.symbol}><b>{shortName(stock.symbol)}</b>{money(stock.price, 2)}<em>{move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(2)}%</em></span>;
   })}</span>;
   return <footer className="stage-ticker">
     <span className="stage-ticker-label"><i aria-hidden="true"/>Live prices</span>
@@ -633,7 +633,6 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const stocks = world?.stocks ?? [];
   const returnPct = world?.indexChange ?? 0;
   const status = world?.status ?? "ready";
-  const statusText = status === "live" ? world?.controls.paused ? "Paused" : "Live" : status === "countdown" ? "Starting" : status === "closed" ? "Closed" : "Ready";
   const indexText = world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00";
   // At the closing bell the leaderboard takes the whole stage until the next batch or a tap on "Show the market".
   const final = status === "closed" && (world?.leaderboard.length ?? 0) > 0 && marketAfterClose !== world?.batch;
@@ -643,6 +642,11 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const timeLeft = status === "live" && world ? Math.min(1, Math.max(0, remaining / (world.duration || 1))) : 0;
 
   const lastTen = status === "live" && !world?.controls.paused && remaining <= 10 && remaining > 0;
+  // The clock always shows a time, and its label always says what that time is.
+  const batchLabel = `Batch ${pad2(world?.batch || 1)}`;
+  const clockLabel = status === "live" ? world?.controls.paused ? "Paused" : "Time left" : status === "countdown" ? "Starting" : status === "closed" ? `${batchLabel} · closed` : `${batchLabel} · ready`;
+  const clockText = status === "live" ? fmtTime(remaining) : status === "closed" ? "00:00" : fmtTime(world?.duration ?? 300);
+  const clockFill = status === "live" ? timeLeft : status === "closed" ? 0 : 1;
   return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}${showNews ? " has-news" : ""}${motion ? "" : " no-motion"}${lastTen ? " is-last-ten" : ""}`} data-status={status}>
     <svg className="stage-defs" aria-hidden="true" focusable="false"><defs>
       <linearGradient id="stage-spark-up" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{ stopColor: "var(--up)", stopOpacity: .34 }}/><stop offset="1" style={{ stopColor: "var(--up)", stopOpacity: 0 }}/></linearGradient>
@@ -650,12 +654,12 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     </defs></svg>
     <header className="stage-head">
       <div className="stage-brand"><span className="stage-mark"><DalaalMark/></span><h1 className="stage-title"><small>Pratibimb live market</small><DalaalWordmark/></h1></div>
-      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10</span><strong data-tick={indexTick ?? undefined}><Odometer text={indexText}/></strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b></div>
-      <div className={`stage-status status-${status}${world?.controls.paused ? " is-paused" : ""}`}><i aria-hidden="true"/>{statusText}</div>
-      <div className={`stage-clock${lowTime ? " is-low" : ""}`} aria-label="Time left">
-        <span>{status === "live" ? <Odometer text={fmtTime(remaining)}/> : `BATCH ${pad2(world?.batch || 1)}`}</span>
-        {status === "live" && <i className="stage-clock-bar" aria-hidden="true" style={{ transform: `scaleX(${timeLeft})` }}/>}
+      <div className={`stage-clock state-${status}${world?.controls.paused ? " is-paused" : ""}${lowTime ? " is-low" : ""}`} role="timer" aria-label={`${clockLabel}, ${clockText}`}>
+        <small><i aria-hidden="true"/>{clockLabel}</small>
+        <span>{clockText}</span>
+        <i className="stage-clock-bar" aria-hidden="true" style={{ transform: `scaleX(${clockFill})` }}/>
       </div>
+      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10 index</span><strong data-tick={indexTick ?? undefined}>{indexText}</strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b></div>
       <div className="stage-tools">
         <button type="button" className={`stage-icon${bells.needsTap ? " needs-tap" : ""}`} onClick={() => setSound(value => !value)} aria-pressed={sound} title={sound ? "Bells on" : "Bells off"} aria-label={sound ? "Turn bells off" : "Turn bells on"}><Icon name={sound ? "sound" : "mute"}/></button>
         <button type="button" className="stage-icon" onClick={onTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}><Icon name={theme === "light" ? "moon" : "sun"}/></button>

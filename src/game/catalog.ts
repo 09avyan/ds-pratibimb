@@ -52,7 +52,9 @@ export const makeStocks = (seed: number): Stock[] => rows.map(([symbol, name, se
     candles.push({ time: Date.now() - (36 - j) * 1000, open: prev, high: Math.max(prev, close) + spread, low: Math.max(1, Math.min(prev, close) - spread), close, volume: 900 + i * 61 + j * 11 });
     prev = close;
   }
-  const current = prev;
+  const tick = (n: number) => Math.round(Math.round(n * 20) / 20 * 100) / 100;
+  for (const c of candles) { c.open = tick(c.open); c.high = tick(c.high); c.low = tick(c.low); c.close = tick(c.close); }
+  const current = tick(prev);
   return { symbol, name, sector, domain, base: price, previousClose: open, price: current, weight: INDEX_WEIGHTS[symbol] ?? 0, candles, flow: 0 };
 });
 

@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793651597.5035093,
-    "seen": 1793651780.0874426,
-    "ast_hash": "4fe6a8cae785cc06ef9e44bc7964d6ec",
+    "mtime": 1793653871.2949452,
+    "seen": 1793654352.856663,
+    "ast_hash": "cf98f6a77fb248713fc78e4c5f6438a9",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -90,9 +90,9 @@
     "semantic_hash": ""
   },
   "app/components/market-parts.tsx": {
-    "mtime": 1793649796.7746196,
-    "seen": 1793650933.044283,
-    "ast_hash": "48a9d27d91eb7c502f0e3e5515698f48",
+    "mtime": 1793653824.8841553,
+    "seen": 1793654352.8567283,
+    "ast_hash": "844080711aa044d865f79a40e730f0b6",
     "semantic_hash": ""
   },
   "app/components/terminal-entry.tsx": {
@@ -264,15 +264,15 @@
     "semantic_hash": ""
   },
   "src/game/catalog.ts": {
-    "mtime": 1793636778.7663357,
-    "seen": 1793638310.00605,
-    "ast_hash": "77f8ef18981f887fcfd0787321308235",
+    "mtime": 1793653672.5091026,
+    "seen": 1793654352.8574758,
+    "ast_hash": "5a4a11a9b706ce5b1fc2f4565b83ad6e",
     "semantic_hash": ""
   },
   "src/game/engine.ts": {
-    "mtime": 1793649834.6542826,
-    "seen": 1793650933.0452447,
-    "ast_hash": "a5a246113f9963b591aec6cecca3d75a",
+    "mtime": 1793653683.9712307,
+    "seen": 1793654352.8574777,
+    "ast_hash": "4486a5dbe1f15cd8d942b759bb815afd",
     "semantic_hash": ""
   },
   "src/game/host-auth.ts": {
@@ -318,9 +318,9 @@
     "semantic_hash": ""
   },
   "src/game/types.ts": {
-    "mtime": 1793649834.6527932,
-    "seen": 1793650933.0455527,
-    "ast_hash": "5ccc6aa64b974cf38b0f0dc9fe90ac42",
+    "mtime": 1793653672.5086446,
+    "seen": 1793654352.8576493,
+    "ast_hash": "f1897f70e3a44b2e4cf51bb5b01e9377",
     "semantic_hash": ""
   },
   "src/ui-options.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793651776.944706,
-    "seen": 1793651780.0885904,
-    "ast_hash": "2c7d0970f20a116781fc8ae6a5b5ea46",
+    "mtime": 1793654349.7380323,
+    "seen": 1793654352.8577414,
+    "ast_hash": "7b485ddc1a3808816d215ad065e9fbdc",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -411,6 +411,12 @@
     "mtime": 1793649760.1012802,
     "seen": 1793650933.0450945,
     "ast_hash": "b7b3ac37b63888899ac05a4ea89ca2ae",
+    "semantic_hash": ""
+  },
+  "scripts/price-tick-check.cjs": {
+    "mtime": 1793653787.923668,
+    "seen": 1793654352.8573313,
+    "ast_hash": "9a78efdc99b3e4da4e94eb1526e803f0",
     "semantic_hash": ""
   },
   "pnpm-lock.yaml": {
