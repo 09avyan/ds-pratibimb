@@ -165,6 +165,7 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
       </ol>
       {final && leader && <p className="stage-winner-line">Terminal {pad2(leader.terminalNumber)} finishes first with {money(leader.totalValue, 0)}, {signedMoney(leader.pnl)} on the starting ₹10,00,000.</p>}
     </>}
+    {!final && <p className="stage-board-foot">Every terminal starts with ₹10,00,000 and is ranked by portfolio value.</p>}
     {final && onShowMarket && <button type="button" className="stage-text-button" onClick={onShowMarket}>Show the market</button>}
   </section>;
 }
@@ -202,7 +203,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const stocks = world?.stocks ?? [];
   const returnPct = world?.indexChange ?? 0;
   const status = world?.status ?? "ready";
-  const statusText = status === "live" ? world?.controls.paused ? "PAUSED" : "LIVE" : status === "countdown" ? "STARTING" : status === "closed" ? "CLOSED" : "READY";
+  const statusText = status === "live" ? world?.controls.paused ? "Paused" : "Live" : status === "countdown" ? "Starting" : status === "closed" ? "Closed" : "Ready";
   const indexText = world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00";
   // At the closing bell the leaderboard takes the whole stage until the next batch or a tap on "Show the market".
   const final = status === "closed" && (world?.leaderboard.length ?? 0) > 0 && marketAfterClose !== world?.batch;
@@ -211,8 +212,8 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
 
   return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}`} data-status={status}>
     <header className="stage-head">
-      <div className="stage-brand"><span className="stage-mark"><DalaalMark/></span><span><small>PRATIBIMB · LIVE MARKET</small><DalaalWordmark/></span></div>
-      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">DALAAL-10</span><strong>{indexText}</strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b></div>
+      <div className="stage-brand"><span className="stage-mark"><DalaalMark/></span><h1 className="stage-title"><small>Pratibimb live market</small><DalaalWordmark/></h1></div>
+      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10</span><strong>{indexText}</strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b></div>
       <div className={`stage-status status-${status}${world?.controls.paused ? " is-paused" : ""}`}><i aria-hidden="true"/>{statusText}</div>
       <div className={`stage-clock${lowTime ? " is-low" : ""}`} aria-label="Time left">{status === "live" ? fmtTime(world?.remaining ?? 0) : `BATCH ${pad2(world?.batch || 1)}`}</div>
       <div className="stage-tools">
@@ -225,7 +226,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     <div className="stage-body">
       {!final && <div className="stage-main">
         {showNews && <section className="stage-news" aria-label="Latest news">
-          <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>LATEST NEWS</span><button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button></header>
+          <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>Latest news</span><button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button></header>
           <div className={`stage-news-cards count-${visibleNews.length}`}>{visibleNews.map(item => <article key={item.id} className={`type-${item.type}`}>
             <div className="stage-news-meta"><span className={`stage-tag ${item.type}`}>{item.type}</span><span className="stage-news-scope">{newsScope(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div>
             <p>{item.headline}</p>
@@ -244,6 +245,6 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     </div>
 
     {counting && <div className="stage-countdown" role="status" aria-live="assertive"><span>Trading opens in</span><strong key={countdownSeconds}>{countdownSeconds || "GO"}</strong></div>}
-    <footer className="stage-foot">{preview && <><a href="/ui-preview">PREVIEW · COMPARE ALL</a> · </>}FICTIONAL PRICES · NO REAL MONEY</footer>
+    <footer className="stage-foot">{preview && <><a href="/ui-preview">Preview: compare all versions</a> · </>}Fictional prices, no real money</footer>
   </main>;
 }
