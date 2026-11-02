@@ -10,7 +10,7 @@ const brandedSymbols = new Set([
   "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "BHARTIARTL", "ITC", "LT",
   "SBIN", "HINDUNILVR", "TATAMOTORS", "MARUTI", "SUNPHARMA", "CIPLA", "BAJFINANCE",
   "AXISBANK", "WIPRO", "ADANIPORTS", "NTPC", "ONGC", "M&M", "TITAN", "ULTRACEMCO",
-  "DRREDDY", "KOTAKBANK", "TATASTEEL", "TATACONSUM", "APOLLOHOSP",
+  "DRREDDY", "APOLLOHOSP",
 ]);
 
 export function DalaalMark({ className = "" }: { className?: string }) {

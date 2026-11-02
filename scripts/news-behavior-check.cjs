@@ -31,7 +31,7 @@ for(let second=5;second<=40;second+=5){E.advance(w,w.startedAt+60_000+second*100
 const pauseAt=w.lastTickAt,oldDue=w.autonomousNews.nextAt;E.hostAction(w,'pause',{},pauseAt);E.advance(w,pauseAt+10_000);E.hostAction(w,'resume',{},pauseAt+20_000);assert.equal(w.autonomousNews.nextAt,oldDue+20_000);
 // Keep duplicates, offline devices and finished participants from distorting rank.
 const rankWorld=E.freshWorld('live',now);rankWorld.batch=1;
-for(let n=1;n<=3;n++){const p=E.newPlayer('rank-player-'+n,1,now,true,n);p.cash+=n*100;rankWorld.sessions[p.id]=p;}
+for(let n=1;n<=3;n++){const p=E.newPlayer('rank-player-'+n,1,now,true,n);p.cash+=n*100;p.history.push({id:'t'+n,symbol:'TCS',side:'Buy',qty:0,price:1,time:now,realized:0});rankWorld.sessions[p.id]=p;}
 const old=E.newPlayer('old-login',1,now-1000,true,3);old.cash+=999999;rankWorld.sessions[old.id]=old;
 assert.deepEqual(E.toPublic(rankWorld,'rank-player-2').standing,{rank:2,total:3});
 E.hostAction(rankWorld,'end',{},now);assert.deepEqual(E.toPublic(rankWorld,'rank-player-2').standing,{rank:2,total:3});

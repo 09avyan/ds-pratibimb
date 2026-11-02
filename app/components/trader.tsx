@@ -1,42 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Mode, News, Player, PublicWorld, Stock, Trade } from "@/game/types";
+import type { Mode, Player, PublicWorld, Stock, Trade } from "@/game/types";
+import { AudienceStage } from "./audience-stage";
 import { equity, performance, shortValue } from "@/game/engine";
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
+import { changePct, fmtTime, latestNewsSet, MiniChart, money, newsScope, smoothPath, useChartColour } from "./market-parts";
 import { UI_OPTIONS, type UiVariant } from "@/ui-options";
 
 type Props = { mode?: Mode; audienceOnly?: boolean; terminal?: number; uiVariant?: UiVariant; preview?: boolean };
 type TradeSide = "Buy" | "Sell" | "Short";
-const money = (n: number, digits = 2) => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
-const changePct = (s: Stock) => (s.price / s.previousClose - 1) * 100;
-const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">) => {
-  const scope = news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
-  return scope === "economy" ? "Economy · all stocks" : scope === "stock" ? (news.symbols?.join(", ") ?? news.sector) : `${news.sector} sector`;
-};
-function latestNewsSet(world: PublicWorld | null) {
-  const news = world?.headlines ?? [];
-  if (!news.length) return [];
-  const latestAt = Math.max(...news.map(item => item.createdAt));
-  const ids = new Set(world?.latestNewsIds ?? []);
-  return news.filter(item => ids.size ? ids.has(item.id) : item.createdAt === latestAt).sort((a, b) => a.createdAt - b.createdAt);
-}
-function smoothPath(points: { x: number; y: number }[]) {
-  if (!points.length) return "";
-  let path = `M${points[0].x},${points[0].y}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const previous = points[Math.max(0, i - 1)];
-    const start = points[i];
-    const end = points[i + 1];
-    const next = points[Math.min(points.length - 1, i + 2)];
-    const c1x = start.x + (end.x - previous.x) / 6;
-    const c1y = start.y + (end.y - previous.y) / 6;
-    const c2x = end.x - (next.x - start.x) / 6;
-    const c2y = end.y - (next.y - start.y) / 6;
-    path += ` C${c1x},${c1y} ${c2x},${c2y} ${end.x},${end.y}`;
-  }
-  return path;
-}
 const sessionStorageKey = (mode: Mode, terminal?: number, preview = false) => {
   const device = terminal ? `device-${String(terminal).padStart(2, "0")}` : "device";
   return preview ? `ds-ui-preview-${device}` : mode === "test" ? `ds-practice-${device}` : `ds-${device}`;
@@ -64,35 +37,6 @@ function mergeChartData(nextWorld: PublicWorld, previousWorld: PublicWorld | nul
     if (cached?.candles.length) return { ...nextWorld, stocks: nextWorld.stocks.map(stock => stock.symbol === symbol ? { ...stock, candles: cached.candles } : stock) };
   }
   return nextWorld;
-}
-
-function useChartColour(stock: Stock, startedAt = 0) {
-  const previous = useRef({ key: `${stock.symbol}:${startedAt}`, price: stock.price });
-  const [flash, setFlash] = useState<"up" | "down" | null>(null);
-  const state = stock.price > stock.base ? "above" : stock.price < stock.base ? "below" : "at-open";
-  const baseColor = state === "above" ? "var(--up)" : state === "below" ? "var(--down)" : "var(--muted)";
-  useEffect(() => {
-    const key = `${stock.symbol}:${startedAt}`;
-    const old = previous.current;
-    previous.current = { key, price: stock.price };
-    const direction = old.key === key ? Math.sign(stock.price - old.price) : 0;
-    const contrary = direction < 0 && stock.price > stock.base ? "down" : direction > 0 && stock.price < stock.base ? "up" : null;
-    setFlash(contrary);
-    if (contrary) {
-      const timer = window.setTimeout(() => setFlash(null), 400);
-      return () => window.clearTimeout(timer);
-    }
-  }, [stock.symbol, stock.price, stock.base, startedAt]);
-  return { state, flash, baseColor, color: flash === "up" ? "var(--up)" : flash === "down" ? "var(--down)" : baseColor };
-}
-
-function MiniChart({ stock, startedAt = 0 }: { stock: Stock; startedAt?: number }) {
-  const chart = useChartColour(stock, startedAt);
-  const values = stock.trend?.length ? stock.trend : stock.candles.slice(-18).map(c => c.close);
-  if (values.length < 2) return <svg className="mini-chart" viewBox="0 0 100 28" aria-hidden="true"><line x1="0" x2="100" y1="14" y2="14" stroke="var(--line)" /></svg>;
-  const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1;
-  const points = values.map((v, i) => ({ x: i * 100 / (values.length - 1), y: 25 - ((v - lo) / span) * 21 }));
-  return <svg className="mini-chart" data-chart-state={chart.state} data-chart-flash={chart.flash ?? "none"} viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><path d={smoothPath(points)} fill="none" className="chart-price-line" stroke={chart.color} strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" /></svg>;
 }
 
 function StockPriceTicker({ stocks }: { stocks: Stock[] }) {
@@ -183,7 +127,6 @@ function Header({ world, player, onTheme, theme, clockNow }: { world: PublicWorl
     <button className="theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
   </header>;
 }
-function fmtTime(seconds: number) { const s = Math.max(0, Math.floor(seconds)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
 
 export function Trader({ mode = "live", audienceOnly = false, terminal, uiVariant, preview = false }: Props) {
   const [sessionId, setSessionId] = useState("");
@@ -220,9 +163,12 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const chartLastTime = useRef(0);
 
   useEffect(() => { if (!audienceOnly) setSessionId(initialSession(mode, terminal, preview)); }, [audienceOnly, mode, preview, terminal]);
+  const themeKey = audienceOnly && uiVariant === "gallery" ? "ds-audience-theme" : "ds-theme";
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("ds-theme");
+    // The V4 audience wall (smart board) keeps its own theme and opens in dark mode.
+    const savedTheme = window.localStorage.getItem(themeKey);
     if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
+    else if (audienceOnly && uiVariant === "gallery") setTheme("dark");
     setThemeReady(true);
   }, []);
   const sync = useCallback(async () => {
@@ -284,7 +230,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   useEffect(() => { if (toast) { const t = window.setTimeout(() => setToast(""), 3600); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    if (themeReady) window.localStorage.setItem("ds-theme", theme);
+    if (themeReady) window.localStorage.setItem(themeKey, theme);
     return () => { delete document.documentElement.dataset.theme; };
   }, [theme, themeReady]);
   useEffect(() => { if (view === "portfolio") setMenu(false); }, [view]);
@@ -326,6 +272,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
 
 
+  // V4 (Chroma Current) is the event's audience display: a smart-board stage with the leaderboard and market bells.
+  if (audienceOnly && uiVariant === "gallery") return <AudienceStage world={world} preview={preview} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />;
   if (audienceOnly) return <Audience world={world} uiVariant={uiVariant} preview={preview} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />;
   const report = world && player ? performance(world as never, player) : null;
   const isTest = mode === "test";

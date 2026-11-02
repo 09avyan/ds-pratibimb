@@ -103,7 +103,7 @@ executeTrade(world, player, 'Sell', 'TCS', 4);
 assert.equal(player.holdings.TCS, undefined);
 assert.throws(() => executeTrade(world, player, 'Buy', 'RELIANCE', 100_000), /Not enough cash/);
 const snapshot = toPublic(world, player.id, 'TCS');
-assert.equal(snapshot.stocks.length, 28);
+assert.equal(snapshot.stocks.length, 25);
 assert.equal(snapshot.stocks.filter(stock => stock.candles.length).length, 1);
 assert(snapshot.stocks.every(stock => stock.trend.length === 18));
 assert.equal(snapshot.participants, 1);

@@ -1,10 +1,10 @@
-import { INDEX_WEIGHTS, makeNews, makeStocks, NEWS_CATALOG_VERSION } from "./catalog";
+import { INDEX_WEIGHTS, makeNews, makeStocks, NEWS_CATALOG_VERSION, STOCK_SYMBOLS } from "./catalog";
 import { chooseAutonomousNewsPlan, newAutonomousNewsState, readAutonomousNewsSignals } from "./autonomous-news";
 import { NEWS_REACTION_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS, NEWS_AUTO_MAX_INTERVAL_SECONDS, NEWS_IMPACT_DECAY, NEWS_IMPACT_FADE_THRESHOLD, NEWS_IMPACT_DRIFT_NORMALIZER } from "./news-timing";
 export { NEWS_REACTION_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS } from "./news-timing";
 import { recordGameLog, recentOrderDifficulty } from "./logs";
 import { validateNewsSelection } from "./news-rules";
-import type { Mode, News, Player, PublicWorld, Trade, World } from "./types";
+import type { Mode, News, Player, PublicLeaderboardEntry, PublicWorld, Trade, World } from "./types";
 import { TERMINAL_ACTIVE_WINDOW_MS, TERMINAL_COUNT } from "./terminals";
 export { TERMINAL_ACTIVE_WINDOW_MS } from "./terminals";
 
@@ -177,11 +177,37 @@ function planAutonomousNews(world: World, at: number, opening = false) {
   auto.strategy = plan.strategy;
   auto.introductoryStage = plan.introductoryStage;
   auto.reading = plan.reading;
+  auto.pacing = plan.pacing; auto.response = plan.response; auto.finalSet = plan.finalSet;
   auto.nextAt = at + plan.intervalSeconds * 1000;
   auto.decisions++;
   world.newsNextAt = auto.nextAt;
   keepAutonomousHistory(world, { at, kind: "planned", indices: [...plan.indices], intervalSeconds: plan.intervalSeconds, reason: plan.reason });
   return auto;
+}
+
+/** Re-plan the next set from the current readings while keeping the original timing anchor. */
+function reviewAutonomousNews(world: World, at: number, label = "Live review", logAlways = false) {
+  const auto = world.autonomousNews;
+  if (!auto?.enabled) return;
+  const plan = chooseAutonomousNewsPlan(world, at, world.controls.newsSpacing);
+  const latestAt = Math.max(0, ...world.headlines.map(news => news.createdAt));
+  const anchor = Math.max(auto.plannedAt ?? (auto.nextAt - auto.nextIntervalSeconds * 1000), latestAt);
+  const nextAt = anchor + plan.intervalSeconds * 1000;
+  const changed = auto.nextIndices.join(",") !== plan.indices.join(",") || auto.nextIntervalSeconds !== plan.intervalSeconds;
+  const lastPlan = auto.history.find(entry => entry.kind === "planned");
+  if (logAlways || changed && at - (lastPlan?.at ?? 0) >= 10_000) keepAutonomousHistory(world, { at, kind: "planned", indices: [...plan.indices], intervalSeconds: plan.intervalSeconds, reason: `${label}: ${plan.reason}` });
+  auto.lastReviewedAt = at;
+  auto.reading = plan.reading;
+  // Keep the original planning anchor: repeated reviews cannot postpone news forever.
+  auto.nextAt = nextAt; auto.nextIndices = plan.indices; auto.nextSetSize = plan.setSize;
+  auto.nextIntervalSeconds = plan.intervalSeconds; auto.nextReason = plan.reason; auto.strategy = plan.strategy; auto.introductoryStage = plan.introductoryStage;
+  auto.pacing = plan.pacing; auto.response = plan.response; auto.finalSet = plan.finalSet;
+  world.newsNextAt = nextAt;
+}
+
+/** Host choices that apply only to the set being prepared. */
+function clearSetControls(auto: NonNullable<World["autonomousNews"]>) {
+  auto.nudgeSeconds = 0; auto.pinnedIndices = []; auto.excludedIndices = [];
 }
 
 function publishAutonomousNews(world: World, at: number, hostOverride = false) {
@@ -215,6 +241,7 @@ function publishAutonomousNews(world: World, at: number, hostOverride = false) {
   const reason = hostOverride ? "The host published the planned mix early." : auto.nextReason;
   const published = pushHeadlines(world, indices, at);
   keepAutonomousHistory(world, { at, kind: hostOverride ? "host-published" : "published", indices, intervalSeconds: auto.nextIntervalSeconds, reason });
+  clearSetControls(auto);
   planAutonomousNews(world, at);
   return published;
 }
@@ -370,6 +397,12 @@ export function advance(world: World, now = Date.now()): World {
     world.newsCatalogVersion = NEWS_CATALOG_VERSION;
     world.version++;
   }
+  // The listing changed from 28 to 25 companies. A saved market adopts it only between batches,
+  // so nobody loses an open position in a stock that disappears mid-round.
+  if (world.status !== "live" && world.status !== "countdown" && (world.stocks.length !== STOCK_SYMBOLS.length || world.stocks.some(stock => !STOCK_SYMBOLS.includes(stock.symbol)))) {
+    world.stocks = makeStocks(world.batch || 1);
+    world.version++;
+  }
   for (const player of Object.values(world.sessions)) {
     if (player.accountingVersion === 2) continue;
     player.cash -= Object.values(player.shorts).reduce((sum, position) => sum + position.qty * position.avg, 0);
@@ -478,20 +511,7 @@ export function advance(world: World, now = Date.now()): World {
     if (world.remaining <= 0) { endWorld(world, at); break; }
     if (world.controls.activeNews > 0) world.controls.activeNews = Math.max(0, world.controls.activeNews - .0025);
     adaptBrainSettings(world, at);
-    if (world.autonomousNews?.enabled && !world.autonomousNews.hostOverride && at - (world.autonomousNews.lastReviewedAt ?? 0) >= 5_000) {
-      const auto = world.autonomousNews;
-      const plan = chooseAutonomousNewsPlan(world, at, world.controls.newsSpacing);
-      const nextAt = (auto.plannedAt ?? (auto.nextAt - auto.nextIntervalSeconds * 1000)) + plan.intervalSeconds * 1000;
-      const changed = auto.nextIndices.join(",") !== plan.indices.join(",") || auto.nextIntervalSeconds !== plan.intervalSeconds;
-      const lastPlan = auto.history.find(entry => entry.kind === "planned");
-      if (changed && at - (lastPlan?.at ?? 0) >= 10_000) keepAutonomousHistory(world, { at, kind: "planned", indices: [...plan.indices], intervalSeconds: plan.intervalSeconds, reason: `Live review: ${plan.reason}` });
-      auto.lastReviewedAt = at;
-      auto.reading = plan.reading;
-      // Keep the original planning anchor: repeated reviews cannot postpone news forever.
-      auto.nextAt = nextAt; auto.nextIndices = plan.indices; auto.nextSetSize = plan.setSize;
-      auto.nextIntervalSeconds = plan.intervalSeconds; auto.nextReason = plan.reason; auto.strategy = plan.strategy; auto.introductoryStage = plan.introductoryStage;
-      world.newsNextAt = nextAt;
-    }
+    if (world.autonomousNews?.enabled && !world.autonomousNews.hostOverride && at - (world.autonomousNews.lastReviewedAt ?? 0) >= 5_000) reviewAutonomousNews(world, at);
     if (world.autonomousNews?.enabled && world.autonomousNews.nextAt > 0 && at >= world.autonomousNews.nextAt) {
       publishAutonomousNews(world, at);
     } else if (world.mode === "test" && world.controls.newsEnabled && at >= world.newsNextAt) {
@@ -652,6 +672,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
         player.ended = true;
       }
     }
+    if (world.autonomousNews) clearSetControls(world.autonomousNews);
     if (world.autonomousNews?.enabled) {
       world.controls.newsEnabled = false;
       world.autonomousNews.history = [];
@@ -671,6 +692,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     const auto = world.autonomousNews ?? (world.autonomousNews = newAutonomousNewsState());
     restoreBrainSettings(world, at);
     auto.enabled = false; auto.nextAt = 0; auto.nextIndices = [];
+    clearSetControls(auto);
     auto.nextReason = "Stopped by the host. Manual news publishing remains available.";
     keepAutonomousHistory(world, { at, kind: "stopped", indices: [], intervalSeconds: auto.nextIntervalSeconds, reason: auto.nextReason });
   } else if (action === "autonomous-plan") {
@@ -682,6 +704,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (indices.some(index => world.scheduledNews.some(event => event.index === index))) throw new Error("That story is already scheduled by the host. Choose a different story.");
     validateNewsSelection(indices.map(index => world.news[index]), [...world.headlines, ...world.scheduledNews.map(event => world.news[event.index]).filter(Boolean)]);
     auto.hostOverride = true;
+    clearSetControls(auto);
     auto.nextIndices = indices; auto.nextSetSize = indices.length as 2 | 3;
     auto.nextReason = "The host replaced the brain’s proposed mix with selected stories.";
     if (!auto.nextAt) { auto.nextIntervalSeconds = clamp(world.controls.newsSpacing, 50, 90); auto.nextAt = at + auto.nextIntervalSeconds * 1000; }
@@ -696,7 +719,53 @@ export function hostAction(world: World, action: string, payload: Record<string,
     const auto = world.autonomousNews;
     if (!auto?.enabled || auto.nextIndices.length < 2) throw new Error("There is no autonomous set to skip.");
     keepAutonomousHistory(world, { at, kind: "skipped", indices: [...auto.nextIndices], intervalSeconds: auto.nextIntervalSeconds, reason: "The host skipped the proposed set and asked the brain to choose again." });
-    planAutonomousNews(world, at);
+    // Skipped stories stay out of this set (they may return later); the release time is kept.
+    auto.excludedIndices = [...new Set([...(auto.excludedIndices ?? []), ...auto.nextIndices])];
+    auto.pinnedIndices = [];
+    if (world.status === "live" || world.status === "countdown") { auto.hostOverride = false; reviewAutonomousNews(world, at, "After skip", true); } else planAutonomousNews(world, at);
+  } else if (action === "autonomous-intensity") {
+    const auto = world.autonomousNews;
+    if (!auto) throw new Error("The news brain is not available.");
+    const value = String(payload.value ?? "auto");
+    if (!["auto", "calm", "balanced", "lively"].includes(value)) throw new Error("Choose Auto, Calm, Balanced or Lively.");
+    auto.hostIntensity = value === "auto" ? null : value as "calm" | "balanced" | "lively";
+    keepAutonomousHistory(world, { at, kind: "host-control", indices: [...auto.nextIndices], intervalSeconds: auto.nextIntervalSeconds, reason: value === "auto" ? "The host returned intensity to the brain." : `The host set the brain's intensity to ${value}.` });
+    if (auto.enabled && !auto.hostOverride && (world.status === "live" || world.status === "countdown")) reviewAutonomousNews(world, at, "Intensity change", true);
+    world.version++;
+  } else if (action === "autonomous-nudge") {
+    const auto = world.autonomousNews;
+    if (!auto?.enabled || !auto.nextAt) throw new Error("Start autonomous news before changing the next release.");
+    const seconds = Number(payload.seconds);
+    if (!Number.isFinite(seconds) || seconds === 0 || Math.abs(seconds) > 60) throw new Error("Move the next release by up to 60 seconds.");
+    const before = Math.max(0, Math.round((auto.nextAt - at) / 1000));
+    if (auto.hostOverride) {
+      auto.nextAt = Math.max(at + 5_000, auto.nextAt + seconds * 1000);
+      world.newsNextAt = auto.nextAt;
+    } else {
+      auto.nudgeSeconds = clamp((auto.nudgeSeconds ?? 0) + seconds, -90, 90);
+      reviewAutonomousNews(world, at);
+    }
+    const after = Math.max(0, Math.round((auto.nextAt - at) / 1000));
+    keepAutonomousHistory(world, { at, kind: "host-control", indices: [...auto.nextIndices], intervalSeconds: auto.nextIntervalSeconds, reason: `The host moved the next release ${seconds < 0 ? "earlier" : "later"}: ${before}s → ${after}s from now.` });
+  } else if (action === "autonomous-pin" || action === "autonomous-swap") {
+    const auto = world.autonomousNews;
+    if (!auto?.enabled) throw new Error("Start autonomous news before editing its next set.");
+    const index = Number(payload.index);
+    if (!auto.nextIndices.includes(index)) throw new Error("That story is no longer in the next set.");
+    const headline = world.news[index]?.headline ?? "the story";
+    if (action === "autonomous-pin") {
+      const pins = new Set(auto.pinnedIndices ?? []);
+      if (pins.has(index)) pins.delete(index); else pins.add(index);
+      auto.pinnedIndices = [...pins];
+      keepAutonomousHistory(world, { at, kind: "host-control", indices: [...auto.nextIndices], intervalSeconds: auto.nextIntervalSeconds, reason: `${pins.has(index) ? "The host kept" : "The host released"} “${headline}”.` });
+    } else {
+      // Keep the rest of the set and ask the brain for the best compatible replacement.
+      auto.excludedIndices = [...new Set([...(auto.excludedIndices ?? []), index])];
+      auto.pinnedIndices = auto.nextIndices.filter(other => other !== index);
+      keepAutonomousHistory(world, { at, kind: "host-control", indices: [...auto.nextIndices], intervalSeconds: auto.nextIntervalSeconds, reason: `The host swapped out “${headline}”.` });
+    }
+    auto.hostOverride = false;
+    if (world.status === "live" || world.status === "countdown") reviewAutonomousNews(world, at, action === "autonomous-swap" ? "After swap" : "After pin", action === "autonomous-swap"); else planAutonomousNews(world, at);
   } else if (action === "pause") { world.controls.paused = true; world.lastTickAt = at; }
   else if (action === "resume") { shiftAutonomousClock(world, Math.max(0, at - world.lastTickAt)); world.controls.paused = false; world.lastTickAt = at; }
   else if (action === "end") endWorld(world, at);
@@ -779,14 +848,26 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
     const totalValue = equity(world, current);
     return { terminalNumber, status: world.status !== "live" ? "ready" as const : world.controls.paused || current.paused ? "paused" as const : "live" as const, cash: current.cash, totalValue, pnl: totalValue - current.initialCash };
   }).filter((summary): summary is NonNullable<typeof summary> => summary !== null);
+  // Only terminals that are actually playing are ranked: the current login must have placed at least
+  // one buy or short in this batch. Logged-in terminals that have not traded stay off the board.
   const entrants = Array.from({ length: TERMINAL_COUNT }, (_, i) => Object.values(sessions)
     .filter(player => player.terminalNumber === i + 1 && player.batch === world.batch && player.included)
     .sort((a, b) => (b.lastSeenAt ?? b.joinedAt) - (a.lastSeenAt ?? a.joinedAt) || b.joinedAt - a.joinedAt)[0])
-    .filter((player): player is Player => Boolean(player));
+    .filter((player): player is Player => Boolean(player) && player.history.some(trade => trade.side === "Buy" || trade.side === "Short"));
+  // One ranking feeds both a terminal's own position and the audience leaderboard, so they always agree.
+  // It keeps finished and offline entrants, and stays after the batch closes until the next batch starts.
+  const valued = entrants.map(player => ({ player, totalValue: equity(world, player) }));
+  const rankOf = (value: number) => 1 + valued.filter(other => other.totalValue > value + .005).length;
+  const leaderboard: PublicLeaderboardEntry[] = valued.map(({ player, totalValue }) => {
+    const offline = now - (player.lastSeenAt ?? player.joinedAt) >= TERMINAL_ACTIVE_WINDOW_MS;
+    const status = player.ended ? "finished" as const : offline ? "offline" as const : world.status !== "live" ? "ready" as const : world.controls.paused || player.paused ? "paused" as const : "live" as const;
+    const pnl = totalValue - player.initialCash;
+    return { terminalNumber: player.terminalNumber!, rank: rankOf(totalValue), status, cash: player.cash, totalValue, pnl, returnPct: player.initialCash ? pnl / player.initialCash * 100 : 0 };
+  }).sort((a, b) => a.rank - b.rank || a.terminalNumber - b.terminalNumber);
   const entrant = sessionId ? sessions[sessionId] : null;
   const eligible = entrant && entrant.included && entrant.batch === world.batch && entrants.some(player => player.id === entrant.id);
-  const standing = eligible ? { rank: 1 + entrants.filter(other => equity(world, other) > equity(world, entrant) + .005).length, total: entrants.length } : null;
-  return { ...rest, standing, controls: publicControls, headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), revision: world.version, terminalSummaries, participants: terminalSummaries.length, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => {
+  const standing = eligible ? { rank: rankOf(equity(world, entrant)), total: entrants.length } : null;
+  return { ...rest, standing, leaderboard, controls: publicControls, headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), revision: world.version, terminalSummaries, participants: terminalSummaries.length, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => {
     const { newsBias: _newsBias, newsReferencePrice: _newsReferencePrice, newsBiasClock: _newsBiasClock, newsMoves: _newsMoves, ...publicStock } = stock;
     const fullCandles = stock.candles.slice(-600);
     const since = options.candlesSince;

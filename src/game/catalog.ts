@@ -26,15 +26,15 @@ const rows: [string, string, string, string, number, number][] = [
   ["TITAN", "Titan Company", "Consumer", "titancompany.in", 4456, 0.27],
   ["ULTRACEMCO", "UltraTech Cement", "Industrial", "ultratechcement.com", 10862, 0.62],
   ["DRREDDY", "Dr. Reddy’s Laboratories", "Healthcare", "drreddys.com", 1219, 0.23],
-  ["KOTAKBANK", "Kotak Mahindra Bank", "Banking", "kotak.com", 448, 2.26],
-  ["TATASTEEL", "Tata Steel", "Industrial", "tatasteel.com", 176, 1.09],
-  ["TATACONSUM", "Tata Consumer Products", "Consumer", "tataconsumer.com", 991, 0.36],
   ["APOLLOHOSP", "Apollo Hospitals", "Healthcare", "apollohospitals.com", 7890, 0.84],
 ];
 
+// 25 listed companies: every one has its own company story in the news catalog.
+export const STOCK_SYMBOLS: readonly string[] = rows.map(([symbol]) => symbol);
+
 export const INDEX_WEIGHTS: Record<string, number> = {
   RELIANCE: .18, TCS: .15, HDFCBANK: .13, INFY: .11, ICICIBANK: .1,
-  BHARTIARTL: .09, LT: .08, SBIN: .06, BAJFINANCE: .055, KOTAKBANK: .045,
+  BHARTIARTL: .09, LT: .08, SBIN: .06, BAJFINANCE: .055, AXISBANK: .045,
 };
 
 export const makeStocks = (seed: number): Stock[] => rows.map(([symbol, name, sector, domain, price, dayMove], i) => {
