@@ -115,11 +115,11 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-status.is-paused i::after { display: none; }
 .stage-status.status-closed i { background: var(--down); }
 
-.stage-clock { position: relative; display: grid; place-items: center; min-width: calc(270 * var(--u)); padding: calc(10 * var(--u)) calc(26 * var(--u)) calc(16 * var(--u)); overflow: hidden; border: calc(2 * var(--u)) solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: var(--r-panel); background: var(--surface); color: var(--ink); font: 800 calc(84 * var(--u)) / 1 var(--num); font-stretch: var(--num-w); letter-spacing: -.03em; white-space: nowrap; }
-.stage-clock-bar { position: absolute; right: 0; bottom: 0; left: 0; height: calc(7 * var(--u)); background: var(--accent); transform-origin: left; transition: transform 1s linear, background-color .4s; }
-.stage-clock.is-low { border-color: var(--down); color: var(--down); }
+.stage-clock { position: relative; display: grid; place-items: center; min-width: calc(270 * var(--u)); padding: calc(10 * var(--u)) calc(26 * var(--u)) calc(16 * var(--u)); overflow: hidden; border: 0; border-radius: var(--r-panel); background: var(--accent); color: var(--on-accent); font: 800 calc(88 * var(--u)) / 1 var(--num); font-stretch: var(--num-w); letter-spacing: -.03em; white-space: nowrap; }
+.stage-clock-bar { position: absolute; right: 0; bottom: 0; left: 0; height: calc(8 * var(--u)); background: var(--on-accent); opacity: .45; transform-origin: left; transition: transform 1s linear, background-color .4s; }
+.stage-clock.is-low { color: #fff; background: var(--down); }
 .stage-clock.is-low span { animation: stage-urgent 1s ease-in-out infinite; }
-.stage-clock.is-low .stage-clock-bar { background: var(--down); }
+.stage-clock.is-low .stage-clock-bar { background: #fff; }
 
 .stage-tools { display: flex; gap: calc(2 * var(--u)); }
 .stage-icon { display: grid; place-items: center; width: calc(48 * var(--u)); height: calc(48 * var(--u)); padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; opacity: .75; transition: opacity .2s, background-color .2s; }
@@ -173,7 +173,9 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
   container-name: tile;
   font-size: calc(16 * var(--u));
 }
-.stage-tile::before { position: absolute; top: 0; bottom: 0; left: 0; width: calc(5 * var(--u)); background: var(--up); content: ""; }
+.stage-tile::before { position: absolute; top: 0; bottom: 0; left: 0; width: calc(7 * var(--u)); background: var(--up); content: ""; }
+.stage-tile.is-up { background: color-mix(in srgb, var(--up) 9%, var(--surface)); }
+.stage-tile.is-down { background: color-mix(in srgb, var(--down) 9%, var(--surface)); }
 .stage-tile.is-down::before { background: var(--down); }
 .stage-tile::after { position: absolute; inset: 0; background: var(--up); content: ""; opacity: 0; pointer-events: none; }
 .stage-tile.is-down::after { background: var(--down); }
@@ -230,7 +232,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-standing-return.up { color: var(--up); background: color-mix(in srgb, var(--up) 14%, transparent); }
 .stage-standing-return.down { color: var(--down); background: color-mix(in srgb, var(--down) 14%, transparent); }
 .stage-standing-return.flat { color: var(--muted); }
-.stage-standing.is-leader { flex-grow: 1.55; max-height: calc(132 * var(--u)); background: color-mix(in srgb, var(--accent) 18%, var(--surface-2)); box-shadow: inset calc(5 * var(--u)) 0 0 var(--accent); animation: stage-leader 1.1s var(--ease) 1 both; }
+.stage-standing.is-leader { flex-grow: 1.55; max-height: calc(132 * var(--u)); background: color-mix(in srgb, var(--accent) 30%, var(--surface-2)); box-shadow: inset calc(5 * var(--u)) 0 0 var(--accent); animation: stage-leader 1.1s var(--ease) 1 both; }
 .stage-standing.is-leader::after { position: absolute; inset: 0; background: linear-gradient(100deg, transparent 35%, color-mix(in srgb, #fff 14%, transparent) 50%, transparent 65%); content: ""; pointer-events: none; transform: translateX(-110%); animation: stage-sweep 1.6s var(--ease) 2s infinite; animation-duration: 9s; }
 .stage-standing.is-leader .stage-standing-rank { width: calc(58 * var(--u)); height: calc(58 * var(--u)); font-size: calc(32 * var(--u)); }
 .stage-standing.is-leader .stage-standing-name strong { font-size: calc(62 * var(--u)); }
