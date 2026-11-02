@@ -167,6 +167,46 @@ function adaptBrainSettings(world: World, at: number) {
   keepAutonomousHistory(world, { at, kind: "settings-adjusted", indices: [], intervalSeconds: auto.nextIntervalSeconds, reason: tuning.reason });
 }
 
+/*
+  The brain's release window, in game seconds (pauses do not count): every set lands 50–75 s after the
+  last publish (brain or host), or after the start for the first set. When fewer than three sets have
+  gone out, the latest allowed time comes forward so at least three fit before the closing seconds,
+  where publication stops.
+*/
+const BRAIN_MIN_SETS = 3;
+function brainReleaseAt(world: World, at: number, proposedAt: number) {
+  const auto = world.autonomousNews;
+  if (!auto) return proposedAt;
+  const lead = world.status === "countdown" ? Math.max(0, (world.startedAt - at) / 1000) : 0;
+  const elapsed = world.status === "live" ? world.duration - world.remaining : 0;
+  const latestAt = Math.max(0, ...world.headlines.map(news => news.createdAt));
+  // The stored game time of the last publish; a state without it (older save) falls back to the headline's clock time.
+  const last = auto.lastPublishedElapsed || (latestAt ? clamp((latestAt - world.startedAt) / 1000, 0, elapsed) : 0);
+  const sets = new Set(world.headlines.map(news => news.createdAt)).size;
+  const deadline = world.duration - (NEWS_REACTION_SECONDS + 5);
+  const needed = Math.max(0, BRAIN_MIN_SETS - sets);
+  const earliest = last + NEWS_BASE_INTERVAL_MIN_SECONDS;
+  let latest = last + NEWS_AUTO_MAX_INTERVAL_SECONDS;
+  if (needed > 1) latest = Math.min(latest, deadline - (needed - 1) * NEWS_BASE_INTERVAL_MIN_SECONDS);
+  latest = Math.max(earliest, latest);
+  const proposed = elapsed - lead + (proposedAt - at) / 1000;
+  const chosen = clamp(proposed, earliest, latest);
+  return Math.round(at + (chosen - elapsed + lead) * 1000);
+}
+/** Apply the release window and note any change in the brain's pacing. */
+function keepReleaseWindow(world: World, at: number) {
+  const auto = world.autonomousNews;
+  // While paused, resume shifts the release by the pause itself.
+  if (!auto?.nextAt || world.controls.paused) return;
+  const bounded = brainReleaseAt(world, at, auto.nextAt);
+  const moved = Math.round((bounded - auto.nextAt) / 1000);
+  if (!moved) return;
+  auto.nextAt = bounded;
+  auto.nextIntervalSeconds += moved;
+  auto.pacing = [...(auto.pacing ?? []), { kind: "limit", label: `Kept ${NEWS_BASE_INTERVAL_MIN_SECONDS}–${NEWS_AUTO_MAX_INTERVAL_SECONDS}s after the last publish${moved < 0 ? ", with room for at least three sets" : ""}`, seconds: moved }];
+  world.newsNextAt = bounded;
+}
+
 function planAutonomousNews(world: World, at: number, opening = false) {
   const auto = world.autonomousNews ?? (world.autonomousNews = newAutonomousNewsState());
   auto.marketTuning ??= { volatility: world.controls.volatility, bots: world.controls.bots, observingSince: at, lastChangedAt: at, reason: "Observing before adjusting market difficulty." };
@@ -185,6 +225,7 @@ function planAutonomousNews(world: World, at: number, opening = false) {
   auto.nextAt = at + plan.intervalSeconds * 1000;
   auto.decisions++;
   world.newsNextAt = auto.nextAt;
+  keepReleaseWindow(world, at);
   keepAutonomousHistory(world, { at, kind: "planned", indices: [...plan.indices], intervalSeconds: plan.intervalSeconds, reason: plan.reason });
   return auto;
 }
@@ -213,6 +254,7 @@ function reviewAutonomousNews(world: World, at: number, label = "Live review", l
   auto.nextIntervalSeconds = plan.intervalSeconds; auto.nextReason = plan.reason; auto.strategy = plan.strategy; auto.introductoryStage = plan.introductoryStage;
   auto.pacing = plan.pacing; auto.response = plan.response; auto.finalSet = plan.finalSet;
   world.newsNextAt = nextAt;
+  keepReleaseWindow(world, at);
 }
 
 /** Host choices that apply only to the set being prepared. */
@@ -280,6 +322,7 @@ function pushHeadlines(world: World, presetIndices: number[], at = Date.now()) {
   const indices = presetIndices.filter(index => Number.isInteger(index) && index >= 0 && index < presets.length);
   validateNewsSelection(indices.map(index => presets[index]), world.headlines);
   recordGameLog(world, { at, kind: "news", message: indices.map(index => presets[index].headline).join(" | "), data: { indices: indices.join(","), count: indices.length } });
+  if (world.autonomousNews && indices.length) world.autonomousNews.lastPublishedElapsed = world.status === "live" ? world.duration - world.remaining : 0;
   const published = indices.map(index => {
     const news = { ...presets[index], id: id(), createdAt: at };
     const range = newsImpactRange(news);
@@ -664,7 +707,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (payload.autonomous === true && world.autonomousNews) world.autonomousNews.enabled = true;
     world.batch++;
     world.stocks = makeStocks(world.batch);
-    world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0;
+    world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; if (world.autonomousNews) world.autonomousNews.lastPublishedElapsed = 0; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0;
     world.status = "countdown"; world.controls.paused = false; world.remaining = world.duration; world.tick = 0;
     if (world.mode === "test") { world.testRulesVersion = 2; world.controls.majorAuto = 1; world.controls.minorAuto = 2; world.controls.newsEnabled = true; }
     // Live batches open with a 5-second countdown on the audience stage; practice keeps 3 seconds.
@@ -718,7 +761,8 @@ export function hostAction(world: World, action: string, payload: Record<string,
     clearSetControls(auto);
     auto.nextIndices = indices; auto.nextSetSize = indices.length as 2 | 3;
     auto.nextReason = "The host replaced the brain’s proposed mix with selected stories.";
-    if (!auto.nextAt) { auto.nextIntervalSeconds = clamp(world.controls.newsSpacing, 50, 90); auto.nextAt = at + auto.nextIntervalSeconds * 1000; }
+    if (!auto.nextAt) { auto.nextIntervalSeconds = clamp(world.controls.newsSpacing, 50, 75); auto.nextAt = at + auto.nextIntervalSeconds * 1000; }
+    keepReleaseWindow(world, at);
     auto.reading = readAutonomousNewsSignals(world, at);
     keepAutonomousHistory(world, { at, kind: "host-edited", indices, intervalSeconds: auto.nextIntervalSeconds, reason: auto.nextReason });
     world.newsNextAt = auto.nextAt;
@@ -752,6 +796,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (auto.hostOverride) {
       auto.nextAt = Math.max(at + 5_000, auto.nextAt + seconds * 1000);
       world.newsNextAt = auto.nextAt;
+      keepReleaseWindow(world, at);
     } else {
       auto.nudgeSeconds = clamp((auto.nudgeSeconds ?? 0) + seconds, -90, 90);
       reviewAutonomousNews(world, at);
@@ -780,7 +825,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
   } else if (action === "pause") { world.controls.paused = true; world.lastTickAt = at; }
   else if (action === "resume") { shiftAutonomousClock(world, Math.max(0, at - world.lastTickAt)); world.controls.paused = false; world.lastTickAt = at; }
   else if (action === "end") endWorld(world, at);
-  else if (action === "reset") { restoreBrainSettings(world, at); world.status = "ready"; world.controls.paused = true; world.remaining = world.duration; world.sessions = {}; world.stocks = makeStocks(world.batch); world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; world.scheduledNews = []; world.scheduledInterventions = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0; world.lastTickAt = at; if (world.autonomousNews) { world.autonomousNews.enabled = false; world.autonomousNews.nextAt = 0; world.autonomousNews.nextIndices = []; world.autonomousNews.history = []; world.autonomousNews.nextReason = "Stopped after the market reset."; } }
+  else if (action === "reset") { restoreBrainSettings(world, at); world.status = "ready"; world.controls.paused = true; world.remaining = world.duration; world.sessions = {}; world.stocks = makeStocks(world.batch); world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; if (world.autonomousNews) world.autonomousNews.lastPublishedElapsed = 0; world.scheduledNews = []; world.scheduledInterventions = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0; world.lastTickAt = at; if (world.autonomousNews) { world.autonomousNews.enabled = false; world.autonomousNews.nextAt = 0; world.autonomousNews.nextIndices = []; world.autonomousNews.history = []; world.autonomousNews.nextReason = "Stopped after the market reset."; } }
   else if (action === "scenario") world.controls.scenario = payload.value as World["controls"]["scenario"];
   else if (action === "controls") {
     const c = world.controls;
@@ -789,6 +834,8 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (payload.tickRate === .5 || payload.tickRate === 1) c.tickRate = payload.tickRate;
     if (typeof payload.marketBias === "number") c.marketBias = clamp(payload.marketBias, 0, 100);
     if (typeof payload.newsEnabled === "boolean") c.newsEnabled = payload.newsEnabled;
+    if (typeof payload.animateTrading === "boolean") c.animateTrading = payload.animateTrading;
+    if (typeof payload.animateAudience === "boolean") c.animateAudience = payload.animateAudience;
     if (typeof payload.majorAuto === "number") c.majorAuto = clamp(payload.majorAuto, 0, 20);
     if (typeof payload.minorAuto === "number") c.minorAuto = clamp(payload.minorAuto, 0, 20);
     if (typeof payload.newsSpacing === "number") c.newsSpacing = clamp(payload.newsSpacing, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS);
@@ -831,7 +878,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     else if (payload.command === "end") participants.forEach(p => settle(world, p, at));
     else if (payload.command === "reset") participants.forEach(p => { world.sessions[p.id] = newPlayer(p.id, world.batch, at, p.included, p.terminalNumber); });
   }
-  const safePayload = Object.fromEntries(Object.entries(payload).filter(([key, value]) => ["volatility", "bots", "tickRate", "marketBias", "duration", "newsSpacing", "value", "command", "sector", "magnitude", "direction", "delay"].includes(key) && ["string", "number", "boolean"].includes(typeof value))) as Record<string, string | number | boolean>;
+  const safePayload = Object.fromEntries(Object.entries(payload).filter(([key, value]) => ["volatility", "bots", "tickRate", "marketBias", "duration", "newsSpacing", "animateTrading", "animateAudience", "value", "command", "sector", "magnitude", "direction", "delay"].includes(key) && ["string", "number", "boolean"].includes(typeof value))) as Record<string, string | number | boolean>;
   recordGameLog(world, { at, kind: ["start", "pause", "resume", "reset", "end"].includes(action) ? "batch" : action === "controls" ? "settings" : "host", message: `Host action: ${action}${Object.keys(safePayload).length ? ` · ${JSON.stringify(safePayload)}` : ""}`, data: { action, ...safePayload,
     ...(action === "start" ? { duration: world.duration, volatility: world.controls.volatility, bots: world.controls.bots } : {}),
     ...(Array.isArray(payload.indices) ? { newsIndices: payload.indices.map(Number).filter(Number.isInteger).join(",") } : {}),

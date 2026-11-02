@@ -30,9 +30,9 @@
     "semantic_hash": ""
   },
   "app/api/game/route.ts": {
-    "mtime": 1793602579.427854,
-    "seen": 1793635341.327015,
-    "ast_hash": "ada512ed735d15acdfdf329c73ca4fdf",
+    "mtime": 1793649742.3813195,
+    "seen": 1793650933.0440028,
+    "ast_hash": "7cd2b5f5c8fabaa209cb8ccbe953f5ca",
     "semantic_hash": ""
   },
   "app/api/host/login/route.ts": {
@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793645115.8829112,
-    "seen": 1793645230.3443046,
-    "ast_hash": "a866df7116e6348d2144fd769381a970",
+    "mtime": 1793650511.865907,
+    "seen": 1793650933.0442069,
+    "ast_hash": "d374128d12c34b43034f5b2df9cbd12f",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -78,9 +78,9 @@
     "semantic_hash": ""
   },
   "app/components/host-console.tsx": {
-    "mtime": 1793636778.7523143,
-    "seen": 1793638310.0054014,
-    "ast_hash": "082cab422f07a287012c39e7146a95c3",
+    "mtime": 1793649870.0063553,
+    "seen": 1793650933.0442457,
+    "ast_hash": "5370a5f92b3ac2056f104f11959fc6ae",
     "semantic_hash": ""
   },
   "app/components/host-logs.tsx": {
@@ -90,9 +90,9 @@
     "semantic_hash": ""
   },
   "app/components/market-parts.tsx": {
-    "mtime": 1793636778.7523143,
-    "seen": 1793638310.0054398,
-    "ast_hash": "e4001fe3b121bf16e442790d4a5268bc",
+    "mtime": 1793649796.7746196,
+    "seen": 1793650933.044283,
+    "ast_hash": "48a9d27d91eb7c502f0e3e5515698f48",
     "semantic_hash": ""
   },
   "app/components/terminal-entry.tsx": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/components/trader.tsx": {
-    "mtime": 1793636778.7523143,
-    "seen": 1793638310.005477,
-    "ast_hash": "4bf45445e07a452e93fb51982054ae19",
+    "mtime": 1793650320.6629193,
+    "seen": 1793650933.0443213,
+    "ast_hash": "e5f15e13b701a2020317654b3f5fbb74",
     "semantic_hash": ""
   },
   "app/host/page.tsx": {
@@ -114,9 +114,9 @@
     "semantic_hash": ""
   },
   "app/layout.tsx": {
-    "mtime": 1793636778.7523143,
-    "seen": 1793638310.0055137,
-    "ast_hash": "b6d3b6af3d1402e39cc42a04932a4eb9",
+    "mtime": 1793650387.8028488,
+    "seen": 1793650933.0443633,
+    "ast_hash": "8ce4b20f53e5aeaf706bd6e7f1ad5701",
     "semantic_hash": ""
   },
   "app/page.tsx": {
@@ -168,8 +168,8 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793640782.154989,
-    "seen": 1793640815.6297183,
+    "mtime": 1793650918.4659226,
+    "seen": 1793650933.044698,
     "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
     "semantic_hash": ""
   },
@@ -198,9 +198,9 @@
     "semantic_hash": ""
   },
   "scripts/brain-pacing-check.cjs": {
-    "mtime": 1793636778.762684,
-    "seen": 1793638310.0058599,
-    "ast_hash": "0381efb3c9008314761d00c595aa427d",
+    "mtime": 1793649452.0567188,
+    "seen": 1793650933.0448804,
+    "ast_hash": "70de1118a338ae5282875aaacd0f5cd9",
     "semantic_hash": ""
   },
   "scripts/brain-scenarios.cjs": {
@@ -222,15 +222,15 @@
     "semantic_hash": ""
   },
   "scripts/game-logs-check.cjs": {
-    "mtime": 1793602579.4420288,
-    "seen": 1793635341.327168,
-    "ast_hash": "45968c5979d730633d89d757486cc886",
+    "mtime": 1793649569.3397827,
+    "seen": 1793650933.0449884,
+    "ast_hash": "b42f94853c023d17e07d703724abf43d",
     "semantic_hash": ""
   },
   "scripts/news-behavior-check.cjs": {
-    "mtime": 1793636778.762684,
-    "seen": 1793638310.0059595,
-    "ast_hash": "c441532cea25ad3ec261641c76d0ff91",
+    "mtime": 1793649569.339286,
+    "seen": 1793650933.044991,
+    "ast_hash": "02314b9d2e3c1db87e19d293e4d29a47",
     "semantic_hash": ""
   },
   "scripts/news-direction-check.cjs": {
@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "src/game/engine.ts": {
-    "mtime": 1793636778.7663357,
-    "seen": 1793638310.0060523,
-    "ast_hash": "3a18d7a8ba7b62baaa50bd3f4fc0c3cb",
+    "mtime": 1793649834.6542826,
+    "seen": 1793650933.0452447,
+    "ast_hash": "a5a246113f9963b591aec6cecca3d75a",
     "semantic_hash": ""
   },
   "src/game/host-auth.ts": {
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/game/store.ts": {
-    "mtime": 1793602579.4430084,
-    "seen": 1793638310.0061572,
-    "ast_hash": "c1750c9687e29bfa7152812c64e88c96",
+    "mtime": 1793649760.0987983,
+    "seen": 1793650933.0455062,
+    "ast_hash": "4ec5c57abc409a22ca2aa2e52a18b88f",
     "semantic_hash": ""
   },
   "src/game/terminals.ts": {
@@ -318,9 +318,9 @@
     "semantic_hash": ""
   },
   "src/game/types.ts": {
-    "mtime": 1793636778.7663357,
-    "seen": 1793638310.0061936,
-    "ast_hash": "796b4053e0555dfdef885cfada836ba4",
+    "mtime": 1793649834.6527932,
+    "seen": 1793650933.0455527,
+    "ast_hash": "5ccc6aa64b974cf38b0f0dc9fe90ac42",
     "semantic_hash": ""
   },
   "src/ui-options.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793644721.8814502,
-    "seen": 1793644724.8386934,
-    "ast_hash": "6f1ce533c0a246654b7cb8d1b5de7a03",
+    "mtime": 1793650896.486284,
+    "seen": 1793650933.0456994,
+    "ast_hash": "40f18fc85f5f8b7ff6d669f1eb35b9d6",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -393,6 +393,24 @@
     "mtime": 1793636778.7562242,
     "seen": 1793638310.0063245,
     "ast_hash": "1fbaf0ed7f57ebe4e2b54a0f8d524d7f",
+    "semantic_hash": ""
+  },
+  "app/components/trading-motion.tsx": {
+    "mtime": 1793650301.98476,
+    "seen": 1793650933.0443244,
+    "ast_hash": "fc80573cbf57ff2024fa525823893a18",
+    "semantic_hash": ""
+  },
+  "scripts/brain-window-check.cjs": {
+    "mtime": 1793649596.0268822,
+    "seen": 1793650933.0449507,
+    "ast_hash": "d6157d84f33fe7e55aa03eb8f1ac93ed",
+    "semantic_hash": ""
+  },
+  "scripts/store-format-check.cjs": {
+    "mtime": 1793649760.1012802,
+    "seen": 1793650933.0450945,
+    "ast_hash": "b7b3ac37b63888899ac05a4ea89ca2ae",
     "semantic_hash": ""
   },
   "pnpm-lock.yaml": {

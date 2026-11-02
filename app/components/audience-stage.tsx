@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PublicLeaderboardEntry, PublicNews, PublicWorld, Stock } from "@/game/types";
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
-import { changePct, fmtTime, latestNewsSet, money, smoothPath } from "./market-parts";
+import { changePct, fmtTime, latestNewsSet, money, smoothPath, useSmoothRemaining } from "./market-parts";
 
 /*
   Audience stage for every version: a 100" smart board read from 12–15 feet, and a 24" monitor.
@@ -139,6 +139,18 @@ const scopeText = (news: Pick<PublicNews, "scope" | "symbols" | "sector">) => {
   return scope === "economy" ? "Economy · all stocks" : scope === "stock" ? (news.symbols?.map(shortName).join(", ") ?? news.sector) : `${news.sector} sector`;
 };
 
+/** Rolling digits, like a stadium scoreboard: each digit slides to its new value. */
+const DIGITS = "0123456789".split("");
+export function Odometer({ text }: { text: string }) {
+  const chars = [...text];
+  return <span className="odo" aria-label={text}>{chars.map((ch, i) => {
+    const key = chars.length - i; // keyed from the right so digits keep their place as the number grows
+    return /\d/.test(ch)
+      ? <span className="odo-d" key={key} aria-hidden="true"><span className="odo-strip" style={{ transform: `translateY(-${Number(ch) * 10}%)` }}>{DIGITS.map(d => <span key={d}>{d}</span>)}</span></span>
+      : <span className="odo-c" key={`c${key}`} aria-hidden="true">{ch}</span>;
+  })}</span>;
+}
+
 /** Marks a value as having just ticked up or down, for a brief flash. */
 function useTick(value: number) {
   const last = useRef(value);
@@ -156,25 +168,80 @@ function useTick(value: number) {
 
 /* ---------- Standings ---------- */
 
+/*
+  A rank change: each row that moved breaks into pixels in its own colours, the pixels scatter, then
+  fly to the row's new place and reassemble there while the row fades back in. Canvas over the board;
+  about 1,200 pixels per row at 1080p, gone in 1.3 seconds.
+*/
+function disperse(board: HTMLElement, moved: { row: HTMLElement; from: number }[]) {
+  const box = board.getBoundingClientRect();
+  const canvas = document.createElement("canvas");
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.className = "stage-disperse";
+  canvas.width = Math.round(box.width * dpr); canvas.height = Math.round(box.height * dpr);
+  board.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) { canvas.remove(); return; }
+  ctx.scale(dpr, dpr);
+  const css = getComputedStyle(board);
+  const accent = css.getPropertyValue("--accent").trim() || "#a993ff";
+  const gold = css.getPropertyValue("--gold").trim() || "#f3c74f";
+  type Pixel = { sx: number; sy: number; mx: number; my: number; ex: number; ey: number; color: string; size: number; delay: number };
+  const pixels: Pixel[] = [];
+  const step = Math.max(5, Math.round(box.width / 95));
+  for (const { row, from } of moved) {
+    const style = getComputedStyle(row);
+    const tones = [style.backgroundColor, style.color, accent, style.color, gold];
+    const rect = { width: row.offsetWidth, height: row.offsetHeight };
+    const oldTop = from, newTop = row.offsetTop, left = row.offsetLeft;
+    for (let y = 0; y < rect.height; y += step) for (let x = 0; x < rect.width; x += step) {
+      const angle = Math.random() * Math.PI * 2, spread = 30 + Math.random() * 90;
+      pixels.push({ sx: left + x, sy: oldTop + y, mx: left + x + Math.cos(angle) * spread, my: (oldTop + newTop) / 2 + y + Math.sin(angle) * spread * .7, ex: left + x, ey: newTop + y, color: tones[Math.floor(Math.random() * tones.length)], size: step * (.7 + Math.random() * .5), delay: (x / rect.width) * .18 });
+    }
+    row.animate([{ opacity: 0, filter: "blur(6px)" }, { opacity: 0, offset: .72 }, { opacity: 1, filter: "brightness(1.6)", offset: .86 }, { opacity: 1, filter: "none" }], { duration: 1300, easing: "ease-out" });
+  }
+  const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+  const start = performance.now();
+  const frame = (now: number) => {
+    const t = (now - start) / 1300;
+    ctx.clearRect(0, 0, box.width, box.height);
+    for (const p of pixels) {
+      const local = Math.min(1, Math.max(0, (t - p.delay) / (1 - p.delay)));
+      let x: number, y: number;
+      if (local < .38) { const k = ease(local / .38); x = p.sx + (p.mx - p.sx) * k; y = p.sy + (p.my - p.sy) * k; }
+      else { const k = ease((local - .38) / .62); x = p.mx + (p.ex - p.mx) * k; y = p.my + (p.ey - p.my) * k; }
+      ctx.globalAlpha = local > .85 ? (1 - local) / .15 : 1;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(x, y, p.size, p.size);
+    }
+    if (t < 1) requestAnimationFrame(frame); else canvas.remove();
+  };
+  requestAnimationFrame(frame);
+}
+
 function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null; final: boolean; onShowMarket?: () => void }) {
   const entries = world?.leaderboard ?? [];
   const moves = useRankMoves(entries);
   const rows = useRef(new Map<number, HTMLElement>());
   const tops = useRef(new Map<number, number>());
+  const board = useRef<HTMLElement>(null);
   const orderKey = entries.map(entry => entry.terminalNumber).join(",");
   // Rows glide from where they were to their new place, so the room can follow who moved.
   useLayoutEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const next = new Map<number, number>();
+    const moved: { row: HTMLElement; from: number }[] = [];
     rows.current.forEach((row, terminal) => {
-      const top = row.getBoundingClientRect().top;
+      // Layout position, which ignores the rows' own entrance transforms.
+      const top = row.offsetTop;
       next.set(terminal, top);
       const before = tops.current.get(terminal);
-      if (reduce || !tops.current.size) return;
+      if (reduce || !tops.current.size || row.closest(".no-motion")) return;
       if (before === undefined) { row.animate([{ opacity: 0, transform: "translateX(28px)" }, { opacity: 1, transform: "none" }], { duration: 500, easing: "cubic-bezier(.2,.8,.2,1)" }); return; }
-      if (Math.abs(before - top) > 1) row.animate([{ transform: `translateY(${before - top}px)`, filter: "brightness(1.35)" }, { transform: "none", filter: "none" }], { duration: 750, easing: "cubic-bezier(.2,.8,.2,1)" });
+      if (Math.abs(before - top) > 1) moved.push({ row, from: before });
     });
     tops.current = next;
+    if (moved.length && board.current) disperse(board.current, moved);
   }, [orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const leader = entries[0];
   // When first place changes hands, a banner names the new leader for a few seconds.
@@ -189,7 +256,7 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
     const timer = window.setTimeout(() => setLeadBanner(null), 3600);
     return () => window.clearTimeout(timer);
   }, [leader?.terminalNumber, final]);
-  return <section className={`stage-board${final ? " is-final" : ""}`} aria-label={final ? "Final standings" : "Standings"}>
+  return <section ref={board} className={`stage-board${final ? " is-final" : ""}`} aria-label={final ? "Final standings" : "Standings"} style={{ "--count": entries.length } as React.CSSProperties}>
     {leadBanner && <div className="stage-lead" key={leadBanner.key} role="status"><span>New leader</span><strong>Terminal {pad2(leadBanner.terminal)} takes the lead</strong></div>}
     <header className="stage-board-head">
       <h2>{final ? "Final standings" : "Standings"}</h2>
@@ -198,10 +265,10 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
     {entries.length === 0 ? <div className="stage-board-empty"><strong>Waiting for the first trade</strong><span>A terminal joins the board with its first buy or short.</span></div> : <>
       <div className="stage-board-cols" aria-hidden="true"><span>Rank</span><span>Terminal</span><span>Portfolio</span><span>Return</span></div>
       <ol className="stage-board-rows" style={{ "--rows": entries.length } as React.CSSProperties}>
-        {entries.map((entry, index) => <li key={entry.terminalNumber} ref={element => { if (element) rows.current.set(entry.terminalNumber, element); else rows.current.delete(entry.terminalNumber); }} className={`stage-standing${index === 0 ? " is-leader" : ""} medal-${Math.min(entry.rank, 4)} status-${entry.status}`} style={{ "--i": index } as React.CSSProperties}>
+        {entries.map((entry, index) => <li key={entry.terminalNumber} ref={element => { if (element) rows.current.set(entry.terminalNumber, element); else rows.current.delete(entry.terminalNumber); }} className={`stage-standing${index === 0 ? " is-leader" : ""} medal-${Math.min(entry.rank, 4)} status-${entry.status}`} style={{ "--i": index, "--reveal": entries.length - 1 - index } as React.CSSProperties}>
           <b className="stage-standing-rank"><span>{entry.rank}</span></b>
           <span className="stage-standing-name"><strong>{pad2(entry.terminalNumber)}</strong><MoveBadge delta={moves[entry.terminalNumber]?.delta}/>{!final && entry.status !== "live" && <small>{STATUS_LABEL[entry.status]}</small>}</span>
-          <span className="stage-standing-value">{money(entry.totalValue, 0)}</span>
+          <span className="stage-standing-value"><Odometer text={money(entry.totalValue, 0)}/></span>
           <span className={`stage-standing-return ${entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat"}`}>{signedPct(entry.returnPct)}</span>
         </li>)}
       </ol>
@@ -225,10 +292,11 @@ function Spark({ stock }: { stock: Stock }) {
   </svg>;
 }
 
-function StockTile({ stock, index, mark }: { stock: Stock; index: number; mark?: "top" | "bottom" }) {
+function StockTile({ stock, index, news }: { stock: Stock; index: number; news?: boolean }) {
   const move = changePct(stock);
   const tick = useTick(stock.price);
-  return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}${mark ? ` is-${mark}` : ""}`} data-tick={tick ?? undefined} style={{ "--i": index } as React.CSSProperties} title={stock.name}>
+  const ring = Math.max(Math.abs((index % 5) - 2), Math.abs(Math.floor(index / 5) - 2));
+  return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}${news ? " is-news" : ""}`} data-tick={tick ?? undefined} style={{ "--i": index, "--ring": ring } as React.CSSProperties} title={stock.name}>
     <div className="stage-tile-top"><Logo stock={stock} compact/><b>{shortName(stock.symbol)}</b></div>
     <div className="stage-tile-price"><strong>{money(stock.price, stock.price < 100 ? 2 : 0)}</strong><span>{move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(2)}%</span></div>
     <Spark stock={stock}/>
@@ -256,7 +324,7 @@ const CANDLES = Array.from({ length: 28 }, (_, i) => {
   return { open, close, high: Math.max(open, close) + 3 + (i % 3), low: Math.min(open, close) - 3 - (i % 2) * 2 };
 });
 const CANDLE_LINE = smoothPath(CANDLES.map((candle, i) => ({ x: 18 + i * 35, y: 300 - candle.close * 3.4 })));
-const CONFETTI = Array.from({ length: 46 }, (_, i) => ({ x: (i * 37) % 100, delay: (i % 9) * .16, drift: ((i * 53) % 40) - 20, spin: 280 + (i * 71) % 540, size: 8 + (i * 13) % 10, tone: i % 3 }));
+const CONFETTI = Array.from({ length: 140 }, (_, i) => ({ x: (i * 37.7) % 100, delay: (i % 14) * .13, drift: ((i * 53) % 40) - 20, spin: 280 + (i * 71) % 720, size: 14 + (i * 13) % 16, tone: i % 3 }));
 
 /*
   The particle field behind the countdown. Glowing points swirl round the dial and gather into each
@@ -405,25 +473,25 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
     const points = glyphPoints(text, st.w, st.h, step);
     const cx = st.w / 2, cy = st.h / 2;
     st.burst = false;
-    speed.current = text === "GO" ? 9 : Math.max(1, 6 - Number(text));
+    speed.current = !text ? 9 : Math.max(1, 6 - Number(text));
     st.particles.forEach((p, i) => {
       const point = points[i];
       if (point) { p.tx = point.x; p.ty = point.y; } else { p.tx = null; p.ty = null; }
       const a = Math.atan2(p.y - cy, p.x - cx);
       p.vx += -Math.sin(a) * 14 * p.spin; p.vy += Math.cos(a) * 14 * p.spin;
     });
-    if (text === "GO") {
+    if (!text) {
       const timer = window.setTimeout(() => {
         st.burst = true;
         st.particles.forEach(p => { const a = Math.random() * Math.PI * 2, v = 6 + Math.random() * 22; p.tx = p.ty = null; p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v - 6; });
-      }, 520);
+      }, 60);
       return () => window.clearTimeout(timer);
     }
   }, [text]);
   return <canvas className="cd-particles" ref={ref} aria-hidden="true"/>;
 }
 
-function CountdownScene({ seconds, variant, light }: { seconds: number; variant: string; light: boolean }) {
+export function CountdownScene({ seconds, variant, light }: { seconds: number; variant: string; light: boolean }) {
   const scene = useRef<HTMLDivElement>(null);
   // Every second lands like a beat: the whole scene punches in and settles.
   useEffect(() => {
@@ -451,12 +519,11 @@ function CountdownScene({ seconds, variant, light }: { seconds: number; variant:
       <i className="cd-pulse" key={`p${seconds}`}/>
       <i className="cd-pulse late" key={`q${seconds}`}/>
     </div>
-    <ParticleField text={seconds ? String(seconds) : "GO"} light={light}/>
+    <ParticleField text={seconds ? String(seconds) : ""} light={light}/>
     {seconds === 0 && <i className="cd-flash" aria-hidden="true"/>}
     <div className="cd-dial">
       <svg className="cd-ring" viewBox="0 0 100 100" key={`r${seconds}`} aria-hidden="true"><circle className="cd-ring-track" cx="50" cy="50" r="46"/><circle className="cd-ring-sweep" cx="50" cy="50" r="46" pathLength={1}/></svg>
-      <span>Trading opens in</span>
-      <strong key={seconds}>{seconds || "GO"}</strong>
+      {seconds > 0 && <strong key={seconds}>{seconds}</strong>}
     </div>
   </div>;
 }
@@ -491,10 +558,19 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const indexTick = useTick(world?.index ?? 0);
   // The moment trading opens: a burst of light and "Market open".
   const [opening, setOpening] = useState(false);
+  const [closing, setClosing] = useState(false);
+  // The host can switch animations off for every audience screen.
+  const motion = world?.controls.animateAudience !== false;
   const lastStatus = useRef(world?.status);
   useEffect(() => {
     const before = lastStatus.current;
     lastStatus.current = world?.status;
+    if (before === "live" && world?.status === "closed") {
+      // The closing bell: shutters slam shut on the market, then part on the final standings.
+      setClosing(true);
+      const timer = window.setTimeout(() => setClosing(false), 2600);
+      return () => window.clearTimeout(timer);
+    }
     if (before !== "countdown" || world?.status !== "live") return;
     setOpening(true);
     const timer = window.setTimeout(() => setOpening(false), 2800);
@@ -504,10 +580,23 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const visibleNews = latestNewsSet(world);
   const newsSetKey = `${world?.batch ?? 0}:${visibleNews.map(item => item.id).join(",")}`;
   const showNews = visibleNews.length > 0 && dismissedSet !== newsSetKey;
+  // When a set lands, the companies it touches light up for a few seconds (no direction is revealed).
+  const [glowKey, setGlowKey] = useState("");
+  const seenSet = useRef<string | null>(null);
+  useEffect(() => {
+    const first = seenSet.current === null;
+    seenSet.current = newsSetKey;
+    if (first || !visibleNews.length) return;
+    setGlowKey(newsSetKey);
+    const timer = window.setTimeout(() => setGlowKey(""), 9000);
+    return () => window.clearTimeout(timer);
+  }, [newsSetKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const newsGlow = new Set<string>();
+  if (glowKey === newsSetKey) for (const item of visibleNews) {
+    const scope = item.scope ?? (item.symbols?.length ? "stock" : item.sector === "ALL" ? "economy" : "sector");
+    for (const stock of world?.stocks ?? []) if (scope === "economy" || (scope === "sector" ? stock.sector === item.sector : item.symbols?.includes(stock.symbol))) newsGlow.add(stock.symbol);
+  }
   const stocks = world?.stocks ?? [];
-  const ranked = [...stocks].sort((a, b) => changePct(b) - changePct(a));
-  const gainer = ranked.length && changePct(ranked[0]) > .005 ? ranked[0] : undefined;
-  const loser = ranked.length && changePct(ranked[ranked.length - 1]) < -.005 ? ranked[ranked.length - 1] : undefined;
   const returnPct = world?.indexChange ?? 0;
   const status = world?.status ?? "ready";
   const statusText = status === "live" ? world?.controls.paused ? "Paused" : "Live" : status === "countdown" ? "Starting" : status === "closed" ? "Closed" : "Ready";
@@ -515,25 +604,22 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   // At the closing bell the leaderboard takes the whole stage until the next batch or a tap on "Show the market".
   const final = status === "closed" && (world?.leaderboard.length ?? 0) > 0 && marketAfterClose !== world?.batch;
   const countdownSeconds = counting && world ? Math.max(0, Math.ceil((world.startedAt - clock) / 1000)) : 0;
-  const lowTime = status === "live" && (world?.remaining ?? 999) <= 30;
-  const timeLeft = status === "live" && world ? Math.min(1, Math.max(0, world.remaining / (world.duration || 1))) : 0;
+  const remaining = useSmoothRemaining(world);
+  const lowTime = status === "live" && (world ? remaining : 999) <= 30;
+  const timeLeft = status === "live" && world ? Math.min(1, Math.max(0, remaining / (world.duration || 1))) : 0;
 
-  return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}${showNews ? " has-news" : ""}`} data-status={status}>
+  const lastTen = status === "live" && !world?.controls.paused && remaining <= 10 && remaining > 0;
+  return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}${showNews ? " has-news" : ""}${motion ? "" : " no-motion"}${lastTen ? " is-last-ten" : ""}`} data-status={status}>
     <svg className="stage-defs" aria-hidden="true" focusable="false"><defs>
       <linearGradient id="stage-spark-up" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{ stopColor: "var(--up)", stopOpacity: .34 }}/><stop offset="1" style={{ stopColor: "var(--up)", stopOpacity: 0 }}/></linearGradient>
       <linearGradient id="stage-spark-down" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{ stopColor: "var(--down)", stopOpacity: .3 }}/><stop offset="1" style={{ stopColor: "var(--down)", stopOpacity: 0 }}/></linearGradient>
     </defs></svg>
     <header className="stage-head">
       <div className="stage-brand"><span className="stage-mark"><DalaalMark/></span><h1 className="stage-title"><small>Pratibimb live market</small><DalaalWordmark/></h1></div>
-      {gainer && loser && <div className="stage-movers" aria-label="Biggest movers">
-        <small>Biggest movers</small>
-        <span className="up" key={`g${gainer.symbol}`}><b>▲</b>{shortName(gainer.symbol)}<em>{changePct(gainer).toFixed(2)}%</em></span>
-        <span className="down" key={`l${loser.symbol}`}><b>▼</b>{shortName(loser.symbol)}<em>{Math.abs(changePct(loser)).toFixed(2)}%</em></span>
-      </div>}
-      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10</span><strong data-tick={indexTick ?? undefined}>{indexText}</strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b></div>
+      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10</span><strong data-tick={indexTick ?? undefined}><Odometer text={indexText}/></strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b></div>
       <div className={`stage-status status-${status}${world?.controls.paused ? " is-paused" : ""}`}><i aria-hidden="true"/>{statusText}</div>
       <div className={`stage-clock${lowTime ? " is-low" : ""}`} aria-label="Time left">
-        <span>{status === "live" ? fmtTime(world?.remaining ?? 0) : `BATCH ${pad2(world?.batch || 1)}`}</span>
+        <span>{status === "live" ? <Odometer text={fmtTime(remaining)}/> : `BATCH ${pad2(world?.batch || 1)}`}</span>
         {status === "live" && <i className="stage-clock-bar" aria-hidden="true" style={{ transform: `scaleX(${timeLeft})` }}/>}
       </div>
       <div className="stage-tools">
@@ -549,17 +635,19 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
           <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>Latest news</span><button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button></header>
           <div className={`stage-news-cards count-${visibleNews.length}`}>{visibleNews.map((item, index) => <article key={item.id} className={`type-${item.type}`} style={{ "--i": index } as React.CSSProperties}>
             <div className="stage-news-meta"><span className={`stage-tag ${item.type}`}>{item.type === "major" ? "Major" : "Minor"}</span><span className="stage-news-scope">{scopeText(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div>
-            <p>{item.headline}</p>
+            <p>{item.headline.split(" ").map((word, w) => <span className="stage-word" key={w} style={{ "--w": w } as React.CSSProperties}>{word} </span>)}</p>
           </article>)}</div>
         </section>}
-        <section className="stage-grid" aria-label="All 25 companies">{stocks.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} mark={stock.symbol === gainer?.symbol ? "top" : stock.symbol === loser?.symbol ? "bottom" : undefined}/>)}</section>
+        <section className="stage-grid" aria-label="All 25 companies">{stocks.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} news={newsGlow.has(stock.symbol)}/>)}</section>
       </div>}
       <Leaderboard world={world} final={final} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
     </div>
 
-    {final && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": `${piece.size}px` } as React.CSSProperties}/>)}</div>}
-    {counting && <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/>}
-    {opening && <div className="stage-open" aria-hidden="true"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
+    {motion && closing && <div className="stage-shutter" aria-hidden="true"><i/><i/><strong>Market closed</strong></div>}
+    {final && motion && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
+    {counting && (motion ? <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/> : <div className="stage-countdown is-plain" role="status" aria-live="assertive"><div className="cd-dial">{countdownSeconds > 0 && <strong>{countdownSeconds}</strong>}</div></div>)}
+    {lastTen && motion && <div className="stage-last-ten" aria-hidden="true" key={Math.ceil(remaining)}>{Math.ceil(remaining)}</div>}
+    {opening && motion && <div className="stage-open" aria-hidden="true"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
     <Ticker stocks={stocks} preview={preview}/>
   </main>;
 }

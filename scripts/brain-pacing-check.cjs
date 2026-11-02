@@ -83,7 +83,8 @@ const trade = (w, p, symbol, at) => { p.lastSeenAt = at; return E.executeTrade(w
   const at = w.lastTickAt;
   const before = w.autonomousNews.nextAt;
   E.hostAction(w, 'autonomous-nudge', { seconds: 15 }, at);
-  assert.equal(Math.round((w.autonomousNews.nextAt - before) / 1000), 15);
+  const moved = Math.round((w.autonomousNews.nextAt - before) / 1000);
+  assert(moved > 0 && moved <= 15, 'Later moves the release, but never past 75 seconds after the last publish');
   E.advance(w, at + 6_000);
   assert(w.autonomousNews.pacing.some(f => f.kind === 'host' && f.seconds === 15), 'the nudge stays in the plan after a review');
   for (let i = 0; i < 6; i++) E.hostAction(w, 'autonomous-nudge', { seconds: -15 }, at + 6_000);

@@ -13,6 +13,7 @@ import "./ui-polish.css";
 import "./ui-host-news.css";
 import "./ui-brand.css";
 import "./ui-audience-stage.css";
+import "./ui-trading-motion.css";
 import "./ui-v4-readable.css";
 
 export const metadata: Metadata = {
