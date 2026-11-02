@@ -296,24 +296,13 @@ function StockTile({ stock, index, news }: { stock: Stock; index: number; news?:
   const move = changePct(stock);
   const tick = useTick(stock.price);
   const ring = Math.max(Math.abs((index % 5) - 2), Math.abs(Math.floor(index / 5) - 2));
-  return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}${news ? " is-news" : ""}`} data-tick={tick ?? undefined} style={{ "--i": index, "--ring": ring } as React.CSSProperties} title={stock.name}>
-    <div className="stage-tile-top"><Logo stock={stock} compact/><b>{shortName(stock.symbol)}</b></div>
-    <div className="stage-tile-price"><strong>{money(stock.price, 2)}</strong><span>{move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(2)}%</span></div>
+  const heat = Math.min(1, Math.abs(move) / 4);
+  const [rupees, paise] = money(stock.price, 2).replace("₹", "").split(".");
+  return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}${news ? " is-news" : ""}`} data-tick={tick ?? undefined} data-sector={stock.sector} style={{ "--i": index, "--ring": ring, "--heat": heat.toFixed(3) } as React.CSSProperties} title={stock.name} aria-label={`${stock.name} ${money(stock.price, 2)}, ${move >= 0 ? "up" : "down"} ${Math.abs(move).toFixed(2)}%`}>
+    <div className="stage-tile-top"><Logo stock={stock} compact/><b>{shortName(stock.symbol)}</b><small className="stage-tile-sector">{stock.sector}</small></div>
+    <div className="stage-tile-price"><strong><i>₹</i>{rupees}<em>.{paise}</em></strong><span>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</span></div>
     <Spark stock={stock}/>
   </article>;
-}
-
-/** A tape of every price along the foot of the screen, like a business channel. */
-function Ticker({ stocks, preview }: { stocks: Stock[]; preview?: boolean }) {
-  const run = (copy: number) => <span className="stage-ticker-run" aria-hidden={copy === 1 || undefined} key={copy}>{stocks.map(stock => {
-    const move = changePct(stock);
-    return <span className={`stage-ticker-item ${move >= 0 ? "up" : "down"}`} key={stock.symbol}><b>{shortName(stock.symbol)}</b>{money(stock.price, 2)}<em>{move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(2)}%</em></span>;
-  })}</span>;
-  return <footer className="stage-ticker">
-    <span className="stage-ticker-label"><i aria-hidden="true"/>Live prices</span>
-    <div className="stage-ticker-window">{stocks.length > 0 && <div className="stage-ticker-track">{run(0)}{run(1)}</div>}</div>
-    <span className="stage-foot">{preview && <><a href="/ui-preview">Preview: compare all versions</a> · </>}Fictional prices, no real money</span>
-  </footer>;
 }
 
 /* ---------- Opening countdown: a market building itself behind the number ---------- */
@@ -631,6 +620,8 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     for (const stock of world?.stocks ?? []) if (scope === "economy" || (scope === "sector" ? stock.sector === item.sector : item.symbols?.includes(stock.symbol))) newsGlow.add(stock.symbol);
   }
   const stocks = world?.stocks ?? [];
+  // The record-shop version (V6) files its companies by sector, like the racks in a shop.
+  const ordered = variant === "conservatory" ? [...stocks].sort((a, b) => a.sector.localeCompare(b.sector) || stocks.indexOf(a) - stocks.indexOf(b)) : stocks;
   const returnPct = world?.indexChange ?? 0;
   const status = world?.status ?? "ready";
   const indexText = world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00";
@@ -668,16 +659,14 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     </header>
 
     <div className="stage-body">
-      {!final && <div className="stage-main">
-        {showNews && <section className="stage-news" aria-label="Latest news">
-          <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>Latest news</span><button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button></header>
-          <div className={`stage-news-cards count-${visibleNews.length}`}>{visibleNews.map((item, index) => <article key={item.id} className={`type-${item.type}`} style={{ "--i": index } as React.CSSProperties}>
-            <div className="stage-news-meta"><span className={`stage-tag ${item.type}`}>{item.type === "major" ? "Major" : "Minor"}</span><span className="stage-news-scope">{scopeText(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div>
-            <p>{item.headline.split(" ").map((word, w) => <span className="stage-word" key={w} style={{ "--w": w } as React.CSSProperties}>{word} </span>)}</p>
-          </article>)}</div>
-        </section>}
-        <section className="stage-grid" aria-label="All 25 companies">{stocks.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} news={newsGlow.has(stock.symbol)}/>)}</section>
-      </div>}
+      {!final && <section className="stage-grid" aria-label="All 25 companies">{ordered.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} news={newsGlow.has(stock.symbol)}/>)}</section>}
+      {!final && <section className={`stage-news${showNews ? "" : " is-empty"}`} aria-label="Latest news">
+        <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>{showNews ? "Latest news" : "News"}</span>{showNews && <button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button>}</header>
+        {showNews ? <div className={`stage-news-cards count-${visibleNews.length}`}>{visibleNews.map((item, index) => <article key={item.id} className={`type-${item.type}`} style={{ "--i": index } as React.CSSProperties}>
+          <div className="stage-news-meta"><span className={`stage-tag ${item.type}`}>{item.type === "major" ? "Major" : "Minor"}</span><span className="stage-news-scope">{scopeText(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div>
+          <p>{item.headline.split(" ").map((word, w) => <span className="stage-word" key={w} style={{ "--w": w } as React.CSSProperties}>{word} </span>)}</p>
+        </article>)}</div> : <p className="stage-news-wait">{status === "live" ? "The next headlines are on their way." : "Headlines appear here once trading starts."}</p>}
+      </section>}
       <Leaderboard world={world} final={final} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
     </div>
 
@@ -686,6 +675,6 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     {counting && (motion ? <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/> : <div className="stage-countdown is-plain" role="status" aria-live="assertive"><div className="cd-dial">{countdownSeconds > 0 && <strong>{countdownSeconds}</strong>}</div></div>)}
     {lastTen && motion && <div className="stage-last-ten" aria-hidden="true" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}
     {opening && motion && <div className="stage-open" aria-hidden="true"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
-    <Ticker stocks={stocks} preview={preview}/>
+    {preview && <a className="stage-preview-link" href="/ui-preview">Preview: compare all versions</a>}
   </main>;
 }
