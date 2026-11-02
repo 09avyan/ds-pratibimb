@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793650511.865907,
-    "seen": 1793650933.0442069,
-    "ast_hash": "d374128d12c34b43034f5b2df9cbd12f",
+    "mtime": 1793651597.5035093,
+    "seen": 1793651780.0874426,
+    "ast_hash": "4fe6a8cae785cc06ef9e44bc7964d6ec",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793650896.486284,
-    "seen": 1793650933.0456994,
-    "ast_hash": "40f18fc85f5f8b7ff6d669f1eb35b9d6",
+    "mtime": 1793651776.944706,
+    "seen": 1793651780.0885904,
+    "ast_hash": "2c7d0970f20a116781fc8ae6a5b5ea46",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -396,9 +396,9 @@
     "semantic_hash": ""
   },
   "app/components/trading-motion.tsx": {
-    "mtime": 1793650301.98476,
-    "seen": 1793650933.0443244,
-    "ast_hash": "fc80573cbf57ff2024fa525823893a18",
+    "mtime": 1793651396.0005808,
+    "seen": 1793651780.0875695,
+    "ast_hash": "660da60a1c89dfd50cf2a625b1ee90e3",
     "semantic_hash": ""
   },
   "scripts/brain-window-check.cjs": {

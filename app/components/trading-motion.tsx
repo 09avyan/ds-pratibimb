@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PublicWorld } from "@/game/types";
-import { CountdownScene } from "./audience-stage";
+import { CountdownScene, PixelText } from "./audience-stage";
 import { useSmoothRemaining } from "./market-parts";
 
 /*
@@ -34,7 +34,7 @@ export function TerminalMoments({ world, theme, variant }: { world: PublicWorld 
   if (!counting && !moment && !lastTen) return null;
   return <div className={`stage stage-${theme} v-${variant} stage-embed${lastTen ? " is-last-ten" : ""}`} aria-hidden={!counting || undefined}>
     {counting && <CountdownScene seconds={seconds} variant={variant} light={theme === "light"}/>}
-    {lastTen && <div className="stage-last-ten" key={Math.ceil(remaining)}>{Math.ceil(remaining)}</div>}
+    {lastTen && <div className="stage-last-ten" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}
     {moment === "open" && <div className="stage-open"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
     {moment === "close" && <div className="stage-shutter"><i/><i/><strong>Market closed</strong></div>}
   </div>;

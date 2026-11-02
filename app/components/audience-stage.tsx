@@ -340,11 +340,11 @@ function glyphPoints(text: string, w: number, h: number, step: number) {
   g.fillStyle = "#fff";
   g.textAlign = "center";
   g.textBaseline = "middle";
-  g.font = `900 ${Math.round(h * (text.length > 1 ? .42 : .6))}px "Archivo Stage", system-ui, sans-serif`;
+  g.font = `900 ${Math.round(h * (text.length > 1 ? .5 : .74))}px "Archivo Stage", system-ui, sans-serif`;
   g.fillText(text, w / 2, h * .53);
   const data = g.getImageData(0, 0, w, h).data;
   const points: { x: number; y: number }[] = [];
-  for (let y = 0; y < h; y += step) for (let x = 0; x < w; x += step) if (data[(y * w + x) * 4 + 3] > 140) points.push({ x: x + (Math.random() - .5) * step * .2, y: y + (Math.random() - .5) * step * .2 });
+  for (let y = 0; y < h; y += step) for (let x = 0; x < w; x += step) if (data[(y * w + x) * 4 + 3] > 140) points.push({ x, y });
   for (let i = points.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [points[i], points[j]] = [points[j], points[i]]; }
   return points;
 }
@@ -375,6 +375,7 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
     const css = getComputedStyle(canvas);
     const colors = [css.getPropertyValue("--accent").trim() || "#a993ff", css.getPropertyValue("--gold").trim() || "#f3c74f", css.getPropertyValue("--up").trim() || "#2fd68f"];
     const sprites = colors.map(color => sprite(color, 48));
+    const ink = css.getPropertyValue("--ink").trim() || "#111";
     let w = 0, h = 0, raf = 0, last = performance.now();
     // Adaptive quality: measure the first frames and draw fewer points on a slow machine.
     let stride = 1, frames = 0, spent = 0;
@@ -441,8 +442,10 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
         const p = st.particles[pi];
         if (st.burst) { p.vy += .06 * dt * dpr; p.vx *= .985; p.vy *= .985; }
         else if (p.tx !== null && p.ty !== null) {
-          p.vx += (p.tx - p.x) * .045 * dt; p.vy += (p.ty - p.y) * .045 * dt;
-          p.vx *= .78; p.vy *= .78;
+          // Ease straight onto the target so each digit is readable within about half a second.
+          const pull = Math.min(.5, .16 * dt);
+          p.x += (p.tx - p.x) * pull; p.y += (p.ty - p.y) * pull;
+          p.vx = 0; p.vy = 0;
         } else {
           // Drift on a slow orbit round the dial.
           const a = Math.atan2(p.y - cy, p.x - cx) + p.spin * .006 * dt;
@@ -454,8 +457,19 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
         if (pi % stride !== 0 && p.tx === null) continue; // on a slow machine, skip some drifting points but keep every point of the number
         const twinkle = .55 + .45 * Math.sin(t * 3 + p.phase);
         const formed = p.tx !== null;
-        const size = formed ? st.step * (1.25 + p.size * .35) : 10 * p.size * dpr * (st.burst ? 1.3 : 1);
-        ctx.globalAlpha = formed ? .7 + .3 * twinkle : .4 * twinkle;
+        if (formed) {
+          // The number is a matrix of square pixels, like a stadium LED board: a glow square, then a bright core.
+          const cell = st.step * .74;
+          ctx.globalAlpha = .5;
+          ctx.fillStyle = colors[0];
+          ctx.fillRect(p.x - cell * .6, p.y - cell * .6, cell * 1.2, cell * 1.2);
+          ctx.globalAlpha = .95;
+          ctx.fillStyle = light ? ink : "#ffffff";
+          ctx.fillRect(p.x - cell / 2, p.y - cell / 2, cell, cell);
+          continue;
+        }
+        const size = 10 * p.size * dpr * (st.burst ? 1.3 : 1);
+        ctx.globalAlpha = .4 * twinkle;
         ctx.drawImage(sprites[p.tone], p.x - size / 2, p.y - size / 2, size, size);
       }
       ctx.globalAlpha = 1;
@@ -468,7 +482,7 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
   useEffect(() => {
     const st = state.current;
     if (!st) return;
-    const step = Math.max(4, Math.round(Math.min(st.w, st.h) / 125));
+    const step = Math.max(5, Math.round(Math.min(st.w, st.h) / 62));
     st.step = step;
     const points = glyphPoints(text, st.w, st.h, step);
     const cx = st.w / 2, cy = st.h / 2;
@@ -489,6 +503,26 @@ function ParticleField({ text, light }: { text: string; light: boolean }) {
     }
   }, [text]);
   return <canvas className="cd-particles" ref={ref} aria-hidden="true"/>;
+}
+
+/** A number drawn as a matrix of square pixels (the last ten seconds' ghost). */
+export function PixelText({ text, color }: { text: string; color: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scale = .5;
+    const w = Math.max(1, Math.round(rect.width * scale)), h = Math.max(1, Math.round(rect.height * scale));
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const step = Math.max(4, Math.round(Math.min(w, h) / 48));
+    const shade = getComputedStyle(canvas).getPropertyValue(color).trim() || "#ff5a5a";
+    ctx.fillStyle = shade;
+    for (const point of glyphPoints(text, w, h, step)) ctx.fillRect(point.x - step * .42, point.y - step * .42, step * .84, step * .84);
+  }, [text, color]);
+  return <canvas className="pixel-text" ref={ref} aria-hidden="true"/>;
 }
 
 export function CountdownScene({ seconds, variant, light }: { seconds: number; variant: string; light: boolean }) {
@@ -646,7 +680,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     {motion && closing && <div className="stage-shutter" aria-hidden="true"><i/><i/><strong>Market closed</strong></div>}
     {final && motion && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
     {counting && (motion ? <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/> : <div className="stage-countdown is-plain" role="status" aria-live="assertive"><div className="cd-dial">{countdownSeconds > 0 && <strong>{countdownSeconds}</strong>}</div></div>)}
-    {lastTen && motion && <div className="stage-last-ten" aria-hidden="true" key={Math.ceil(remaining)}>{Math.ceil(remaining)}</div>}
+    {lastTen && motion && <div className="stage-last-ten" aria-hidden="true" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}
     {opening && motion && <div className="stage-open" aria-hidden="true"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
     <Ticker stocks={stocks} preview={preview}/>
   </main>;
