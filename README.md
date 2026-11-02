@@ -8,11 +8,11 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 - There are exactly 10 live terminals. Enter the assigned two-digit terminal code at `/play`, or open its direct URL from `/play/01` to `/play/10`; each code maps to that terminal's player session.
 - Players can buy shares, sell shares they own, or open short positions. A **Sell all** button beside the order button sells the selected company’s entire owned quantity. It is disabled until shares are owned and leaves other companies and short positions untouched. Prices move as the market simulation, news events, and participant trades update the shared market.
 - A host can start, pause, and end a timed batch; set the next batch to 4–15 minutes; adjust market behavior; publish or schedule bulletins; and review participant sessions.
-- The curated news library has 61 fictional bulletins: 12 economy stories, 3 for each of the 8 sectors, and 25 company stories for 25 different stocks. The remaining stocks still respond to their sector and economy stories. Hosts can select any mix of categories in Quick Access or News Studio, review the combined stock-by-stock estimate, and expand a headline for its individual effect before publishing.
+- The market lists 25 companies. The curated news library has 61 fictional bulletins: 12 economy stories, 3 for each of the 8 sectors, and one company story for each of the 25 companies. Hosts can select any mix of categories in Quick Access or News Studio, review the combined stock-by-stock estimate, and expand a headline for its individual effect before publishing.
 - A new batch reset restores the market's starting stock prices as well as clearing its terminal sessions and published headlines.
 - Host presence uses each device's last-seen heartbeat. A new batch resets participant portfolios without marking previously offline terminals as connected.
 - Price movement is driven by 128 simulated traders with 16 distinct trading styles. The baseline volatility is 15% lower than the previous engine setting; hosts can still adjust volatility for an event.
-- The audience wall shows the Dalaal-10 level and change, all stock prices and changes, only the latest published news set, and active terminal cash, P&L and total portfolio value without creating a participant account.
+- The audience wall shows the Dalaal-10 level and change, all stock prices and changes, only the latest published news set, and terminal standings without creating a participant account. V4 (`/v4/audience`) is the event display: see **V4 event display** below.
 - Audience screens fit the full stock board and latest news into one viewport; the stock grid changes from 7×4 on wide screens to denser responsive layouts on smaller screens. There are no page or news scrollbars on the audience wall.
 - Trading screens show a ticker of all stock prices above the market. Only the latest published news set appears near the top of the trading page in a full news panel with numbered stories, scope, major/minor labels, game-relative time and an internal close button. Older sets remain available in the News desk. The live stock ticker runs 15% slower.
 - The game includes an isolated practice market with the same three-second countdown, six-minute rounds, trading rules, news flow, settlement, and session report as a hosted game.
@@ -108,7 +108,7 @@ The market state is stored as JSONB and shared across app instances through Supa
 
 ## Network behavior
 
-The market keeps its one-second update rhythm and price rules unchanged. Unchanged snapshots return a small `304` response, charts send only new candles after their initial history load, inactive screens stop requesting chart candles, and host snapshots omit chart history. All 28 company marks load from small local SVG assets, with a sector glyph fallback if an asset cannot load; screens use system fonts. Disconnected or hidden terminals stop polling; transient request failures back off automatically before retrying.
+The market keeps its one-second update rhythm and price rules unchanged. Unchanged snapshots return a small `304` response, charts send only new candles after their initial history load, inactive screens stop requesting chart candles, and host snapshots omit chart history. All 25 company marks load from small local SVG assets, with a sector glyph fallback if an asset cannot load; screens use system fonts. Disconnected or hidden terminals stop polling; transient request failures back off automatically before retrying.
 
 ## News and standings refinements
 
@@ -164,3 +164,36 @@ Trading and audience dashboards show the latest published set only, with the ful
 - Automatic session-close sales and short covers remain clearly recorded in history and now receive the same accounting credit as other trades: total trades, wins/losses, badges and best/worst realised trades. Settlement remains idempotent.
 - `node scripts/trading-flow-check.cjs` checks per-stock liquidation, retries, other holdings, paused/empty orders and settlement statistics for individual and timed session endings.
 - `node scripts/brain-mix-check.cjs` verifies the brain chooses each of the three two-story and four three-story minor/major mixes under suitable game conditions.
+
+## V4 event display, leaderboard and news brain controls
+
+### 25 companies
+- Kotak Mahindra Bank, Tata Steel and Tata Consumer Products were removed; they were the only companies without their own news story, so all 61 stories remain. Axis Bank takes Kotak’s 4.5% weight in the Dalaal-10.
+- A saved market switches to the 25-company list only between batches, so no one loses an open position in a removed stock mid-round.
+
+### Audience stage (`/v4/audience`)
+- Built for a 100" smart board read from about 12 feet, and for 24" 1080p monitors. Must-read text is at least ~22–24px at 1080p (about 2.5 cm tall on a 100" screen); prices, standings and the clock are larger. It scales to 4K boards.
+- Opens in dark mode (its own setting, separate from the trading screens). Shows the index, status and clock; the latest news set; all 25 companies in a 5 × 5 board; and the leaderboard.
+- **Leaderboard:** ranks only terminals that are actually playing — the current login must have placed at least one buy or short in this batch. Logged-in terminals that have not traded do not appear. Top three stand on a podium; ranks 4–10 follow below. ▲/▼ badges mark rank changes for a few seconds and rows glide to their new place. Equal portfolio values share a rank. Each terminal’s **Position** uses the same rule and ranking.
+- When the batch closes the stage switches to **Final standings** (podium, full ranking and the top portfolio) until the next batch starts or someone taps **Show the market**.
+- **Bells:** an opening bell when trading starts (after the 5-second countdown, shown full screen) and a closing bell when the timer ends — see **Audience bells** below.
+
+### V4 trading screens
+- Small labels and figures were raised for parents on a 24" monitor: labels ≥ 11px, body text ≥ 13px, prices 15–18px and the header figures (clock, cash, portfolio, P&L) 18px. Layout and other versions are unchanged.
+
+### Round timing and market
+- Live batches default to **5 minutes** (changeable in host Settings, 4–15 minutes) and open with a **5-second countdown** on the audience stage; practice rounds keep 6 minutes and a 3-second countdown.
+- Bots were retuned so news explains most of a stock's move: trend-following, random noise and the bots' amplification of news are all smaller. Without news, a stock now drifts at most about 6% in 5 minutes (previously about 10%).
+- When the clock shows one minute left, players who still hold shares or shorts see a warning that these will be sold or covered automatically at the closing price; the Portfolio tab says so too. Automatic close-outs still count as trades in the report, and **Toughest closed trade** only ever shows a losing trade.
+
+### Audience bells
+- Bells ring automatically on the audience stage only: the opening bell when trading starts (host or `/auto`) and the closing bell when the timer ends. Trading terminals stay silent.
+- Browsers allow sound only after one interaction with the page, so tap **Full screen** on the board once at setup (that unlocks the bells). If sound is still blocked, the speaker icon pulses. To remove the tap entirely, start the board's browser with autoplay allowed (Chrome/Edge: `--autoplay-policy=no-user-gesture-required`, or Edge site permissions → Media autoplay → Allow).
+
+### News brain
+- **Cadence:** a set every **50–75 seconds**. The brain picks the exact gap from the logs — who acted on the last set's companies and how fast, whether trading is still going, how long the room has been quiet, and rejected orders. It waits only for the previous set's 35-second direct reaction; slower follow-through may continue underneath. Terminals that have never placed an order are ignored when judging reactions.
+- **Story choice:** most sets are chosen to move a large part of the market (sector and economy stories are favoured after the opening sets), news is spread across sectors and balanced between good and bad over the round, and the round ends with a closing set.
+- **Stable preview:** once a set is shown it stays, unless a story becomes invalid or the brain's intensity (calm / balanced / lively) changes; in the last 20 seconds both the set and its release time are locked, so what the host sees is what gets published.
+- **Host controls (News brain tab, Alt + B):** intensity Auto / Calm / Balanced / Lively; **Sooner 15s / Later 15s**; **Keep** or **Swap** a story; **Skip and reselect** avoids the skipped stories and keeps the release time.
+- **Clearer tab:** a round timeline, a countdown bar, the expected direct move of each upcoming story, how players responded to the last set, and each factor (in seconds) behind the chosen gap.
+- Regression: `node scripts/brain-pacing-check.cjs` and `node scripts/audience-leaderboard-check.cjs`.

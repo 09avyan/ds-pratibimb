@@ -1,42 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Mode, News, Player, PublicWorld, Stock, Trade } from "@/game/types";
+import type { Mode, Player, PublicWorld, Stock, Trade } from "@/game/types";
+import { AudienceStage } from "./audience-stage";
 import { equity, performance, shortValue } from "@/game/engine";
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
+import { changePct, fmtTime, latestNewsSet, MiniChart, money, newsScope, smoothPath, useChartColour } from "./market-parts";
 import { UI_OPTIONS, type UiVariant } from "@/ui-options";
 
 type Props = { mode?: Mode; audienceOnly?: boolean; terminal?: number; uiVariant?: UiVariant; preview?: boolean };
 type TradeSide = "Buy" | "Sell" | "Short";
-const money = (n: number, digits = 2) => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
-const changePct = (s: Stock) => (s.price / s.previousClose - 1) * 100;
-const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">) => {
-  const scope = news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
-  return scope === "economy" ? "Economy · all stocks" : scope === "stock" ? (news.symbols?.join(", ") ?? news.sector) : `${news.sector} sector`;
-};
-function latestNewsSet(world: PublicWorld | null) {
-  const news = world?.headlines ?? [];
-  if (!news.length) return [];
-  const latestAt = Math.max(...news.map(item => item.createdAt));
-  const ids = new Set(world?.latestNewsIds ?? []);
-  return news.filter(item => ids.size ? ids.has(item.id) : item.createdAt === latestAt).sort((a, b) => a.createdAt - b.createdAt);
-}
-function smoothPath(points: { x: number; y: number }[]) {
-  if (!points.length) return "";
-  let path = `M${points[0].x},${points[0].y}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const previous = points[Math.max(0, i - 1)];
-    const start = points[i];
-    const end = points[i + 1];
-    const next = points[Math.min(points.length - 1, i + 2)];
-    const c1x = start.x + (end.x - previous.x) / 6;
-    const c1y = start.y + (end.y - previous.y) / 6;
-    const c2x = end.x - (next.x - start.x) / 6;
-    const c2y = end.y - (next.y - start.y) / 6;
-    path += ` C${c1x},${c1y} ${c2x},${c2y} ${end.x},${end.y}`;
-  }
-  return path;
-}
 const sessionStorageKey = (mode: Mode, terminal?: number, preview = false) => {
   const device = terminal ? `device-${String(terminal).padStart(2, "0")}` : "device";
   return preview ? `ds-ui-preview-${device}` : mode === "test" ? `ds-practice-${device}` : `ds-${device}`;
@@ -64,35 +37,6 @@ function mergeChartData(nextWorld: PublicWorld, previousWorld: PublicWorld | nul
     if (cached?.candles.length) return { ...nextWorld, stocks: nextWorld.stocks.map(stock => stock.symbol === symbol ? { ...stock, candles: cached.candles } : stock) };
   }
   return nextWorld;
-}
-
-function useChartColour(stock: Stock, startedAt = 0) {
-  const previous = useRef({ key: `${stock.symbol}:${startedAt}`, price: stock.price });
-  const [flash, setFlash] = useState<"up" | "down" | null>(null);
-  const state = stock.price > stock.base ? "above" : stock.price < stock.base ? "below" : "at-open";
-  const baseColor = state === "above" ? "var(--up)" : state === "below" ? "var(--down)" : "var(--muted)";
-  useEffect(() => {
-    const key = `${stock.symbol}:${startedAt}`;
-    const old = previous.current;
-    previous.current = { key, price: stock.price };
-    const direction = old.key === key ? Math.sign(stock.price - old.price) : 0;
-    const contrary = direction < 0 && stock.price > stock.base ? "down" : direction > 0 && stock.price < stock.base ? "up" : null;
-    setFlash(contrary);
-    if (contrary) {
-      const timer = window.setTimeout(() => setFlash(null), 400);
-      return () => window.clearTimeout(timer);
-    }
-  }, [stock.symbol, stock.price, stock.base, startedAt]);
-  return { state, flash, baseColor, color: flash === "up" ? "var(--up)" : flash === "down" ? "var(--down)" : baseColor };
-}
-
-function MiniChart({ stock, startedAt = 0 }: { stock: Stock; startedAt?: number }) {
-  const chart = useChartColour(stock, startedAt);
-  const values = stock.trend?.length ? stock.trend : stock.candles.slice(-18).map(c => c.close);
-  if (values.length < 2) return <svg className="mini-chart" viewBox="0 0 100 28" aria-hidden="true"><line x1="0" x2="100" y1="14" y2="14" stroke="var(--line)" /></svg>;
-  const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1;
-  const points = values.map((v, i) => ({ x: i * 100 / (values.length - 1), y: 25 - ((v - lo) / span) * 21 }));
-  return <svg className="mini-chart" data-chart-state={chart.state} data-chart-flash={chart.flash ?? "none"} viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><path d={smoothPath(points)} fill="none" className="chart-price-line" stroke={chart.color} strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" /></svg>;
 }
 
 function StockPriceTicker({ stocks }: { stocks: Stock[] }) {
@@ -179,11 +123,10 @@ function Header({ world, player, onTheme, theme, clockNow }: { world: PublicWorl
   return <header className="topbar">
     <div className="topbar-brand"><DalaalMark/><DalaalWordmark/></div>
     <div className="market-ribbon"><span className="ribbon-label">DALAAL-10</span><strong>{world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00"}</strong><span className={world && world.indexChange >= 0 ? "positive" : "negative"}>{world ? `${world.indexChange >= 0 ? "+" : ""}${world.indexChange.toFixed(2)}%` : "0.00%"}</span></div>
-    <div className="topbar-metrics"><div className="terminal-standing"><small>POSITION</small><b>{world?.standing ? `${world.standing.rank} / ${world.standing.total}` : "—"}</b></div><div><small>SESSION</small><b className="timer-value">{world?.status === "countdown" ? fmtTime(Math.ceil((world.startedAt - clockNow) / 1000)) : world ? fmtTime(world.remaining) : "06:00"}</b></div><div><small>FREE CASH</small><b>{money(player?.cash ?? 1_000_000, 0)}</b></div><div><small>PORTFOLIO</small><b>{money(value, 0)}</b></div><div><small>DAY P&amp;L</small><b className={pnl >= 0 ? "positive" : "negative"}>{pnl >= 0 ? "+" : ""}{money(pnl, 0)}</b></div></div>
+    <div className="topbar-metrics"><div className="terminal-standing"><small>RANK</small><b>{world?.standing ? `${world.standing.rank} / ${world.standing.total}` : "—"}</b></div><div><small>SESSION</small><b className="timer-value">{world?.status === "countdown" ? fmtTime(Math.ceil((world.startedAt - clockNow) / 1000)) : world ? fmtTime(world.remaining) : "06:00"}</b></div><div><small>FREE CASH</small><b>{money(player?.cash ?? 1_000_000, 0)}</b></div><div><small>PORTFOLIO</small><b>{money(value, 0)}</b></div><div><small>DAY P&amp;L</small><b className={pnl >= 0 ? "positive" : "negative"}>{pnl >= 0 ? "+" : ""}{money(pnl, 0)}</b></div></div>
     <button className="theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "☾" : "☀"}</button>
   </header>;
 }
-function fmtTime(seconds: number) { const s = Math.max(0, Math.floor(seconds)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
 
 export function Trader({ mode = "live", audienceOnly = false, terminal, uiVariant, preview = false }: Props) {
   const [sessionId, setSessionId] = useState("");
@@ -220,9 +163,12 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const chartLastTime = useRef(0);
 
   useEffect(() => { if (!audienceOnly) setSessionId(initialSession(mode, terminal, preview)); }, [audienceOnly, mode, preview, terminal]);
+  const themeKey = audienceOnly && uiVariant === "gallery" ? "ds-audience-theme" : "ds-theme";
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("ds-theme");
+    // The V4 audience wall (smart board) keeps its own theme and opens in dark mode.
+    const savedTheme = window.localStorage.getItem(themeKey);
     if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
+    else if (audienceOnly && uiVariant === "gallery") setTheme("dark");
     setThemeReady(true);
   }, []);
   const sync = useCallback(async () => {
@@ -284,7 +230,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   useEffect(() => { if (toast) { const t = window.setTimeout(() => setToast(""), 3600); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    if (themeReady) window.localStorage.setItem("ds-theme", theme);
+    if (themeReady) window.localStorage.setItem(themeKey, theme);
     return () => { delete document.documentElement.dataset.theme; };
   }, [theme, themeReady]);
   useEffect(() => { if (view === "portfolio") setMenu(false); }, [view]);
@@ -326,6 +272,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
 
 
+  // V4 (Chroma Current) is the event's audience display: a smart-board stage with the leaderboard and market bells.
+  if (audienceOnly && uiVariant === "gallery") return <AudienceStage world={world} preview={preview} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />;
   if (audienceOnly) return <Audience world={world} uiVariant={uiVariant} preview={preview} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />;
   const report = world && player ? performance(world as never, player) : null;
   const isTest = mode === "test";
@@ -400,6 +348,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       </>}
 
       {view === "portfolio" && <section className="wide-page"><div className="section-heading"><div><div className="eyebrow">DALAA<span>L</span> STREET / ACCOUNT</div><h1>Your portfolio<span className="heading-period">.</span></h1><p>Open exposure and completed orders, updated against the shared market.</p></div></div>
+        <p className="settlement-note">At the closing bell, any shares you still hold are sold and any short positions are covered automatically at the closing price.</p>
         <div className="portfolio-summary"><Metric label="TOTAL EQUITY" value={money(world && player ? equity(world as never, player) : 1_000_000, 0)} note="Free cash + long value + short P&L"/><Metric label="AVAILABLE CASH" value={money(player?.cash ?? 1_000_000, 0)} note="Short-sale proceeds are not spendable cash"/><Metric label="OPEN LONGS" value={money(totalLong, 0)} note={`${invested.length} company positions`}/><Metric label="SHORT EXPOSURE" value={money(totalShort, 0)} note="Marked to current prices"/></div>
         <div className="page-tabs"><button className={menu ? "" : "active"} onClick={() => setMenu(false)}>Holdings <span>{invested.length + shorts.length}</span></button><button className={menu ? "active" : ""} onClick={() => setMenu(true)}>History <span>{player?.history.length ?? 0}</span></button></div>
         {!menu ? <div className="table-card">{invested.length + shorts.length === 0 ? <div className="empty-state roomy"><span>▧</span><b>No holdings yet</b><p>Choose a company from Markets to place your first order.</p><button className="outline-button" onClick={() => setView("markets")}>Browse markets</button></div> : <table><thead><tr><th>COMPANY</th><th>POSITION</th><th>AVG. PRICE</th><th>LAST PRICE</th><th>MARKET VALUE</th><th>UNREALISED P&amp;L</th><th>ACTION</th></tr></thead><tbody>{[...invested.map(([symbol, p]) => ({ symbol, ...p, short: false })), ...shorts.map(([symbol, p]) => ({ symbol, ...p, short: true }))].map(p => {const s = world?.stocks.find(x => x.symbol === p.symbol); const mark = s?.price ?? 0; const pl = (p.short ? p.avg - mark : mark - p.avg) * p.qty;return <tr key={p.symbol} onClick={() => {setSelected(p.symbol);setView("markets");}}><td><span className="table-company"><Logo stock={s!} compact/><span><b>{s?.name}</b><small>{p.symbol} · {s?.sector}</small></span></span></td><td><span className={`position-pill ${p.short ? "short" : "long"}`}>{p.short ? "Short" : "Long"} · {p.qty}</span></td><td>{money(p.avg)}</td><td>{money(mark)}</td><td>{money(mark * p.qty, 0)}</td><td className={pl >= 0 ? "positive" : "negative"}>{pl >= 0 ? "+" : ""}{money(pl, 0)}</td><td><button className={`position-close ${p.short ? "cover" : "sell"}`} disabled={blocked} onClick={e => { e.stopPropagation(); void send("trade", { side: p.short ? "Buy" : "Sell", symbol: p.symbol, quantity: p.qty }); }}>{busy ? "Submitting…" : p.short ? "Cover short" : "Sell holding"}</button></td></tr>;})}</tbody></table>}</div> : <div className="table-card">{!player?.history.length ? <div className="empty-state roomy"><span>↻</span><b>No trades yet</b><p>Every order and short-cover is recorded here.</p></div> : <table><thead><tr><th>TIME</th><th>COMPANY</th><th>ORDER</th><th>QUANTITY</th><th>EXECUTION</th><th>REALIZED P&amp;L</th></tr></thead><tbody>{player.history.map(t => {const s = world?.stocks.find(x => x.symbol === t.symbol); const closing = t.side === "Sell" || t.side === "Auto-sell" || t.side === "Auto-cover" || (t.side === "Buy" && (t.coveredQty ?? (t.note?.startsWith("Covered") ? 1 : 0)) > 0);return <tr key={t.id}><td>{new Date(t.time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td><td><span className="table-company"><Logo stock={s!} compact/><span><b>{s?.name ?? t.symbol}</b><small>{t.symbol}</small></span></span></td><td><span className={`position-pill ${t.side === "Short" ? "short" : closing ? "sell" : "long"}`}>{t.side === "Auto-sell" ? "Auto-sell · automatic close" : t.side === "Auto-cover" ? "Auto-cover · automatic close" : t.side === "Buy" && (t.coveredQty ?? 0) ? t.coveredQty === t.qty ? "Cover" : "Cover + Buy" : t.side}</span></td><td>{t.qty}</td><td>{money(t.price)}</td><td className={t.realized >= 0 ? "positive" : "negative"}>{closing ? `${t.realized > 0 ? "+" : ""}${money(t.realized, 0)}` : "—"}</td></tr>;})}</tbody></table>}</div>}</section>}
@@ -407,11 +356,12 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       {view === "news" && <section className="wide-page"><div className="section-heading"><div><div className="eyebrow">DALAA<span>L</span> STREET / NEWS</div><h1>Market news<span className="heading-period">.</span></h1><p>Company and sector bulletins shape the fictional market through the same price model as trading.</p></div></div><div className="news-list">{marketNews.map((n, i) => <article className={`news-item ${i === 0 ? "newest" : ""}`} key={n.id}><div className="news-meta"><b className="market-news-number">News {i + 1}</b><span className={`news-tag ${n.type}`}>{n.type}</span><span>{newsScope(n)}</span><time>{new Date(n.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><h2>{n.headline}</h2></article>)}{!marketNews.length && <div className="empty-state">No bulletins yet. Headlines triggered during this batch will appear here.</div>}</div></section>}
 
       {view === "report" && report && <section className="results-view"><div className="results-heading"><span className="eyebrow">SESSION COMPLETE · BATCH {world?.batch}</span><h1>That’s a wrap<span>.</span></h1><p>Here’s what your decisions added up to. This is a fictional learning simulation, not investment advice.</p></div><div className="results-value"><small>FINAL PORTFOLIO VALUE</small><strong>{money(report.value, 0)}</strong><span className={report.pnl >= 0 ? "positive" : "negative"}>{report.pnl >= 0 ? "+" : ""}{money(report.pnl, 0)} · {report.returnPct >= 0 ? "+" : ""}{report.returnPct.toFixed(2)}%</span></div><div className="portfolio-summary report-metrics"><Metric label={world?.status === "closed" ? "FINAL POSITION" : "POSITION SO FAR"} value={world?.standing ? `${world.standing.rank} / ${world.standing.total}` : "—"} note="Ranked by total portfolio value"/><Metric label="AVAILABLE CASH" value={money(report.cash, 0)}/><Metric label="TOTAL TRADES" value={String(report.tradeCount)}/><Metric label="WIN / LOSS CLOSES" value={`${report.winners} / ${report.losers}`}/><Metric label="DIVERSIFICATION" value={`${report.sectors} sectors`}/></div>
-        <div className="report-trade-pair">{([["BEST CLOSED TRADE", report.bestTrade], ["TOUGHEST CLOSED TRADE", report.worstTrade]] as const).map(([label, trade]) => <article className={`report-trade-card${trade ? trade.realized >= 0 ? " positive-result" : " negative-result" : " empty-result"}`} key={label}><span className="eyebrow">{label}</span>{trade ? <><div className="report-trade-title"><b>{trade.symbol}</b><span>{trade.side} · {trade.qty} shares</span></div><strong className={trade.realized >= 0 ? "positive" : "negative"}>{trade.realized > 0 ? "+" : ""}{money(trade.realized, 0)} <small>realised</small></strong><small className="report-trade-meta">{money(trade.price)} per share · {new Date(trade.time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</small></> : <p>No closed trades yet. Best and toughest realized trades will appear here.</p>}</article>)}</div>
+        <div className="report-trade-pair">{([["BEST CLOSED TRADE", report.bestTrade], ["TOUGHEST CLOSED TRADE", report.worstTrade]] as const).map(([label, trade]) => <article className={`report-trade-card${trade ? trade.realized >= 0 ? " positive-result" : " negative-result" : " empty-result"}`} key={label}><span className="eyebrow">{label}</span>{trade ? <><div className="report-trade-title"><b>{trade.symbol}</b><span>{trade.side} · {trade.qty} shares</span></div><strong className={trade.realized >= 0 ? "positive" : "negative"}>{trade.realized > 0 ? "+" : ""}{money(trade.realized, 0)} <small>realised</small></strong><small className="report-trade-meta">{money(trade.price)} per share · {new Date(trade.time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</small></> : <p>{label === "TOUGHEST CLOSED TRADE" && report.bestTrade ? "No losing trade this round." : "No closed trades yet. Best and toughest realized trades will appear here."}</p>}</article>)}</div>
         <div className="report-panels"><div className="report-panel"><span className="eyebrow">YOUR LEARNING NOTES</span>{report.lessons.map((l, i) => <p key={i}><i>{String(i + 1).padStart(2, "0")}</i>{l}</p>)}</div><div className="report-panel"><span className="eyebrow">BADGES EARNED FROM YOUR ACTIONS · {report.badges.length}</span><div className="badge-grid">{report.badges.length ? report.badges.map(b => <span className="achievement" key={b.name}><i>✳</i><b>{b.name}</b><small>{b.detail}</small></span>) : <p>Place an order, explore another part of the market, or try a short to earn a badge.</p>}</div></div></div><button className="execute-button report-ready" onClick={() => { if (isTest && world?.status === "closed") { void send("sandbox-start"); return; } const next = crypto.randomUUID(); localStorage.setItem(sessionStorageKey(mode, terminal, preview), next); setSessionId(next); setView("markets"); setToast(isTest ? "You’re ready to rejoin this practice round." : "You’re ready for the next batch."); }}>{isTest && world?.status === "closed" ? "Start another practice round" : isTest ? "Return to practice market" : "Return to ready state"} <span>→</span></button>
       </section>}
       <footer className="workspace-footer"><span>SIMULATED MARKET · FICTIONAL PRICES · NO REAL TRADES</span><span>© PULSE / DALAA<span>L</span> STREET</span></footer>
     </main>
+    {!audienceOnly && world?.status === "live" && !world.controls.paused && world.remaining <= 60 && player && !player.ended && [...Object.values(player.holdings), ...Object.values(player.shorts)].some(position => position.qty > 0) && <div className="closing-warning" role="status"><b>{fmtTime(world.remaining)}</b><span>The market closes soon. Shares you still hold will be sold, and shorts covered, automatically at the closing price.</span></div>}
     {!audienceOnly && world?.status === "live" && player && !player.ended && <button className="end-session" onClick={() => { if (window.confirm("End your trading session now? Open long and short positions will close at the current simulated price.")) void send("end"); }}>Finish session <span>↗</span></button>}
     {toast && <div className="toast-message" role="status"><span>✓</span>{toast}<button onClick={() => setToast("")}>×</button></div>}
       {drawer && <div className="drawer-backdrop" onClick={() => setDrawer(false)}><section className="news-drawer" onClick={e => e.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">MARKET BULLETINS</span><h2>News desk</h2></div><button onClick={() => setDrawer(false)}>×</button></div>{marketNews.map((n, index) => <article key={n.id}><small className="market-news-number">News {index + 1}</small><small className={`news-tag ${n.type}`}>{n.type}</small><b>{n.headline}</b><span>{newsScope(n)}</span></article>)}{!marketNews.length && <div className="empty-state">No news published in this batch yet.</div>}</section></div>}

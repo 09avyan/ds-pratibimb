@@ -68,7 +68,7 @@ export function HostConsole() {
   const [newsSector, setNewsSector] = useState("ALL");
   const [newsDirection, setNewsDirection] = useState("all");
   const [headlineDelay, setHeadlineDelay] = useState(0);
-  const [controls, setControls] = useState({ volatility: 48 * .85, bots: 58, tickRate: 1, marketBias: 50, duration: 360, newsEnabled: true, majorAuto: 1, minorAuto: 2, newsSpacing: 75 });
+  const [controls, setControls] = useState({ volatility: 48 * .85, bots: 58, tickRate: 1, marketBias: 50, duration: 300, newsEnabled: true, majorAuto: 1, minorAuto: 2, newsSpacing: 62 });
   const [intervention, setIntervention] = useState({ sector: "ALL", direction: "up", magnitude: 1.5, delay: 0 });
   const logCursor = useRef("");
   const activeTab = useRef<Tab>(tab);
@@ -270,7 +270,7 @@ export function HostConsole() {
   const autonomous = world?.autonomousNews;
   const autonomousPlanNews = (autonomous?.nextIndices ?? []).map(index => world?.news[index]).filter((news): news is NonNullable<typeof news> => Boolean(news));
   const autonomousCountdown = autonomous?.enabled && autonomous.nextAt && hostClockNow ? Math.max(0, Math.ceil((autonomous.nextAt - (world?.controls.paused ? world.lastTickAt : hostClockNow)) / 1000)) : null;
-  const autonomousLabel = (kind: NonNullable<World["autonomousNews"]>["history"][number]["kind"]) => ({ planned: "PLAN", published: "PUBLISHED", skipped: "SKIPPED", started: "STARTED", stopped: "STOPPED", "host-published": "HOST PUBLISHED", "host-edited": "HOST EDIT", "settings-adjusted": "SETTINGS" })[kind];
+  const autonomousLabel = (kind: NonNullable<World["autonomousNews"]>["history"][number]["kind"]) => ({ planned: "PLAN", published: "PUBLISHED", skipped: "SKIPPED", started: "STARTED", stopped: "STOPPED", "host-published": "HOST PUBLISHED", "host-edited": "HOST EDIT", "settings-adjusted": "SETTINGS", "host-control": "HOST CONTROL" })[kind];
   useEffect(() => {
     if (!authenticated) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -298,6 +298,9 @@ export function HostConsole() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [authenticated, world?.status, world?.controls.paused, selectedIndices, headlineDelay, working, act, newsOptions]);
   const impactPreview = useMemo(() => world && selectedIndices.length ? previewNewsImpact(world, selectedIndices) : null, [world, selectedNewsIds]);
+  const brainImpactKey = world?.autonomousNews?.enabled ? world.autonomousNews.nextIndices.join(",") : "";
+  // Expected direct move for each story in the brain's next set, at the current prices.
+  const brainImpact = useMemo(() => world && brainImpactKey ? previewNewsImpact(world, world.autonomousNews!.nextIndices) : null, [brainImpactKey, world?.stocks]); // eslint-disable-line react-hooks/exhaustive-deps
   const visibleNewsOptions = newsOptions.filter(news => `${news.headline} ${news.sector} ${news.symbols?.join(" ") ?? ""}`.toLowerCase().includes(newsSearch.trim().toLowerCase()));
   const newsCategory = (news: World["news"][number]) => news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
   const newsByCategory: Record<NewsCategory, World["news"]> = {
@@ -322,17 +325,58 @@ export function HostConsole() {
     </button>;
   };
 
+  const brainNow = world?.controls.paused ? world.lastTickAt : hostClockNow || Date.now();
+  const roundSeconds = Math.max(1, world?.duration ?? 1);
+  const roundElapsed = world?.status === "live" || world?.status === "closed" ? Math.max(0, roundSeconds - (world?.remaining ?? 0)) : 0;
+  const publishedSets = [...new Map((world?.headlines ?? []).map(news => [news.createdAt, news] as const)).keys()].sort((a, b) => a - b);
+  const toRound = (at: number) => Math.max(0, Math.min(roundSeconds, (at - (world?.startedAt ?? at)) / 1000));
+  const nextOffset = autonomous?.enabled && autonomous.nextAt ? toRound(autonomous.nextAt) : null;
+  const releaseFrom = Math.max(autonomous?.plannedAt ?? 0, publishedSets.at(-1) ?? 0, world?.startedAt ?? 0);
+  const releaseProgress = autonomous?.enabled && autonomous.nextAt > releaseFrom ? Math.max(0, Math.min(1, (brainNow - releaseFrom) / (autonomous.nextAt - releaseFrom))) : 0;
+  const pinned = new Set(autonomous?.pinnedIndices ?? []);
+  const intensity = autonomous?.hostIntensity ?? "auto";
+  const response = autonomous?.response;
   const brainPanel = <section className="host-card autonomous-news-panel brain-workspace">
-    <header className="brain-toolbar"><div className="brain-status"><span className={`brain-status-dot${autonomous?.enabled ? " is-running" : ""}`}/><strong>Automatic news</strong><small>{autonomous?.enabled ? autonomous.strategy === "calm" ? "Giving room" : autonomous.strategy === "lively" ? "Adding action" : "Steady" : "Stopped"}</small></div><div className="brain-toolbar-actions">{autonomous?.enabled && <span className="brain-next-release">Next set <b>{autonomousCountdown === null ? "Waiting" : fmtTime(autonomousCountdown)}</b></span>}<button type="button" className={autonomous?.enabled ? "outline-button" : "host-primary"} disabled={working || !world} onClick={() => void act(autonomous?.enabled ? "autonomous-stop" : "autonomous-start")}>{autonomous?.enabled ? "Stop brain" : "Start brain"}</button></div></header>
-    <p className="brain-description">{autonomous?.enabled ? "Choosing stories, release times and gentle market adjustments as the game changes." : "Start the brain to open a batch automatically, or join the current batch."}</p>
-      {autonomous?.enabled && <div className="autonomous-plan"><div className="autonomous-plan-heading"><span><b>NEXT SET</b><small>{autonomousPlanNews.length} of 2–3 headlines · baseline {controls.newsSpacing}s</small></span><strong>{autonomousCountdown === null ? "—" : autonomousCountdown === 0 ? "NOW" : `IN ${fmtTime(autonomousCountdown)}`}</strong></div>
-        <div className="autonomous-plan-stories">{autonomousPlanNews.map((news, index) => <article key={`${news.id}-${index}`}><span className={news.direction > 0 ? "positive" : "negative"}><NewsDirectionIcon direction={news.direction}/></span><div><small>{newsScope(news)}</small><b>{news.headline}</b></div></article>)}{autonomousPlanNews.length < 2 && <p className="host-card-copy">The next set will appear after the brain finishes its first live reading.</p>}</div>
-        <div className="autonomous-plan-actions"><button type="button" className="outline-button" disabled={working || autonomousPlanNews.length < 2} onClick={() => void act("autonomous-skip")}>Skip and reselect</button><button type="button" className="host-primary" disabled={working || world?.status !== "live" || autonomousPlanNews.length < 2} onClick={() => void act("autonomous-publish-now")}>Publish this set now</button>{selectedIndices.length >= 2 && selectedIndices.length <= 3 && <button type="button" className="outline-button" disabled={working} onClick={() => void act("autonomous-plan", { indices: selectedIndices })}>Use my {selectedIndices.length} picks</button>}</div>
+    <header className="brain-toolbar"><div className="brain-status"><span className={`brain-status-dot${autonomous?.enabled ? " is-running" : ""}`}/><strong>Automatic news</strong><small>{autonomous?.enabled ? autonomous.strategy === "calm" ? "Giving room" : autonomous.strategy === "lively" ? "Adding action" : "Steady" : "Stopped"}{autonomous?.finalSet && autonomous.enabled ? " · closing set" : ""}</small></div><div className="brain-toolbar-actions">{autonomous?.enabled && <span className="brain-next-release">Next set <b>{autonomousCountdown === null ? "Waiting" : fmtTime(autonomousCountdown)}</b></span>}<button type="button" className={autonomous?.enabled ? "outline-button" : "host-primary"} disabled={working || !world} onClick={() => void act(autonomous?.enabled ? "autonomous-stop" : "autonomous-start")}>{autonomous?.enabled ? "Stop brain" : "Start brain"}</button></div></header>
+    <p className="brain-description">{autonomous?.enabled ? "Choosing stories, release times and gentle market adjustments from how the players respond." : "Start the brain to open a batch automatically, or join the current batch."}</p>
+    <div className="brain-intensity" role="group" aria-label="News intensity">
+      <span className="brain-control-label">INTENSITY</span>
+      {(["auto", "calm", "balanced", "lively"] as const).map(value => <button key={value} type="button" aria-pressed={intensity === value} className={intensity === value ? "is-active" : ""} disabled={working || !world} onClick={() => void act("autonomous-intensity", { value })}>{value === "auto" ? "Auto" : value === "calm" ? "Calm" : value === "balanced" ? "Balanced" : "Lively"}</button>)}
+      <small>{intensity === "auto" ? `The brain decides from the game${autonomous?.enabled ? ` (now ${autonomous.strategy ?? "balanced"})` : ""}.` : "Held by the host until you return it to Auto."}</small>
+    </div>
+    {world && (world.status === "live" || world.status === "closed") && <div className="brain-timeline" aria-label="Round timeline">
+      <div className="brain-timeline-track">
+        <span className="brain-timeline-elapsed" style={{ width: `${roundElapsed / roundSeconds * 100}%` }}/>
+        {publishedSets.map((at, index) => <span key={at} className="brain-timeline-set" style={{ left: `${toRound(at) / roundSeconds * 100}%` }} title={`Set ${index + 1} at T+${fmtTime(toRound(at))}`}><b>{index + 1}</b></span>)}
+        {nextOffset !== null && <span className={`brain-timeline-next${autonomous?.finalSet ? " is-final" : ""}`} style={{ left: `${nextOffset / roundSeconds * 100}%` }} title={`Next set at T+${fmtTime(nextOffset)}`}><b>{publishedSets.length + 1}</b></span>}
+      </div>
+      <div className="brain-timeline-scale"><span>T+00:00</span><span>{publishedSets.length} {publishedSets.length === 1 ? "set" : "sets"} published{nextOffset !== null ? ` · next at T+${fmtTime(nextOffset)}` : ""}</span><span>T+{fmtTime(roundSeconds)}</span></div>
+    </div>}
+      {autonomous?.enabled && <div className="autonomous-plan"><div className="autonomous-plan-heading"><span><b>{autonomous.finalSet ? "CLOSING SET" : "NEXT SET"}</b><small>{autonomousPlanNews.length} of 2–3 headlines · baseline {controls.newsSpacing}s{pinned.size ? ` · ${pinned.size} kept by host` : ""}</small></span><strong>{autonomousCountdown === null ? "—" : autonomousCountdown === 0 ? "NOW" : `IN ${fmtTime(autonomousCountdown)}`}</strong></div>
+        <div className="brain-release-bar" aria-hidden="true"><span style={{ width: `${releaseProgress * 100}%` }}/></div>
+        <div className="autonomous-plan-stories">{autonomousPlanNews.map((news, index) => {
+          const storyIndex = autonomous.nextIndices[index];
+          const moves = brainImpact?.headlines.find(item => item.news.id === news.id)?.stocks ?? [];
+          return <article key={`${news.id}-${index}`} className={pinned.has(storyIndex) ? "is-pinned" : ""}><span className={news.direction > 0 ? "positive" : "negative"}><NewsDirectionIcon direction={news.direction}/></span><div><small><em className={`brain-story-type ${news.type}`}>{news.type}</em>{newsScope(news)}</small><b>{news.headline}</b>
+            {moves.length > 0 && <span className="brain-story-moves" aria-label="Expected direct moves">{moves.slice(0, 4).map(move => <i key={move.symbol} className={move.changePct >= 0 ? "positive" : "negative"}>{move.symbol} {move.changePct >= 0 ? "+" : ""}{move.changePct.toFixed(1)}%</i>)}{moves.length > 4 && <i className="more">+{moves.length - 4} more</i>}</span>}
+            <span className="brain-story-actions"><button type="button" aria-pressed={pinned.has(storyIndex)} disabled={working} onClick={() => void act("autonomous-pin", { index: storyIndex })}>{pinned.has(storyIndex) ? "Kept ✓" : "Keep"}</button><button type="button" disabled={working} onClick={() => void act("autonomous-swap", { index: storyIndex })}>Swap</button></span></div></article>;
+        })}{autonomousPlanNews.length < 2 && <p className="host-card-copy">The next set will appear after the brain finishes its first live reading.</p>}</div>
+        <div className="autonomous-plan-actions"><button type="button" className="outline-button" disabled={working || autonomousPlanNews.length < 2} onClick={() => void act("autonomous-skip")}>Skip and reselect</button><span className="brain-nudge" role="group" aria-label="Move the next release"><button type="button" className="outline-button" disabled={working || !autonomous.nextAt} onClick={() => void act("autonomous-nudge", { seconds: -15 })}>Sooner 15s</button><button type="button" className="outline-button" disabled={working || !autonomous.nextAt} onClick={() => void act("autonomous-nudge", { seconds: 15 })}>Later 15s</button></span><button type="button" className="host-primary" disabled={working || world?.status !== "live" || autonomousPlanNews.length < 2} onClick={() => void act("autonomous-publish-now")}>Publish this set now</button>{selectedIndices.length >= 2 && selectedIndices.length <= 3 && <button type="button" className="outline-button" disabled={working} onClick={() => void act("autonomous-plan", { indices: selectedIndices })}>Use my {selectedIndices.length} picks</button>}</div>
       </div>}
     <section className="brain-visible-section brain-decision-section" aria-labelledby="brain-decision-title">
-      <div className="brain-section-heading"><h2 id="brain-decision-title">Why this news and timing</h2><span className="secure-tag">{autonomous?.hostOverride ? "HOST SELECTED" : autonomous?.introductoryStage === 1 ? "SIMPLE OPENING" : autonomous?.introductoryStage === 2 ? "SECOND SET" : autonomous?.strategy === "calm" ? "GIVING ROOM" : autonomous?.strategy === "lively" ? "ADDING ACTION" : "BALANCED"}</span></div>
+      <div className="brain-section-heading"><h2 id="brain-decision-title">Why this news and timing</h2><span className="secure-tag">{autonomous?.hostOverride ? "HOST SELECTED" : autonomous?.finalSet ? "CLOSING SET" : autonomous?.introductoryStage === 1 ? "SIMPLE OPENING" : autonomous?.introductoryStage === 2 ? "SECOND SET" : autonomous?.strategy === "calm" ? "GIVING ROOM" : autonomous?.strategy === "lively" ? "ADDING ACTION" : "BALANCED"}</span></div>
       <p className="autonomous-reason">{autonomous?.nextReason ?? "Start the brain to see its proposed stories and decision reasons."}</p>
-      <div className="brain-timing-facts brain-key-facts"><span>Release interval <b>{autonomous?.enabled ? `${autonomous.nextIntervalSeconds}s` : "—"}</b></span><span>Next release <b>{autonomous?.enabled && autonomousCountdown !== null ? fmtTime(autonomousCountdown) : "Not scheduled"}</b></span></div>
+      {autonomous?.enabled && response && response.activeTerminals > 0 && <div className="brain-response" aria-label="How players responded to the last set">
+        <span><small>Acted on last set</small><b>{response.respondedTerminals}/{response.activeTerminals}</b></span>
+        <span><small>Median first trade</small><b>{response.medianFirstReaction === null ? "—" : `${Math.round(response.medianFirstReaction)}s`}</b></span>
+        <span><small>Orders in last 20s</small><b>{response.tradesLast20s}</b></span>
+        <span><small>Quiet for</small><b>{Math.round(response.quietSeconds)}s</b></span>
+      </div>}
+      {autonomous?.enabled && !autonomous.hostOverride && (autonomous.pacing?.length ?? 0) > 0 && <ol className="brain-pacing" aria-label="How the release time was set">
+        {autonomous.pacing!.map((factor, index) => <li key={`${factor.label}-${index}`} className={`is-${factor.kind ?? "adjust"}`}><span>{factor.label}</span><b>{factor.kind === "base" ? `${factor.seconds}s` : `${factor.seconds > 0 ? "+" : "−"}${Math.abs(factor.seconds)}s`}</b></li>)}
+        <li className="is-total"><span>Gap until the next set</span><b>{autonomous.nextIntervalSeconds}s</b></li>
+      </ol>}
+      {autonomous?.hostOverride && <p className="host-card-copy">You chose this set, so the brain keeps it and its release time. Sooner/Later still moves the release.</p>}
     </section>
     <details className="brain-advanced">
       <summary><span><b>Advanced</b><small>Live readings, settings, decision details and activity</small></span><i aria-hidden="true">+</i></summary>
@@ -372,8 +416,8 @@ export function HostConsole() {
       </section>
       <section className="autonomous-history brain-visible-section" aria-labelledby="brain-activity-title"><div className="brain-section-heading"><h2 id="brain-activity-title">Recent brain activity</h2><button type="button" className="text-link" onClick={() => setTab("logs")}>Full game logs <small>Alt + G</small></button></div>{autonomous?.history.length ? <div className="autonomous-history-list">{autonomous.history.slice(0, 12).map((entry, index) => <article key={`${entry.at}-${entry.kind}-${index}`}><span className={`autonomous-history-kind ${entry.kind}`}>{autonomousLabel(entry.kind)}</span><time>T+{fmtTime(Math.max(0, (entry.at - (world?.startedAt ?? entry.at)) / 1000))}</time><div>{entry.indices.map(newsIndex => world?.news[newsIndex]?.headline).filter(Boolean).join(" · ") || (entry.kind === "settings-adjusted" ? "Market difficulty" : "Brain control")}<small>{entry.reason}</small></div><b>{entry.intervalSeconds}s</b></article>)}</div> : <p className="host-card-copy">Decisions, publications and host overrides will appear here as they happen.</p>}<p className="host-card-copy">Latest {Math.min(12, autonomous?.history.length ?? 0)} records shown. The Logs section contains the retained game journal.</p></section>
       <section className="news-automation-fast brain-visible-section"><div className="brain-section-heading"><h2>Brain pacing</h2></div>
-            <label className="host-field brain-baseline-setting"><span className="brain-baseline-label">NEWS INTERVAL BASELINE <b>{controls.newsSpacing}s</b></span><input aria-label="News interval baseline in seconds" type="range" min="50" max="90" step="1" value={controls.newsSpacing} onChange={e => setControls(c => ({ ...c, newsSpacing: Number(e.target.value) }))}/><span className="brain-baseline-scale"><small>50s · quicker</small><small>75s · default</small><small>90s · more time</small></span></label>
-            <p className="host-card-copy">This is the brain’s normal starting point. It can adjust the next release between 50 and 105 seconds after reviewing player activity and how much news is still moving the market.</p>
+            <label className="host-field brain-baseline-setting"><span className="brain-baseline-label">NEWS INTERVAL BASELINE <b>{controls.newsSpacing}s</b></span><input aria-label="News interval baseline in seconds" type="range" min="50" max="75" step="1" value={controls.newsSpacing} onChange={e => setControls(c => ({ ...c, newsSpacing: Number(e.target.value) }))}/><span className="brain-baseline-scale"><small>50s · quicker</small><small>75s · default</small><small>90s · more time</small></span></label>
+            <p className="host-card-copy">This is the brain’s normal starting point. It chooses each release between 50 and 75 seconds from player activity in the logs and how much earlier news is still moving the market.</p>
             <button className="outline-button full" disabled={working || controls.newsSpacing === (world?.controls.newsSpacing ?? 75)} onClick={() => void act("controls", { newsSpacing: controls.newsSpacing })}>Save baseline interval</button>
 </section>
       </div>

@@ -3,8 +3,9 @@ export const NEWS_REACTION_SECONDS = 35;
 export const NEWS_EFFECT_MIN_SECONDS = 58;
 export const NEWS_EFFECT_MAX_SECONDS = 104;
 export const NEWS_BASE_INTERVAL_MIN_SECONDS = 50;
-export const NEWS_BASE_INTERVAL_MAX_SECONDS = 90;
-export const NEWS_AUTO_MAX_INTERVAL_SECONDS = 105;
+export const NEWS_BASE_INTERVAL_MAX_SECONDS = 75;
+// The brain releases a set every 50–75 seconds and chooses the exact gap from the game.
+export const NEWS_AUTO_MAX_INTERVAL_SECONDS = 75;
 export const PREVIOUS_NEWS_IMPACT_DECAY = .94;
 export const NEWS_IMPACT_DURATION_MULTIPLIER = 1.25 * 1.15;
 export const NEWS_IMPACT_FADE_THRESHOLD = .00008;

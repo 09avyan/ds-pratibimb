@@ -1,0 +1,80 @@
+/*
+  V4 trading terminals, read by parents on a 24" 1080p monitor from a normal seat.
+  A readability floor for the small labels and figures that were 7–11px: labels ≥ 11px,
+  body text ≥ 13px, prices and money ≥ 15px, header figures 18px. Layout is unchanged;
+  only type sizes rise. Scoped to V4 desktops so other versions and phones are untouched.
+*/
+@media (min-width: 1101px) {
+  /* Header: position, clock, cash, portfolio and P&L */
+  .terminal.ui-gallery .topbar-metrics small { font-size: 11px !important; letter-spacing: .08em; }
+  .terminal.ui-gallery .topbar-metrics b { font-size: 18px !important; }
+  .terminal.ui-gallery .market-ribbon .ribbon-label { font-size: 11px !important; }
+  .terminal.ui-gallery .market-ribbon strong { font-size: 18px !important; }
+  .terminal.ui-gallery .market-ribbon > span:not(.ribbon-label) { font-size: 14px !important; }
+  .terminal.ui-gallery .terminal-tabs button { font-size: 15px !important; }
+  .terminal.ui-gallery .terminal-context { font-size: 12px !important; }
+
+  /* Live price ticker */
+  .terminal.ui-gallery .stock-price-ticker .ticker-label { font-size: 11px !important; }
+  .terminal.ui-gallery .ticker-quote b { font-size: 12px !important; }
+  .terminal.ui-gallery .ticker-quote strong { font-size: 13px !important; }
+  .terminal.ui-gallery .ticker-quote em { font-size: 12px !important; }
+
+  /* Filters and search */
+  .terminal.ui-gallery .filter-chip { font-size: 12.5px !important; }
+  .terminal.ui-gallery .search-field input { font-size: 14px !important; }
+  .terminal.ui-gallery .search-field kbd { font-size: 11px !important; }
+
+  /* Stock cards */
+  .terminal.ui-gallery .stock-card .stock-id strong { font-size: 15px !important; }
+  .terminal.ui-gallery .stock-card .stock-id span { font-size: 12px !important; }
+  .terminal.ui-gallery .stock-card .stock-card-bottom strong { font-size: 18px !important; }
+  .terminal.ui-gallery .stock-card .stock-change { font-size: 13px !important; font-weight: 800; }
+  .terminal.ui-gallery .stock-card .stock-card-foot span { font-size: 11px !important; }
+
+  /* Selected stock, chart and order ticket */
+  .terminal.ui-gallery .focus-price-row small { font-size: 11px !important; }
+  .terminal.ui-gallery .focus-price-row .stock-change { font-size: 15px !important; }
+  .terminal.ui-gallery .chart-toolbar span { font-size: 11px !important; }
+  .terminal.ui-gallery .chart-toggle button { font-size: 12px !important; }
+  .terminal.ui-gallery .chart-foot span { font-size: 11px !important; }
+  .terminal.ui-gallery .chart-foot b { font-size: 13px !important; }
+  .terminal.ui-gallery .side-switch button { font-size: 15px !important; }
+  .terminal.ui-gallery .quantity-row label > span, .terminal.ui-gallery .quantity-row label div > span { font-size: 11px !important; }
+  .terminal.ui-gallery .quantity-row input { font-size: 16px !important; }
+  .terminal.ui-gallery .focus-heading small, .terminal.ui-gallery .focus-title small { font-size: 11px !important; }
+  .terminal.ui-gallery .holdings-card button { font-size: 12px !important; }
+  .terminal.ui-gallery .order-estimate span, .terminal.ui-gallery .available-row span { font-size: 12px !important; }
+  .terminal.ui-gallery .order-estimate b, .terminal.ui-gallery .available-row b { font-size: 15px !important; }
+  .terminal.ui-gallery .execute-button { font-size: 15px !important; }
+  .terminal.ui-gallery .sell-stock-all span { font-size: 14px !important; }
+  .terminal.ui-gallery .sell-stock-all small { font-size: 11px !important; }
+
+  /* Holdings, finish button and footer */
+  .terminal.ui-gallery .eyebrow { font-size: 11px !important; }
+  .terminal.ui-gallery .holdings-card p { font-size: 13px !important; }
+  .terminal.ui-gallery .holding-total span { font-size: 12px !important; }
+  .terminal.ui-gallery .holding-total b { font-size: 15px !important; }
+  .terminal.ui-gallery .end-session { font-size: 13px !important; }
+  .terminal.ui-gallery .workspace-footer span { font-size: 10px !important; }
+
+  /* Session report */
+  .terminal.ui-gallery .results-heading p { font-size: 15px !important; }
+  .terminal.ui-gallery .results-value small, .terminal.ui-gallery .summary-metric span, .terminal.ui-gallery .summary-metric small { font-size: 12px !important; }
+  .terminal.ui-gallery .results-value .positive, .terminal.ui-gallery .results-value .negative { font-size: 14px !important; }
+  .terminal.ui-gallery .report-panel p, .terminal.ui-gallery .report-trade-card p { font-size: 14px !important; line-height: 1.5; }
+}
+@media (min-width: 1101px) {
+  .terminal.ui-gallery .focus-company small { font-size: 11px !important; }
+  .terminal.ui-gallery .news-card-meta, .terminal.ui-gallery .news-card-meta .market-news-scope, .terminal.ui-gallery .news-card-meta time { font-size: 12px !important; }
+  .terminal.ui-gallery .news-card-meta .market-news-number { font-size: 12px !important; }
+  .terminal.ui-gallery .news-card-meta .news-tag { font-size: 11px !important; }
+  .terminal.ui-gallery .news-set-heading > span:nth-child(2) { font-size: 12px !important; }
+  .terminal.ui-gallery .market-news-list > article > strong, .terminal.ui-gallery .market-news-feed article > b { font-size: 16px !important; line-height: 1.4; }
+}
+
+/* Closing-bell warning and settlement note (all versions). */
+.terminal .closing-warning { position: fixed; left: 50%; top: 66px; z-index: 60; display: flex; align-items: center; gap: 14px; max-width: min(860px, calc(100vw - 32px)); padding: 12px 20px; border-radius: 14px; transform: translateX(-50%); color: #2a1800; background: #ffcc4d; box-shadow: 0 12px 30px rgba(0, 0, 0, .25); font: 700 15px/1.35 var(--body); animation: closing-warning-in .4s ease-out; }
+.terminal .closing-warning b { flex: none; padding: 4px 10px; border-radius: 8px; background: #2a1800; color: #ffcc4d; font: 800 18px var(--mono); }
+@keyframes closing-warning-in { from { opacity: 0; transform: translate(-50%, -10px); } }
+.terminal .settlement-note { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--secondary); color: var(--ink); font-size: 13px; line-height: 1.45; }
