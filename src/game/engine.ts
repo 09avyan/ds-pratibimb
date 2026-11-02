@@ -37,6 +37,8 @@ const BOT_PERSONALITIES = [
 ] as const;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const round2 = (n: number) => Math.round(n * 100) / 100;
+/** Prices trade in ₹0.05 steps, the tick size of the Indian exchanges. */
+export const toTick = (n: number) => round2(Math.round(n * 20) / 20);
 const rand = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 const textSeed = (text: string) => [...text].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 7) % 1_000_003;
 const id = () => crypto.randomUUID();
@@ -96,7 +98,7 @@ export function advanceNewsDrift(stock: World["stocks"][number], seconds: number
 
 function projectedNewsPrice(stock: World["stocks"][number], fromMove: number) {
   const logReturn = (stock.newsMoves ?? []).slice(fromMove).reduce((sum, move) => sum + move.logReturn, 0);
-  return round2(clamp(stock.price * Math.exp(logReturn), stock.previousClose * .68, stock.previousClose * 1.32));
+  return toTick(clamp(stock.price * Math.exp(logReturn), stock.previousClose * .68, stock.previousClose * 1.32));
 }
 
 export function freshWorld(mode: Mode, now = Date.now(), batch = 1): World {
@@ -299,8 +301,12 @@ function publishAutonomousNews(world: World, at: number, hostOverride = false) {
 }
 
 function applyMove(world: World, stock: World["stocks"][number], move: number, volume: number, at: number) {
+  // The exact price keeps moving underneath; the quoted and traded price is that price on a ₹0.05 tick,
+  // so small moves on cheaper stocks accumulate instead of rounding away.
   const old = stock.price;
-  const close = round2(clamp(old * (1 + move), stock.previousClose * .68, stock.previousClose * 1.32));
+  const exact = clamp((stock.exact ?? old) * (1 + move), stock.previousClose * .68, stock.previousClose * 1.32);
+  stock.exact = exact;
+  const close = toTick(exact);
   const bar = stock.candles.at(-1);
   if (bar && at - bar.time < 1_500) {
     bar.high = Math.max(bar.high, close); bar.low = Math.min(bar.low, close); bar.close = close; bar.volume += volume;
@@ -926,7 +932,7 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
   const eligible = entrant && entrant.included && entrant.batch === world.batch && entrants.some(player => player.id === entrant.id);
   const standing = eligible ? { rank: rankOf(equity(world, entrant)), total: entrants.length } : null;
   return { ...rest, standing, leaderboard, controls: publicControls, headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), revision: world.version, terminalSummaries, participants: terminalSummaries.length, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => {
-    const { newsBias: _newsBias, newsReferencePrice: _newsReferencePrice, newsBiasClock: _newsBiasClock, newsMoves: _newsMoves, ...publicStock } = stock;
+    const { newsBias: _newsBias, newsReferencePrice: _newsReferencePrice, newsBiasClock: _newsBiasClock, newsMoves: _newsMoves, exact: _exact, ...publicStock } = stock;
     const fullCandles = stock.candles.slice(-600);
     const since = options.candlesSince;
     const canSendDelta = typeof since === "number" && Number.isFinite(since) && fullCandles.length > 0 && since >= fullCandles[0].time && since <= fullCandles.at(-1)!.time;

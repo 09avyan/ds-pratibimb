@@ -63,23 +63,31 @@ export function MiniChart({ stock, startedAt = 0 }: { stock: Stock; startedAt?: 
 }
 
 /**
- * The batch clock, counted down locally between updates. On a slow connection updates can arrive
- * every two or three seconds; the clock still moves every second and corrects itself on each update.
- * It never runs more than three seconds ahead of the last update, and stops while paused.
+ * The batch clock, counted down locally between updates so it moves every second even when updates
+ * arrive late. It only ever counts down: a late update carrying an older time cannot push it back up,
+ * so it never flickers between two seconds. It resyncs when the time really changes (a new batch, a
+ * resume, or a gap of more than three seconds), never runs more than three seconds ahead of the
+ * last update, and stops while paused.
  */
 export function useSmoothRemaining(world: PublicWorld | null) {
   const remaining = world?.remaining ?? 0;
   const live = world?.status === "live" && !world.controls.paused;
-  const mark = useRef({ remaining, at: 0 });
+  const key = `${world?.batch ?? 0}:${world?.status ?? ""}:${world?.controls.paused ? 1 : 0}`;
+  const mark = useRef({ remaining, at: 0, key: "" });
+  const shown = useRef<{ value: number; key: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  if (mark.current.remaining !== remaining || !mark.current.at) mark.current = { remaining, at: Date.now() };
+  if (mark.current.remaining !== remaining || mark.current.key !== key || !mark.current.at) mark.current = { remaining, at: Date.now(), key };
   useEffect(() => {
     if (!live) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    const timer = window.setInterval(() => setNow(Date.now()), 200);
     return () => window.clearInterval(timer);
   }, [live]);
-  if (!live) return remaining;
-  return Math.max(0, remaining - Math.min(3, Math.max(0, now - mark.current.at) / 1000));
+  if (!live) { shown.current = { value: remaining, key }; return remaining; }
+  const estimate = Math.max(0, remaining - Math.min(3, Math.max(0, now - mark.current.at) / 1000));
+  const before = shown.current;
+  const value = before && before.key === key && estimate <= before.value + 3 ? Math.min(before.value, estimate) : estimate;
+  shown.current = { value, key };
+  return value;
 }
 
 export function fmtTime(seconds: number) { const s = Math.max(0, Math.floor(seconds)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }

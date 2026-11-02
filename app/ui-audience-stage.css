@@ -534,6 +534,95 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage.no-motion *, .stage.no-motion *::before, .stage.no-motion *::after, .stage.no-motion::before { animation: none !important; transition: none !important; }
 .stage.no-motion::before { display: none; }
 
+
+/* ======================================================================
+   Layout, third edition: a broadcast scoreboard.
+   The clock is the hero in the middle of the header; the market is a calm 5 × 5 board; the
+   standings are a ranked table whose top three are gold, silver and bronze bars. Fewer frames,
+   fewer tints, more space, bigger type. Versions keep their palette, face and shape.
+   ====================================================================== */
+.stage { gap: calc(20 * var(--u)); padding: calc(22 * var(--u)) calc(32 * var(--u)) 0; }
+.stage::before { opacity: .55; }
+
+/* Header: brand · clock · index · tools */
+.stage-head { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: calc(32 * var(--u)); min-height: calc(132 * var(--u)); }
+.stage-brand { margin-right: 0; }
+.stage-index { justify-self: end; grid-template-columns: auto auto; text-align: right; }
+.stage-index-label { justify-self: end; }
+.stage-index strong { font-size: calc(76 * var(--u)); }
+.stage-index strong[data-tick] { transition: color .2s; }
+.stage-index b { padding: calc(8 * var(--u)) calc(16 * var(--u)); font-size: calc(36 * var(--u)); }
+
+.stage-clock { position: relative; display: grid; justify-items: center; gap: calc(4 * var(--u)); min-width: calc(440 * var(--u)); padding: calc(14 * var(--u)) calc(44 * var(--u)) calc(22 * var(--u)); overflow: hidden; border: 0; border-radius: calc(26 * var(--u)); color: var(--on-accent); background: var(--accent); box-shadow: 0 calc(18 * var(--u)) calc(50 * var(--u)) color-mix(in srgb, var(--accent) 32%, transparent); font: 900 calc(104 * var(--u)) / 1 var(--num); font-stretch: var(--num-w); letter-spacing: -.02em; }
+.stage-clock small { display: inline-flex; align-items: center; gap: calc(10 * var(--u)); font: 800 calc(24 * var(--u)) / 1 var(--head); letter-spacing: .01em; opacity: .85; }
+.stage-clock small i { width: calc(13 * var(--u)); height: calc(13 * var(--u)); border-radius: 50%; background: currentColor; }
+.stage-clock.state-live:not(.is-paused) small i { animation: stage-urgent 1.2s ease-in-out infinite; }
+.stage-clock > span { display: block; min-width: 5ch; text-align: center; }
+.stage-clock-bar { height: calc(9 * var(--u)); background: var(--on-accent); opacity: .4; }
+.stage-clock.state-ready, .stage-clock.state-closed, .stage-clock.state-countdown { color: var(--ink); background: var(--surface-2); box-shadow: none; }
+.stage-clock.state-ready .stage-clock-bar, .stage-clock.state-closed .stage-clock-bar, .stage-clock.state-countdown .stage-clock-bar { background: var(--accent); opacity: .8; }
+.stage-clock.is-paused { color: var(--on-major); background: var(--major); }
+.stage-clock.is-low { color: #fff; background: var(--down); box-shadow: 0 0 calc(60 * var(--u)) color-mix(in srgb, var(--down) 55%, transparent); }
+.stage-clock.is-low > span { animation: stage-urgent 1s ease-in-out infinite; }
+
+/* Body */
+.stage-body { grid-template-columns: minmax(0, 1fr) calc(620 * var(--u)); gap: calc(28 * var(--u)); }
+.stage-main { gap: calc(18 * var(--u)); }
+
+/* News: one panel, the stories side by side with rules between them. */
+.stage-news { gap: calc(12 * var(--u)); padding: calc(18 * var(--u)) calc(24 * var(--u)) calc(22 * var(--u)); border-radius: var(--r-panel); background: var(--surface); }
+.stage-kicker { font-size: calc(28 * var(--u)); }
+.stage-news-cards { gap: 0; }
+.stage-news-cards > article { padding: calc(4 * var(--u)) calc(24 * var(--u)); border: 0; border-left: calc(2 * var(--u)) solid var(--line); border-radius: 0; background: none; }
+.stage-news-cards > article:first-child { padding-left: 0; border-left: 0; }
+.stage-news-cards > article.type-major { border-color: var(--line); }
+.stage-news-cards > article.type-major:first-child { border-left: 0; }
+.stage-news-cards > article::before { display: none; }
+.stage-news-cards > article.type-major::after { display: none; }
+.stage-news-cards p { font-size: calc(31 * var(--u)); line-height: 1.24; }
+.stage-news-cards.count-2 p { font-size: calc(35 * var(--u)); }
+.stage-news-cards.count-1 p { font-size: calc(44 * var(--u)); }
+.stage-news-meta { font-size: calc(22 * var(--u)); }
+.stage-tag { font-size: calc(21 * var(--u)); }
+
+/* Market board: calm panels, the colour only on the change and a thin top edge. */
+.stage-grid { gap: calc(14 * var(--u)); }
+.stage-tile, .stage-tile.is-up, .stage-tile.is-down { padding: calc(16 * var(--u)) calc(18 * var(--u)) 0; border: 0; border-radius: var(--r-tile); background: var(--surface); box-shadow: inset 0 calc(5 * var(--u)) 0 var(--up); }
+.stage-tile.is-down { box-shadow: inset 0 calc(5 * var(--u)) 0 var(--down); }
+.stage-tile::before { display: none; }
+/* Sizes follow the panel's width and height, so a price with paise always fits. */
+.stage-tile-top b { font-size: min(calc(31 * var(--u)), 22cqh, 12.5cqw); }
+.stage-tile-price { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; row-gap: calc(6 * var(--u)); margin-top: min(calc(10 * var(--u)), 5cqh); }
+.stage-tile-price strong { font-size: min(calc(46 * var(--u)), 30cqh, 16cqw); }
+.stage-tile-price span { font-size: min(calc(26 * var(--u)), 17cqh, 10.5cqw); }
+.stage-spark { height: 34%; width: 100%; opacity: .7; }
+/* A short panel (news on screen): name on top, price and change share the second line. */
+@container tile (max-height: 7.6em) {
+  .stage-tile, .stage.has-news .stage-tile { padding-top: calc(12 * var(--u)); }
+  .stage-tile-top .company-mark { width: calc(28 * var(--u)); height: calc(28 * var(--u)); }
+  .stage-tile-top b { font-size: min(calc(30 * var(--u)), 12.5cqw); }
+  .stage-tile-price { flex-direction: row; align-items: baseline; column-gap: calc(10 * var(--u)); margin-top: calc(6 * var(--u)); }
+  .stage-tile-price strong { font-size: min(calc(42 * var(--u)), 15cqw); }
+  .stage-tile-price span, .stage-tile.is-up .stage-tile-price span, .stage-tile.is-down .stage-tile-price span { padding: 0; background: none; font-size: min(calc(25 * var(--u)), 9.5cqw); }
+  .stage-spark { height: 26%; opacity: .45; }
+}
+
+/* Standings: a ranked table; the top three are gold, silver and bronze bars. */
+.stage-board { padding: calc(24 * var(--u)) calc(24 * var(--u)) calc(18 * var(--u)); border: 0; background: var(--surface); }
+.stage-board-head h2 { font-size: calc(50 * var(--u)); }
+.stage-board-rows { gap: calc(8 * var(--u)); }
+.stage-standing { background: var(--surface-2); }
+.stage-standing.medal-1 { background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 38%, var(--surface-2)), var(--surface-2) 75%); box-shadow: inset calc(6 * var(--u)) 0 0 var(--gold); }
+.stage-standing.medal-2 { background: linear-gradient(90deg, color-mix(in srgb, var(--silver) 24%, var(--surface-2)), var(--surface-2) 70%); box-shadow: inset calc(5 * var(--u)) 0 0 var(--silver); }
+.stage-standing.medal-3 { background: linear-gradient(90deg, color-mix(in srgb, var(--bronze) 26%, var(--surface-2)), var(--surface-2) 70%); box-shadow: inset calc(5 * var(--u)) 0 0 var(--bronze); }
+.stage-standing.is-leader { animation: none; }
+.stage-standing.is-leader::after { animation-duration: 7s; }
+.stage-standing.is-leader .stage-standing-name strong { font-size: calc(64 * var(--u)); }
+.stage-standing.is-leader .stage-standing-value { font-size: calc(40 * var(--u)); }
+
+/* The price tape, thinner. */
+.stage-ticker { height: calc(54 * var(--u)); }
+
 /* ---------- Narrower desktops ---------- */
 @media (max-width: 1279px) and (min-width: 1025px) {
   .stage { --u: clamp(.6px, min(.0926vh, .068vw), 2px); --board-w: max(400px, calc(480 * var(--u))); }
