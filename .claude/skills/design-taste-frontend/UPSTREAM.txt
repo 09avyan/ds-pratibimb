@@ -1,0 +1,1 @@
+Vendored from https://github.com/Leonxlnx/taste-skill (skills/taste-skill) at commit 12af471 (2026-10-25). MIT licence. Update: rerun scripts/skills-bootstrap.sh --update.
