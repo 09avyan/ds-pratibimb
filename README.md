@@ -171,10 +171,10 @@ Trading and audience dashboards show the latest published set only, with the ful
 - Kotak Mahindra Bank, Tata Steel and Tata Consumer Products were removed; they were the only companies without their own news story, so all 61 stories remain. Axis Bank takes Kotak’s 4.5% weight in the Dalaal-10.
 - A saved market switches to the 25-company list only between batches, so no one loses an open position in a removed stock mid-round.
 
-### Audience stage (`/v4/audience`)
+### Audience stage (every version: `/audience`, `/v1/audience` … `/v7/audience`)
 - Built for a 100" smart board read from about 12 feet, and for 24" 1080p monitors. Must-read text is at least ~22–24px at 1080p (about 2.5 cm tall on a 100" screen); prices, standings and the clock are larger. It scales to 4K boards.
-- Opens in dark mode (its own setting, separate from the trading screens). Shows the index, status and clock; the latest news set; all 25 companies in a 5 × 5 board; and the leaderboard.
-- **Leaderboard:** ranks only terminals that are actually playing — the current login must have placed at least one buy or short in this batch. Logged-in terminals that have not traded do not appear. Top three stand on a podium; ranks 4–10 follow below. ▲/▼ badges mark rank changes for a few seconds and rows glide to their new place. Equal portfolio values share a rank. Each terminal’s **Position** uses the same rule and ranking.
+- Every version uses the same stage in its own colours; it opens in dark mode (its own setting, separate from the trading screens). Shows the index, status and clock; the latest news set; all 25 companies in a 5 × 5 board; and the leaderboard.
+- **Leaderboard:** ranks only terminals that are actually playing — the current login must have placed at least one buy or short in this batch. Logged-in terminals that have not traded do not appear. It is a ruled standings board — rank, terminal, portfolio value and return in large tabular figures; the leader has the tallest row and an accent rule. ▲/▼ marks show rank changes for a few seconds. Equal portfolio values share a rank. Each terminal’s **Position** uses the same rule and ranking.
 - When the batch closes the stage switches to **Final standings** (podium, full ranking and the top portfolio) until the next batch starts or someone taps **Show the market**.
 - **Bells:** an opening bell when trading starts (after the 5-second countdown, shown full screen) and a closing bell when the timer ends — see **Audience bells** below.
 

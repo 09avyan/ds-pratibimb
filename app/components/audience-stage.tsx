@@ -119,66 +119,51 @@ function useRankMoves(entries: PublicLeaderboardEntry[]) {
 
 function MoveBadge({ delta }: { delta?: number }) {
   if (!delta) return null;
-  return <span className={`stage-move ${delta > 0 ? "up" : "down"}`} aria-label={`${delta > 0 ? "up" : "down"} ${Math.abs(delta)}`}>{delta > 0 ? "▲" : "▼"}{Math.abs(delta)}</span>;
+  return <span className={`stage-move ${delta > 0 ? "up" : "down"}`} aria-label={`${delta > 0 ? "up" : "down"} ${Math.abs(delta)} places`}>{delta > 0 ? "▲" : "▼"}{Math.abs(delta)}</span>;
 }
 
-function Podium({ entries, moves, final }: { entries: PublicLeaderboardEntry[]; moves: Record<number, { delta: number }>; final: boolean }) {
-  // Medal places follow the ranking; equal values share a rank, so ties show the same number.
-  const places = [entries[1], entries[0], entries[2]];
-  return <div className={`stage-podium${final ? " is-final" : ""}`}>
-    {places.map((entry, slot) => {
-      const place = slot === 1 ? 1 : slot === 0 ? 2 : 3;
-      if (!entry) return <div key={`empty-${place}`} className={`stage-pillar place-${place} is-empty`}><span className="stage-medal">{place}</span><span className="stage-pillar-label">Open spot</span><strong className="stage-pillar-number">—</strong></div>;
-      return <div key={entry.terminalNumber} className={`stage-pillar place-${place} status-${entry.status}`}>
-        {place === 1 && <span className="stage-crown" aria-hidden="true">♛</span>}
-        <span className="stage-medal">{entry.rank}</span>
-        <span className="stage-pillar-label">TERMINAL <MoveBadge delta={moves[entry.terminalNumber]?.delta}/></span>
-        <strong className="stage-pillar-number">{pad2(entry.terminalNumber)}</strong>{entry.status === "finished" && !final && <small className="stage-pillar-status">Finished</small>}
-        <span className="stage-pillar-value">{money(entry.totalValue, 0)}</span>
-        <span className={`stage-pillar-return ${entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat"}`}>{signedPct(entry.returnPct)}</span>
-        <span className="stage-pillar-base" aria-hidden="true"/>
-      </div>;
-    })}
-  </div>;
-}
-
+/*
+  The standings board: a ruled exchange board, not a podium. Rank, terminal, portfolio value and
+  return are set in large tabular figures; the leader gets the tallest row and a solid accent rule.
+  Colour is used only on data (returns and rank moves).
+*/
 function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null; final: boolean; onShowMarket?: () => void }) {
   const entries = world?.leaderboard ?? [];
   const moves = useRankMoves(entries);
-  const rest = entries.slice(3);
   const rows = useRef(new Map<number, HTMLElement>());
   const lastOrder = useRef<number[]>([]);
-  const orderKey = rest.map(entry => entry.terminalNumber).join(",");
+  const orderKey = entries.map(entry => entry.terminalNumber).join(",");
   // Rows glide to their new place when ranks change, so the room can follow who moved.
   useLayoutEffect(() => {
-    const order = rest.map(entry => entry.terminalNumber);
+    const order = entries.map(entry => entry.terminalNumber);
     const previous = lastOrder.current;
     lastOrder.current = order;
     if (!previous.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const first = rows.current.get(order[0]), second = rows.current.get(order[1]);
-    const pitch = first && second ? second.offsetTop - first.offsetTop : first?.offsetHeight ?? 0;
     order.forEach((terminal, index) => {
       const before = previous.indexOf(terminal);
       const row = rows.current.get(terminal);
       if (!row || before === index) return;
-      row.animate(before < 0 ? [{ opacity: 0, transform: "translateX(24px)" }, { opacity: 1, transform: "none" }] : [{ transform: `translateY(${(before - index) * pitch}px)` }, { transform: "none" }], { duration: 700, easing: "cubic-bezier(.2,.8,.2,1)" });
+      if (before < 0) { row.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400 }); return; }
+      row.animate([{ opacity: .35, transform: `translateY(${(before - index) * 12}px)` }, { opacity: 1, transform: "none" }], { duration: 500, easing: "cubic-bezier(.2,.8,.2,1)" });
     });
   }, [orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <section className={`stage-board${final ? " is-final" : ""}`} aria-label={final ? "Final standings" : "Leaderboard"}>
+  const leader = entries[0];
+  return <section className={`stage-board${final ? " is-final" : ""}`} aria-label={final ? "Final standings" : "Standings"}>
     <header className="stage-board-head">
-      <div><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>{final ? `BATCH ${pad2(world?.batch ?? 1)} · CLOSED` : "LIVE RANKING"}</span><h2>{final ? "Final standings" : "Leaderboard"}</h2></div>
-      <span className="stage-chip">{entries.length ? `${entries.length} ${final ? (entries.length === 1 ? "TERMINAL" : "TERMINALS") : "TRADING"}` : "NO TRADES YET"}</span>
+      <h2>{final ? "Final standings" : "Standings"}</h2>
+      <span className="stage-board-meta">{final ? `Batch ${pad2(world?.batch ?? 1)} · closed` : entries.length ? `${entries.length} ${entries.length === 1 ? "terminal" : "terminals"} trading` : "No trades yet"}</span>
     </header>
-    {entries.length === 0 ? <div className="stage-board-empty"><span className="stage-empty-orb" aria-hidden="true"/><strong>Waiting for the first trade</strong><span>Terminals join the leaderboard after their first buy or short.</span></div> : <>
-      <Podium entries={entries} moves={moves} final={final}/>
-      {rest.length > 0 && <ol className="stage-rows" style={{ "--rows": rest.length } as React.CSSProperties}>
-        {rest.map(entry => <li key={entry.terminalNumber} ref={element => { if (element) rows.current.set(entry.terminalNumber, element); else rows.current.delete(entry.terminalNumber); }} className={`stage-row status-${entry.status}`}>
-          <b className="stage-row-rank">{entry.rank}</b>
-          <span className="stage-row-name"><strong>Terminal {pad2(entry.terminalNumber)}</strong><MoveBadge delta={moves[entry.terminalNumber]?.delta}/>{entry.status !== "live" && <small>{STATUS_LABEL[entry.status]}</small>}</span>
-          <span className="stage-row-value"><strong>{money(entry.totalValue, 0)}</strong><small className={entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat"}>{signedPct(entry.returnPct)}</small></span>
+    {entries.length === 0 ? <div className="stage-board-empty"><strong>Waiting for the first trade</strong><span>A terminal joins the board with its first buy or short.</span></div> : <>
+      <div className="stage-board-cols" aria-hidden="true"><span>Rank</span><span>Terminal</span><span>Portfolio</span><span>Return</span></div>
+      <ol className="stage-board-rows" style={{ "--rows": entries.length } as React.CSSProperties}>
+        {entries.map((entry, index) => <li key={entry.terminalNumber} ref={element => { if (element) rows.current.set(entry.terminalNumber, element); else rows.current.delete(entry.terminalNumber); }} className={`stage-standing${index === 0 ? " is-leader" : ""} status-${entry.status}`}>
+          <b className="stage-standing-rank">{entry.rank}</b>
+          <span className="stage-standing-name"><strong>{pad2(entry.terminalNumber)}</strong><MoveBadge delta={moves[entry.terminalNumber]?.delta}/>{!final && entry.status !== "live" && <small>{STATUS_LABEL[entry.status]}</small>}</span>
+          <span className="stage-standing-value">{money(entry.totalValue, 0)}</span>
+          <span className={`stage-standing-return ${entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat"}`}>{signedPct(entry.returnPct)}</span>
         </li>)}
-      </ol>}
-      {final && entries[0] && <p className="stage-winner-line">Top portfolio: Terminal {pad2(entries[0].terminalNumber)} with {money(entries[0].totalValue, 0)} ({signedMoney(entries[0].pnl)})</p>}
+      </ol>
+      {final && leader && <p className="stage-winner-line">Terminal {pad2(leader.terminalNumber)} finishes first with {money(leader.totalValue, 0)}, {signedMoney(leader.pnl)} on the starting ₹10,00,000.</p>}
     </>}
     {final && onShowMarket && <button type="button" className="stage-text-button" onClick={onShowMarket}>Show the market</button>}
   </section>;
@@ -198,7 +183,7 @@ function Icon({ name }: { name: "sound" | "mute" | "moon" | "sun" | "expand" | "
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={paths[name]}/></svg>;
 }
 
-export function AudienceStage({ world, preview, theme, onTheme }: { world: PublicWorld | null; preview?: boolean; theme: "light" | "dark"; onTheme: () => void }) {
+export function AudienceStage({ world, preview, theme, onTheme, variant = "gallery" }: { world: PublicWorld | null; preview?: boolean; theme: "light" | "dark"; onTheme: () => void; variant?: string }) {
   const [fullscreen, setFullscreen] = useState(false);
   const [sound, setSound] = useState(true);
   const [dismissedSet, setDismissedSet] = useState("");
@@ -224,7 +209,7 @@ export function AudienceStage({ world, preview, theme, onTheme }: { world: Publi
   const countdownSeconds = counting && world ? Math.max(0, Math.ceil((world.startedAt - clock) / 1000)) : 0;
   const lowTime = status === "live" && (world?.remaining ?? 999) <= 30;
 
-  return <main className={`stage stage-${theme}${final ? " is-final" : ""}`} data-status={status}>
+  return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}`} data-status={status}>
     <header className="stage-head">
       <div className="stage-brand"><span className="stage-mark"><DalaalMark/></span><span><small>PRATIBIMB · LIVE MARKET</small><DalaalWordmark/></span></div>
       <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">DALAAL-10</span><strong>{indexText}</strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b></div>

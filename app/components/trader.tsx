@@ -163,12 +163,12 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const chartLastTime = useRef(0);
 
   useEffect(() => { if (!audienceOnly) setSessionId(initialSession(mode, terminal, preview)); }, [audienceOnly, mode, preview, terminal]);
-  const themeKey = audienceOnly && uiVariant === "gallery" ? "ds-audience-theme" : "ds-theme";
+  const themeKey = audienceOnly ? "ds-audience-theme" : "ds-theme";
   useEffect(() => {
     // The V4 audience wall (smart board) keeps its own theme and opens in dark mode.
     const savedTheme = window.localStorage.getItem(themeKey);
     if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
-    else if (audienceOnly && uiVariant === "gallery") setTheme("dark");
+    else if (audienceOnly) setTheme("dark");
     setThemeReady(true);
   }, []);
   const sync = useCallback(async () => {
@@ -272,9 +272,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
 
 
-  // V4 (Chroma Current) is the event's audience display: a smart-board stage with the leaderboard and market bells.
-  if (audienceOnly && uiVariant === "gallery") return <AudienceStage world={world} preview={preview} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />;
-  if (audienceOnly) return <Audience world={world} uiVariant={uiVariant} preview={preview} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />;
+  // Every version uses the audience stage (standings, bells, countdown) in its own palette.
+  if (audienceOnly) return <AudienceStage world={world} preview={preview} theme={theme} variant={uiVariant ?? "default"} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />;
   const report = world && player ? performance(world as never, player) : null;
   const isTest = mode === "test";
   const marketNews = [...(world?.headlines ?? [])].sort((a, b) => a.createdAt - b.createdAt);
@@ -370,34 +369,3 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
 function Metric({ label, value, note }: { label: string; value: string; note?: string }) { return <div className="summary-metric"><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</div>; }
 
-function Audience({ world, uiVariant, preview, theme, onTheme }: { world: PublicWorld | null; uiVariant?: UiVariant; preview?: boolean; theme: "light" | "dark"; onTheme: () => void }) {
-  const [fullscreen, setFullscreen] = useState(false);
-  const [dismissedSet, setDismissedSet] = useState("");
-  const visibleNews = latestNewsSet(world);
-  const newsSetKey = `${world?.batch ?? 0}:${visibleNews.map(item => item.id).join(",")}`;
-  const stocks = world?.stocks ?? [];
-  const terminalSummaries = world?.terminalSummaries ?? [];
-  const topTerminals = [...terminalSummaries].sort((a, b) => b.totalValue - a.totalValue || b.pnl - a.pnl || a.terminalNumber - b.terminalNumber).slice(0, 3);
-  const returnPct = world?.indexChange ?? 0;
-  const isClosed = world?.status === "closed";
-  const statusText = world?.status === "live" && !world.controls.paused ? "MARKET LIVE" : isClosed ? "MARKET CLOSED" : "MARKET READY";
-  const signReturn = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
-  const indexText = world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00";
-  useEffect(() => { const done = () => setFullscreen(Boolean(document.fullscreenElement)); document.addEventListener("fullscreenchange", done); return () => document.removeEventListener("fullscreenchange", done); }, []);
-  return <main className={`audience-wall ui-${uiVariant ?? "default"}`}>
-    <header className="wall-header">
-      <div className="wall-brand"><span className="brand-glyph"><DalaalMark/></span><span><small>PRATIBIMB · INTERACTIVE MARKET</small><DalaalWordmark/></span></div>
-      <div className="wall-index-readout" aria-label={`Dalaal-10 index ${indexText}, ${signReturn(returnPct)}`}><span className="wall-index-kicker">DALAAL-10<small>INDEX</small></span><strong>{indexText}</strong><span className="wall-index-unit">PTS</span><b className={returnPct >= 0 ? "positive" : "negative"}>{signReturn(returnPct)}</b></div>
-      <div className="wall-status"><span className="live-dot"/>{statusText}<b>{world?.status === "live" ? fmtTime(world.remaining) : `BATCH ${String(world?.batch || 1).padStart(2, "0")}`}</b></div>
-      <button className="theme-button wall-theme-button" onClick={onTheme} aria-pressed={theme === "dark"} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? <svg className="wall-theme-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2Z"/></svg> : <svg className="wall-theme-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>}</button>
-      <button className="wall-fullscreen" onClick={() => document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen()}>{fullscreen ? "Exit full screen" : "Full screen"} ↗</button>
-    </header>
-    <section className="wall-terminal-strip" aria-label="Active terminal positions"><header><b>LIVE TERMINALS</b><span>{terminalSummaries.length}/10 active</span><div className="wall-top-three" aria-label="Top three terminals by total portfolio value">{topTerminals.map((terminal, index) => <span key={terminal.terminalNumber}><b>{index + 1}</b> T{String(terminal.terminalNumber).padStart(2, "0")} <strong>{money(terminal.totalValue, 0)}</strong></span>)}</div></header><div className="wall-terminal-grid">{terminalSummaries.map(terminal => <article className={`wall-terminal ${terminal.status}`} key={terminal.terminalNumber}><div className="wall-terminal-top"><b>TERMINAL {String(terminal.terminalNumber).padStart(2, "0")}</b><span>{terminal.status === "paused" ? "PAUSED" : terminal.status === "ready" ? "READY" : "LIVE"}</span></div><div className="wall-terminal-value"><small>TOTAL VALUE</small><strong>{money(terminal.totalValue, 0)}</strong></div><div className="wall-terminal-bottom"><span className={terminal.pnl >= 0 ? "positive" : "negative"}>P&amp;L {terminal.pnl >= 0 ? "+" : "−"}{money(Math.abs(terminal.pnl), 0)}</span><span>CASH {money(terminal.cash, 0)}</span></div></article>)}</div>{!terminalSummaries.length && <p className="wall-terminal-empty">No terminals are active right now.</p>}</section>
-    {visibleNews.length > 0 && dismissedSet !== newsSetKey && <section className="wall-news latest-set" aria-label="Latest news set"><header className="wall-news-heading news-set-heading"><span className="wall-news-label">LATEST NEWS</span><span>{visibleNews.length} {visibleNews.length === 1 ? "headline" : "headlines"}</span><button type="button" className="wall-news-close" aria-label="Close latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button></header><div className="wall-news-headlines">{visibleNews.map((item, index) => <article key={item.id}><div className="news-card-meta"><b className="wall-news-number">News {index + 1}</b><span className={`news-tag ${item.type}`}>{item.type}</span><span>{newsScope(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div><strong title={item.headline}>{item.headline}</strong></article>)}</div></section>}
-
-    <section className="wall-market-section"><header className="wall-section-heading"><div><span className="eyebrow">MARKET BOARD</span><h1>All stocks<span>.</span></h1></div></header>
-      <section className="wall-grid" aria-label="All listed stocks">{stocks.map(stock => <article className="wall-stock" key={stock.symbol}><div className="wall-stock-top"><Logo stock={stock} compact/><span><b>{stock.symbol}</b><small>{stock.name}</small></span></div><div className="wall-price"><strong>{money(stock.price, stock.price < 100 ? 2 : 0)}</strong><span className={changePct(stock) >= 0 ? "positive" : "negative"}>{signReturn(changePct(stock))}</span></div><MiniChart stock={stock} startedAt={world?.startedAt}/></article>)}</section>
-    </section>
-    <footer className="wall-footer"><span>{preview && uiVariant && <><a href="/ui-preview">PREVIEW V{uiVariant.toUpperCase()} · COMPARE ALL</a> · </>}FICTIONAL PRICE MOVEMENTS · NO REAL TRADES</span></footer>
-  </main>;
-}
