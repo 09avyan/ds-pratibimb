@@ -989,3 +989,36 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
   .invite h2 { font-size: min(calc(120 * var(--u)), 12.4cqw); }
   .invite-tape { margin: 0 calc(-40 * var(--u)); }
 }
+
+/* ======================================================================
+   No glossy lines: the light bands that swept across panels, the podium and the banner are gone.
+   Moments are carried by colour and movement instead.
+   ====================================================================== */
+.v-default .stage-tile::before, .v-broadcast .stage-tile::before, .place-1 .lb-plinth::after, .stage-lead::after { display: none !important; }
+@keyframes stage-news-sheen { from, to { opacity: 0; } }
+@keyframes stage-wave-tick { from { opacity: .22; } to { opacity: 0; } }
+.v-gallery .stage-tile[data-tick]::after { background: #fff !important; }
+
+/* V5: prices on split-flap characters that flip as they change. */
+.stage-tile-price strong.is-flaps { display: inline-flex; align-items: baseline; gap: .04em; padding: 0 !important; background: none !important; }
+.stage-flaps { display: inline-flex; gap: .05em; font: inherit; perspective: 4em; }
+.stage-flap { position: relative; display: inline-block; min-width: .62em; font: inherit; padding: .06em 0; border-radius: .08em; color: #fff4d6; background: #0b0b0b; text-align: center; animation: stage-flap-turn .5s cubic-bezier(.3, 1.4, .4, 1) both; }
+.stage-flap::after { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255, 255, 255, .16); content: ""; }
+.stage-flap.sep { min-width: .26em; color: inherit; background: none; }
+.stage-flap.sep::after { display: none; }
+.stage-tile[data-tick="up"] .stage-flap:not(.sep) { color: #062512; background: var(--up); }
+.stage-tile[data-tick="down"] .stage-flap:not(.sep) { color: #2b0808; background: var(--down); }
+@keyframes stage-flap-turn { 0% { transform: rotateX(-88deg); filter: brightness(1.6); } 100% { transform: none; filter: none; } }
+.stage.off-priceTick .stage-flap { animation: none !important; }
+
+/* V4: a move bar along the foot of each panel instead of a sparkline: the longer, the bigger the move. */
+.stage-tile > .stage-movebar { position: absolute; left: calc(14 * var(--u)); right: calc(14 * var(--u)); bottom: calc(10 * var(--u)); z-index: 1; height: calc(8 * var(--u)); overflow: hidden; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); }
+.stage-movebar i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; transition: width 1s cubic-bezier(.2, .9, .2, 1); }
+.stage-movebar.up i { background: var(--up); } .stage-movebar.down i { background: var(--down); }
+.v-gallery .stage-tile-price { padding-bottom: calc(14 * var(--u)); }
+@media (prefers-reduced-motion: reduce) { .stage-flap, .stage-movebar i { animation: none !important; transition: none !important; } }
+/* V5: no line through the rows; flap prices a touch smaller so names stay whole. */
+.stage .v-broadcast .stage-tile, .stage.v-broadcast .stage-tile { background: var(--surface) !important; }
+.stage.v-broadcast .stage-tile:nth-child(even) { background: var(--surface-2) !important; }
+.v-broadcast .stage-tile-price strong.is-flaps { font-size: min(44cqh, 6.4cqw) !important; color: inherit !important; }
+.stage:not(.stage-light).v-broadcast .stage-flap:not(.sep) { background: #1c1c1c; }

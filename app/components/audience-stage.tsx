@@ -6,7 +6,6 @@ import type { PublicLeaderboardEntry, PublicNews, PublicWorld, Stock } from "@/g
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
 import { animationOffClasses, animationOn } from "@/game/animations";
 import { useMarketSound } from "./market-sound";
-import { DialView, FlapView, NewsCrawl, PebbleView, RackView, RaceView, TreemapView } from "./audience-views";
 import { changePct, fmtTime, latestNewsSet, money, smoothPath, useSmoothRemaining } from "./market-parts";
 
 /*
@@ -289,7 +288,12 @@ function Spark({ stock }: { stock: Stock }) {
   </svg>;
 }
 
-function StockTile({ stock, index, news }: { stock: Stock; index: number; news?: boolean }) {
+/** V5's prices on split-flap characters: a changed character remounts and flips. */
+function Flaps({ text }: { text: string }) {
+  return <b className="stage-flaps" aria-hidden="true">{[...text].map((ch, i) => <b key={`${text.length - i}:${ch}`} className={/[0-9]/.test(ch) ? "stage-flap" : "stage-flap sep"}>{ch}</b>)}</b>;
+}
+
+function StockTile({ stock, index, news, variant }: { stock: Stock; index: number; news?: boolean; variant?: string }) {
   const move = changePct(stock);
   const tick = useTick(stock.price);
   // The size of the last price change, shown floating up from the panel.
@@ -307,9 +311,9 @@ function StockTile({ stock, index, news }: { stock: Stock; index: number; news?:
   return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}${news ? " is-news" : ""}`} data-tick={tick ?? undefined} data-sector={stock.sector} style={{ "--i": index, "--ring": ring, "--heat": heat.toFixed(3) } as React.CSSProperties} title={stock.name} aria-label={`${stock.name} ${money(stock.price, 2)}, ${move >= 0 ? "up" : "down"} ${Math.abs(move).toFixed(2)}%`}>
     <div className="stage-tile-body">
       <div className="stage-tile-top"><Logo stock={stock} compact/><b>{shortName(stock.symbol)}</b><small className="stage-tile-sector">{stock.sector}</small></div>
-      <div className="stage-tile-price"><strong><i>₹</i>{rupees}<em>.{paise}</em></strong><span>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</span></div>
+      <div className="stage-tile-price">{variant === "broadcast" ? <strong className="is-flaps"><i>₹</i><Flaps text={`${rupees}.${paise}`}/></strong> : <strong><i>₹</i>{rupees}<em>.{paise}</em></strong>}<span>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</span></div>
     </div>
-    <Spark stock={stock}/>
+    {variant === "gallery" ? <span className={`stage-movebar ${move >= 0 ? "up" : "down"}`} aria-hidden="true"><i style={{ width: `${Math.min(100, Math.abs(move) / 5 * 100)}%` }}/></span> : <Spark stock={stock}/>}
     {delta && <span className={`stage-delta ${delta.value > 0 ? "up" : "down"}`} key={delta.key} aria-hidden="true">{delta.value > 0 ? "+" : "−"}{Math.abs(delta.value).toFixed(2)}</span>}
   </article>;
 }
@@ -690,15 +694,8 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     </header>
 
     {invite ? <div className="stage-body is-invite"><InviteScene world={world}/></div> : <div className="stage-body">
-      {!final && (variant === "orbit" ? <DialView world={world}/>
-        : variant === "arcade" ? <PebbleView stocks={stocks}/>
-        : variant === "gallery" ? <RaceView stocks={stocks}/>
-        : variant === "broadcast" ? <FlapView stocks={stocks}/>
-        : variant === "conservatory" ? <RackView stocks={stocks}/>
-        : variant === "tangram" ? <TreemapView stocks={stocks}/>
-        : <section className="stage-grid" aria-label="All 25 companies">{ordered.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} news={newsGlow.has(stock.symbol)}/>)}</section>)}
-      {!final && variant === "default" && <NewsCrawl items={showNews ? visibleNews : [{ id: "wait", type: "minor", headline: status === "live" ? "The next headlines are on their way." : "Headlines appear here once trading starts." }]}/>}
-      {!final && variant !== "default" && <section className={`stage-news${showNews ? "" : " is-empty"}`} aria-label="Latest news">
+      {!final && <section className="stage-grid" aria-label="All 25 companies">{ordered.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} news={newsGlow.has(stock.symbol)} variant={variant}/>)}</section>}
+      {!final && <section className={`stage-news${showNews ? "" : " is-empty"}`} aria-label="Latest news">
         <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>{showNews ? "Latest news" : "News"}</span>{showNews && <button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button>}</header>
         {showNews ? <div className={`stage-news-cards count-${visibleNews.length}`}>{visibleNews.map((item, index) => <article key={item.id} className={`type-${item.type}`} style={{ "--i": index } as React.CSSProperties}>
           <div className="stage-news-meta"><span className={`stage-tag ${item.type}`}>{item.type === "major" ? "Major" : "Minor"}</span><span className="stage-news-scope">{scopeText(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div>
