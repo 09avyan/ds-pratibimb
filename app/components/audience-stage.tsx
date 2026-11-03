@@ -132,22 +132,22 @@ function disperse(board: HTMLElement, moved: { row: HTMLElement; from: number; f
   const gold = css.getPropertyValue("--gold").trim() || "#f3c74f";
   type Pixel = { sx: number; sy: number; mx: number; my: number; ex: number; ey: number; color: string; size: number; delay: number };
   const pixels: Pixel[] = [];
-  const step = Math.max(5, Math.round(box.width / 95));
+  const step = Math.max(6, Math.round(box.width / 70));
   for (const { row, from, fromLeft } of moved) {
     const style = getComputedStyle(row);
     const tones = [style.backgroundColor, style.color, accent, style.color, gold];
     const rect = { width: row.offsetWidth, height: row.offsetHeight };
     const oldTop = from, newTop = row.offsetTop, left = row.offsetLeft, oldLeft = fromLeft ?? left;
     for (let y = 0; y < rect.height; y += step) for (let x = 0; x < rect.width; x += step) {
-      const angle = Math.random() * Math.PI * 2, spread = 30 + Math.random() * 90;
-      pixels.push({ sx: oldLeft + x, sy: oldTop + y, mx: (oldLeft + left) / 2 + x + Math.cos(angle) * spread, my: (oldTop + newTop) / 2 + y + Math.sin(angle) * spread * .7, ex: left + x, ey: newTop + y, color: tones[Math.floor(Math.random() * tones.length)], size: step * (.7 + Math.random() * .5), delay: (x / rect.width) * .18 });
+      const angle = Math.random() * Math.PI * 2, spread = 10 + Math.random() * 34;
+      pixels.push({ sx: oldLeft + x, sy: oldTop + y, mx: (oldLeft + left) / 2 + x + Math.cos(angle) * spread, my: (oldTop + newTop) / 2 + y + Math.sin(angle) * spread * .7, ex: left + x, ey: newTop + y, color: tones[Math.floor(Math.random() * tones.length)], size: step * (.7 + Math.random() * .5), delay: (x / rect.width) * .12 });
     }
-    row.animate([{ opacity: 0, filter: "blur(6px)" }, { opacity: 0, offset: .72 }, { opacity: 1, filter: "brightness(1.6)", offset: .86 }, { opacity: 1, filter: "none" }], { duration: 1300, easing: "ease-out" });
+    row.animate([{ opacity: 0, filter: "blur(3px)" }, { opacity: 0, offset: .7 }, { opacity: 1, filter: "brightness(1.3)", offset: .85 }, { opacity: 1, filter: "none" }], { duration: 750, easing: "ease-out" });
   }
   const ease = (t: number) => 1 - Math.pow(1 - t, 3);
   const start = performance.now();
   const frame = (now: number) => {
-    const t = (now - start) / 1300;
+    const t = (now - start) / 750;
     ctx.clearRect(0, 0, box.width, box.height);
     for (const p of pixels) {
       const local = Math.min(1, Math.max(0, (t - p.delay) / (1 - p.delay)));
