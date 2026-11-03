@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793716109.369089,
-    "seen": 1793716825.882263,
-    "ast_hash": "6468c30e1ec360b871f64d70ddc28c9c",
+    "mtime": 1793718700.9984064,
+    "seen": 1793718859.6268451,
+    "ast_hash": "964fb799768c98a8c0fda10eab67f4ba",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -114,8 +114,8 @@
     "semantic_hash": ""
   },
   "app/layout.tsx": {
-    "mtime": 1793650387.8028488,
-    "seen": 1793650933.0443633,
+    "mtime": 1793718591.8439744,
+    "seen": 1793718859.6271062,
     "ast_hash": "8ce4b20f53e5aeaf706bd6e7f1ad5701",
     "semantic_hash": ""
   },
@@ -168,8 +168,8 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793716821.0239768,
-    "seen": 1793716825.8829737,
+    "mtime": 1793718547.775679,
+    "seen": 1793718551.2631438,
     "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
     "semantic_hash": ""
   },
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793716821.0129504,
-    "seen": 1793716825.8839772,
-    "ast_hash": "2f699d001c3a926da809adb80d1bf694",
+    "mtime": 1793718765.6841486,
+    "seen": 1793718859.6280508,
+    "ast_hash": "d758c9261bc60bb6ba7a2d0f90feefba",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -426,9 +426,9 @@
     "semantic_hash": ""
   },
   "src/game/animations.ts": {
-    "mtime": 1793669937.0807848,
-    "seen": 1793672242.6835797,
-    "ast_hash": "d7931e20d42f373b62fa7e09d883899f",
+    "mtime": 1793717276.916564,
+    "seen": 1793718551.263499,
+    "ast_hash": "c34179d603115c78dc71685e38704b7e",
     "semantic_hash": ""
   },
   "app/components/market-sound.ts": {

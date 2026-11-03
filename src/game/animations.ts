@@ -19,6 +19,7 @@ export const ANIMATIONS: readonly AnimationInfo[] = [
   { key: "lastTen", screen: "audience", label: "Last ten seconds", detail: "The pixel ghost number and red edge pulse." },
   { key: "closing", screen: "audience", label: "Closing shutter", detail: "Shutters slam on \"Market closed\" at the bell." },
   { key: "finalReveal", screen: "audience", label: "Final standings reveal", detail: "Standings revealed from last place up to the winner." },
+  { key: "invite", screen: "audience", label: "Between-round invitation", detail: "Before and between rounds the wall invites parents to play: the pitch, the last winner and a running price tape." },
   { key: "confetti", screen: "audience", label: "Confetti", detail: "Gold confetti over the final standings." },
   { key: "tradeCountdown", screen: "trading", label: "Countdown light show", detail: "The same countdown on every terminal." },
   { key: "tradeMarketOpen", screen: "trading", label: "Market open burst", detail: "The burst when trading starts." },
