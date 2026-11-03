@@ -168,8 +168,8 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793688661.5056667,
-    "seen": 1793688859.6487398,
+    "mtime": 1793692021.0213559,
+    "seen": 1793692369.1438036,
     "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
     "semantic_hash": ""
   },
@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "src/game/engine.ts": {
-    "mtime": 1793691398.1307964,
-    "seen": 1793691504.8913028,
-    "ast_hash": "767f602d2a557f19ec05732020f934cd",
+    "mtime": 1793692267.8442404,
+    "seen": 1793692369.144482,
+    "ast_hash": "0f90a5003db2b1a783cab9b771f7e1d1",
     "semantic_hash": ""
   },
   "src/game/host-auth.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793688856.4881861,
-    "seen": 1793688859.6495984,
-    "ast_hash": "9be540949cdc3f3e3b91d7f1e9ea0349",
+    "mtime": 1793692365.9978397,
+    "seen": 1793692369.14487,
+    "ast_hash": "cdb17f41c63bb516babbcf9d7c2f3b07",
     "semantic_hash": ""
   },
   "app/icon.png": {
