@@ -651,6 +651,7 @@ function endWorld(world: World, at: number) {
     world.autonomousNews.nextReason = "The batch ended. Start the brain again for another round.";
   }
   for (const player of Object.values(world.sessions)) settle(world, player, at);
+  recordHallOfFame(world, at);
 }
 
 export function settle(world: World, player: Player, at: number) {
@@ -878,6 +879,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
   } else if (action === "pause") { world.controls.paused = true; world.lastTickAt = at; }
   else if (action === "resume") { shiftAutonomousClock(world, Math.max(0, at - world.lastTickAt)); world.controls.paused = false; world.lastTickAt = at; }
   else if (action === "end") endWorld(world, at);
+  else if (action === "clear-hall") world.hallOfFame = [];
   else if (action === "reset") { restoreBrainSettings(world, at); world.status = "ready"; world.controls.paused = true; world.remaining = world.duration; world.sessions = {}; world.stocks = makeStocks(world.batch); world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; if (world.autonomousNews) world.autonomousNews.lastPublishedElapsed = 0; world.scheduledNews = []; world.scheduledInterventions = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0; world.lastTickAt = at; if (world.autonomousNews) { world.autonomousNews.enabled = false; world.autonomousNews.nextAt = 0; world.autonomousNews.nextIndices = []; world.autonomousNews.history = []; world.autonomousNews.nextReason = "Stopped after the market reset."; } }
   else if (action === "scenario") world.controls.scenario = payload.value as World["controls"]["scenario"];
   else if (action === "controls") {
@@ -951,6 +953,26 @@ export function newPlayer(sessionId: string, batch: number, at = Date.now(), inc
   return { id: sessionId, batch, terminalNumber, initialCash: START_CASH, cash: START_CASH, accountingVersion: 2, holdings: {}, shorts: {}, history: [], joinedAt: at, lastSeenAt: at, ended: false, paused: false, included };
 }
 
+/**
+ * The terminals playing this batch: each terminal's current login, if it placed at least one buy or
+ * short. Logged-in terminals that have not traded stay off the board.
+ */
+function batchEntrants(world: World) {
+  return Array.from({ length: TERMINAL_COUNT }, (_, i) => Object.values(world.sessions)
+    .filter(player => player.terminalNumber === i + 1 && player.batch === world.batch && player.included)
+    .sort((a, b) => (b.lastSeenAt ?? b.joinedAt) - (a.lastSeenAt ?? a.joinedAt) || b.joinedAt - a.joinedAt)[0])
+    .filter((player): player is Player => Boolean(player) && player.history.some(trade => trade.side === "Buy" || trade.side === "Short"));
+}
+
+const isClose = (trade: Trade) => trade.side === "Sell" || trade.side === "Auto-sell" || trade.side === "Auto-cover" || (trade.side === "Buy" && (trade.coveredQty ?? (trade.note?.startsWith("Covered") ? 1 : 0)) > 0);
+
+/** Keep the day's best results: this batch's entrants join the hall of fame, the top 10 by gain stay. */
+function recordHallOfFame(world: World, at: number) {
+  if (world.mode !== "live") return;
+  const entries = batchEntrants(world).map(player => { const pnl = equity(world, player) - player.initialCash; return { batch: world.batch, terminalNumber: player.terminalNumber!, pnl: Math.round(pnl), returnPct: Math.round(pnl / player.initialCash * 10_000) / 100, at }; });
+  world.hallOfFame = [...(world.hallOfFame ?? []).filter(entry => entry.batch !== world.batch), ...entries].sort((a, b) => b.pnl - a.pnl || a.at - b.at).slice(0, 10);
+}
+
 export function toPublic(world: World, sessionId?: string | null, selectedStock = "RELIANCE", options: { includeCandles?: boolean; candlesSince?: number } = {}): PublicWorld {
   const { logs: _logs, sessions, hostNotes: _hostNotes, version: _version, testRulesVersion: _testRulesVersion, autonomousNews: _autonomousNews, ...rest } = world;
   const { activeNews: _activeNews, ...publicControls } = world.controls;
@@ -965,12 +987,7 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
     const totalValue = equity(world, current);
     return { terminalNumber, status: world.status !== "live" ? "ready" as const : world.controls.paused || current.paused ? "paused" as const : "live" as const, cash: current.cash, totalValue, pnl: totalValue - current.initialCash };
   }).filter((summary): summary is NonNullable<typeof summary> => summary !== null);
-  // Only terminals that are actually playing are ranked: the current login must have placed at least
-  // one buy or short in this batch. Logged-in terminals that have not traded stay off the board.
-  const entrants = Array.from({ length: TERMINAL_COUNT }, (_, i) => Object.values(sessions)
-    .filter(player => player.terminalNumber === i + 1 && player.batch === world.batch && player.included)
-    .sort((a, b) => (b.lastSeenAt ?? b.joinedAt) - (a.lastSeenAt ?? a.joinedAt) || b.joinedAt - a.joinedAt)[0])
-    .filter((player): player is Player => Boolean(player) && player.history.some(trade => trade.side === "Buy" || trade.side === "Short"));
+  const entrants = batchEntrants(world);
   // One ranking feeds both a terminal's own position and the audience leaderboard, so they always agree.
   // It keeps finished and offline entrants, and stays after the batch closes until the next batch starts.
   const valued = entrants.map(player => ({ player, totalValue: equity(world, player) }));
@@ -979,7 +996,8 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
     const offline = now - (player.lastSeenAt ?? player.joinedAt) >= TERMINAL_ACTIVE_WINDOW_MS;
     const status = player.ended ? "finished" as const : offline ? "offline" as const : world.status !== "live" ? "ready" as const : world.controls.paused || player.paused ? "paused" as const : "live" as const;
     const pnl = totalValue - player.initialCash;
-    return { terminalNumber: player.terminalNumber!, rank: rankOf(totalValue), status, cash: player.cash, totalValue, pnl, returnPct: player.initialCash ? pnl / player.initialCash * 100 : 0 };
+    const best = player.history.filter(isClose).sort((a, b) => b.realized - a.realized)[0];
+    return { terminalNumber: player.terminalNumber!, rank: rankOf(totalValue), status, cash: player.cash, totalValue, pnl, returnPct: player.initialCash ? pnl / player.initialCash * 100 : 0, trades: player.history.filter(trade => !trade.side.startsWith("Auto")).length, bestTrade: best && best.realized > 0 ? { symbol: best.symbol, side: best.side, realized: Math.round(best.realized) } : null };
   }).sort((a, b) => a.rank - b.rank || a.terminalNumber - b.terminalNumber);
   const entrant = sessionId ? sessions[sessionId] : null;
   const eligible = entrant && entrant.included && entrant.batch === world.batch && entrants.some(player => player.id === entrant.id);
@@ -997,7 +1015,7 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
 export function performance(world: World, player: Player) {
   const value = equity(world, player), pnl = value - player.initialCash;
   const trades = player.history;
-  const closedTrades = player.history.filter(t => t.side === "Sell" || t.side === "Auto-sell" || t.side === "Auto-cover" || (t.side === "Buy" && (t.coveredQty ?? (t.note?.startsWith("Covered") ? 1 : 0)) > 0));
+  const closedTrades = player.history.filter(isClose);
   const creditedClosures = closedTrades;
   const winners = closedTrades.filter(t => t.realized > 0).length, losers = closedTrades.filter(t => t.realized < 0).length;
   const symbolsTraded = new Set(trades.map(trade => trade.symbol));

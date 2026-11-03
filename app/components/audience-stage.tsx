@@ -230,41 +230,87 @@ function InviteDemo({ stocks, still }: { stocks: Stock[]; still: boolean }) {
   </div>;
 }
 
+/** A marquee sign: a ring of stage bulbs round a panel, as on a game-show set. */
+function ShowSign({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`show-sign ${className}`}><div className="show-sign-face">{children}</div></div>;
+}
+
+type SceneId = "title" | "how" | "hall" | "last" | "seat";
+const SCENE_MS: Record<SceneId, number> = { title: 7000, how: 9000, hall: 8500, last: 7500, seat: 6500 };
+
+/*
+  The invitation, staged like a game show and run like an arcade attract loop. Scenes take turns: the
+  title card, how to play (a story moving a price), today's hall of fame (the record to beat), last
+  round's highlights (between rounds), and your seat is waiting. A host's caption narrates each one.
+*/
 function InviteScene({ world, still }: { world: PublicWorld | null; still: boolean }) {
   const stocks = world?.stocks ?? [];
   const minutes = Math.max(1, Math.round((world?.duration ?? 300) / 60));
-  const leader = world?.status === "closed" ? world.leaderboard[0] : undefined;
-  const purse = useCountUp(1_000_000, still);
+  const hall = world?.hallOfFame ?? [];
+  const record = hall[0];
+  const closed = world?.status === "closed" && (world?.leaderboard.length ?? 0) > 0;
+  const leader = closed ? world!.leaderboard[0] : undefined;
+  const scenes: SceneId[] = ["title", "how", "hall", ...(closed ? ["last" as const] : []), "seat"];
+  const [turn, setTurn] = useState(0);
+  const scene = scenes[turn % scenes.length];
+  useEffect(() => {
+    const timer = window.setTimeout(() => setTurn(n => n + 1), SCENE_MS[scene]);
+    return () => window.clearTimeout(timer);
+  }, [turn, scene]);
+  const purse = useCountUp(1_000_000, still || scene !== "title", 1400, 0, 900);
+  const best = [...stocks].sort((a, b) => changePct(b) - changePct(a))[0];
+  const beat = closed ? world!.leaderboard.filter(entry => entry.returnPct > world!.indexChange).length : 0;
+  const caption: Record<SceneId, string> = {
+    title: "Welcome to Dalaal Street, the trading game show. Free to play, no experience needed.",
+    how: "Read the news, trade before the price moves, and watch your money grow.",
+    hall: record ? `Today's record is ${signedMoney(record.pnl)}, set by Terminal ${pad2(record.terminalNumber)}. Can anyone beat it?` : "No record yet today. The first winner sets it.",
+    last: leader ? `Last round, Terminal ${pad2(leader.terminalNumber)} won with ${signedMoney(leader.pnl)}.` : "",
+    seat: world?.status === "closed" ? "Take any free terminal. The next round starts soon." : "Take any free terminal. Trading opens at the bell.",
+  };
   const tape = [...stocks, ...stocks];
-  return <section className="invite" aria-label="Play Dalaal Street">
-    <CandleChart className="invite-chart"/>
-    <div className="invite-float" aria-hidden="true">{stocks.slice(0, 10).map((stock, i) => { const move = changePct(stock); return <span key={stock.symbol} className={move >= 0 ? "up" : "down"} style={{ "--x": `${50 + (i * 37) % 46}%`, "--d": `${-i * 1.7}s`, "--t": `${15 + (i % 4) * 2}s` } as React.CSSProperties}>{shortName(stock.symbol)} {move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(1)}%</span>; })}</div>
-    <div className="invite-pitch">
-      <p className="invite-kicker"><i aria-hidden="true"/>Live at Pratibimb · free to play · no experience needed</p>
-      <h2>{"Can you beat".split(" ").map((word, i) => <span key={i} className="w" style={{ "--w": i } as React.CSSProperties}>{word}</span>)}<br/><span className="invite-accent-line">{"the market?".split(" ").map((word, i) => <span key={i} className="w is-accent" style={{ "--w": i + 3 } as React.CSSProperties}>{word}</span>)}<svg viewBox="0 0 400 24" preserveAspectRatio="none" aria-hidden="true"><path d="M4 16 C 90 6, 200 4, 300 9 S 380 18, 396 12" pathLength={1}/></svg></span></h2>
-      <div className="invite-stakes">
-        <p><b>{money(purse, 0)}</b><small>to invest</small></p>
-        <p className="has-logos"><b>25</b><small>companies</small><span className="invite-logos" aria-hidden="true"><span>{[...stocks, ...stocks].map((stock, i) => <Logo key={i} stock={stock} compact/>)}</span></span></p>
-        <p><b>{minutes} min</b><small>of breaking news</small></p>
-      </div>
-      <ol className="invite-steps">
-        <li><b>1</b><span>Sit at any terminal</span></li>
-        <li><b>2</b><span>Watch the news</span></li>
-        <li><b>3</b><span>Buy, sell or short</span></li>
-      </ol>
-      <div className="invite-call">
-        <p className="invite-cta"><i aria-hidden="true"/>{world?.status === "closed" ? "Next round starts soon: take any free terminal" : "Take any free terminal: trading opens at the bell"}</p>
-        <p className="invite-glory"><svg viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>Finish top three and your terminal goes up on this screen</p>
-      </div>
-    </div>
-    <aside className="invite-proof">
-      {leader && <div className="invite-winner">
-        <svg className="invite-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>
-        <span><small>Last round · Terminal {pad2(leader.terminalNumber)} turned ₹10,00,000 into {money(leader.totalValue, 0)}</small><b className={leader.pnl >= 0 ? "up" : "down"}>{signedMoney(leader.pnl)} <i>in {minutes} minutes</i></b></span>
-        <em>Can you beat it?</em>
+  return <section className={`invite show scene-${scene}`} aria-label="Play Dalaal Street">
+    <div className="show-stage" aria-hidden="true"><i className="show-spot is-left" key={`l${turn}`}/><i className="show-spot is-right" key={`r${turn}`}/><i className="show-floor"/></div>
+    <div className="show-scene" key={turn}>
+      {scene === "title" && <div className="show-title">
+        <p className="invite-kicker"><i aria-hidden="true"/>Live at Pratibimb · free to play</p>
+        <ShowSign><small>Tonight's challenge</small><h2>{"Can you beat".split(" ").map((word, i) => <span key={i} className="w" style={{ "--w": i } as React.CSSProperties}>{word}</span>)}<br/>{"the market?".split(" ").map((word, i) => <span key={i} className="w is-accent" style={{ "--w": i + 3 } as React.CSSProperties}>{word}</span>)}</h2></ShowSign>
+        <div className="show-stakes"><p><b>{money(purse, 0)}</b><small>to invest</small></p><p><b>25</b><small>companies</small></p><p><b>{minutes} min</b><small>one winner</small></p></div>
       </div>}
-      <InviteDemo stocks={stocks} still={still}/>
-    </aside>
+      {scene === "how" && <div className="show-how">
+        <div className="show-how-steps">
+          <h2 className="show-heading">How to play</h2>
+          <ol className="invite-steps"><li><b>1</b><span>Sit at any terminal</span></li><li><b>2</b><span>Watch the news</span></li><li><b>3</b><span>Buy, sell or short</span></li></ol>
+          <p className="invite-glory"><svg viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>Finish top three and your terminal goes up on this screen</p>
+        </div>
+        <InviteDemo stocks={stocks} still={still}/>
+      </div>}
+      {scene === "hall" && <div className="show-hall">
+        <h2 className="show-heading"><span>Today's</span> hall of fame</h2>
+        {record ? <>
+          <ShowSign className="show-record"><small>The record to beat</small><strong>{signedMoney(record.pnl)}</strong><span>Terminal {pad2(record.terminalNumber)} · Batch {pad2(record.batch)} · {signedPct(record.returnPct)}</span></ShowSign>
+          <ol className="show-hall-list">{hall.slice(1, 6).map((entry, i) => <li key={`${entry.batch}-${entry.terminalNumber}`} style={{ "--i": 4 - i } as React.CSSProperties}><b>{i + 2}</b><strong>Terminal {pad2(entry.terminalNumber)}</strong><small>Batch {pad2(entry.batch)}</small><em className={entry.pnl >= 0 ? "up" : "down"}>{signedMoney(entry.pnl)}</em></li>)}</ol>
+        </> : <ShowSign className="show-record is-empty"><small>The board is empty</small><strong>Be the first</strong><span>Today's first winner sets the record everyone else has to beat.</span></ShowSign>}
+      </div>}
+      {scene === "last" && leader && <div className="show-last">
+        <h2 className="show-heading"><span>Last round's</span> highlights</h2>
+        <div className="show-last-grid">
+          <ShowSign className="show-winner"><svg className="invite-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg><small>Winner</small><strong>Terminal {pad2(leader.terminalNumber)}</strong><span className={leader.pnl >= 0 ? "up" : "down"}>{signedMoney(leader.pnl)} in {minutes} minutes</span></ShowSign>
+          <div className="show-facts">
+            {best && <p><small>Stock of the round</small><span><Logo stock={best} compact/><strong>{shortName(best.symbol)}</strong><b className="up">{signedPct(changePct(best))}</b></span></p>}
+            <p><small>Beat the Dalaal-10</small><span><strong>{beat} of {world!.leaderboard.length}</strong><b>terminals</b></span></p>
+          </div>
+        </div>
+      </div>}
+      {scene === "seat" && <div className="show-seat">
+        <svg className="show-bell" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6a4 4 0 0 1 4 4v2.4c8.6 2 14 9.4 14 18.6v9.5l5 6.5v3H9v-3l5-6.5V31c0-9.2 5.4-16.6 14-18.6V10a4 4 0 0 1 4-4Zm-7 46h14a7 7 0 0 1-14 0Z"/></svg>
+        <h2>{"Your seat is waiting".split(" ").map((word, i) => <span key={i} className="w" style={{ "--w": i } as React.CSSProperties}>{word}</span>)}</h2>
+        <p className="invite-cta"><i aria-hidden="true"/>Take any free terminal · ₹10,00,000 is on the table</p>
+      </div>}
+    </div>
+    <div className="show-foot">
+      <p className="show-caption" key={`c${turn}`}><b>Host</b><span>{caption[scene]}</span></p>
+      <ol className="show-dots" aria-hidden="true">{scenes.map((id, i) => <li key={id} className={i === turn % scenes.length ? "is-on" : i < turn % scenes.length ? "is-done" : ""} style={{ "--ms": `${SCENE_MS[id]}ms` } as React.CSSProperties}><i key={i === turn % scenes.length ? turn : -1}/></li>)}</ol>
+    </div>
     <div className="invite-tape" aria-hidden="true"><div>{tape.map((stock, i) => { const move = changePct(stock); return <span key={i} className={move >= 0 ? "up" : "down"}><b>{shortName(stock.symbol)}</b>{money(stock.price, 2)}<i>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</i></span>; })}</div></div>
   </section>;
 }
@@ -272,6 +318,7 @@ function InviteScene({ world, still }: { world: PublicWorld | null; still: boole
 /* ---------- After the bell: the batch report beside the final standings ---------- */
 
 type IndexPoint = { t: number; v: number };
+type Award = { label: string; who: string; detail: string; amount?: string; tone: string; stock?: Stock };
 
 /**
  * The Dalaal-10 through the batch, as this screen saw it (kept per batch in session storage, so a
@@ -306,14 +353,22 @@ function BatchReport({ world, path, still }: { world: PublicWorld | null; path: 
   if (!world) return null;
   const up = world.indexChange >= 0;
   const sorted = [...world.stocks].sort((a, b) => changePct(b) - changePct(a));
-  const movers = [...sorted.slice(0, 3), ...sorted.slice(-3)];
-  const widest = Math.max(.5, ...movers.map(stock => Math.abs(changePct(stock))));
   const entries = world.leaderboard;
   const beat = entries.filter(entry => entry.returnPct > world.indexChange);
   const average = entries.length ? entries.reduce((sum, entry) => sum + entry.returnPct, 0) / entries.length : 0;
   const stories = world.headlines.filter(item => item.createdAt >= world.startedAt);
   const majors = stories.filter(item => item.type === "major").length;
-  const leader = entries[0];
+  // The awards: the envelopes open one by one once the winner is on the podium.
+  const bestTrade = entries.filter(entry => entry.bestTrade).sort((a, b) => b.bestTrade!.realized - a.bestTrade!.realized)[0];
+  const busiest = [...entries].sort((a, b) => (b.trades ?? 0) - (a.trades ?? 0))[0];
+  const worst = sorted[sorted.length - 1];
+  const verb = (side: string) => side === "Sell" || side === "Auto-sell" ? "Sold" : "Covered";
+  const awards = ([
+    bestTrade?.bestTrade && { label: "Best single trade", who: `Terminal ${pad2(bestTrade.terminalNumber)}`, detail: `${verb(bestTrade.bestTrade.side)} ${shortName(bestTrade.bestTrade.symbol)}`, amount: signedMoney(bestTrade.bestTrade.realized), tone: "up", stock: undefined },
+    busiest && (busiest.trades ?? 0) > 0 && { label: "Most active trader", who: `Terminal ${pad2(busiest.terminalNumber)}`, detail: `${busiest.trades} ${busiest.trades === 1 ? "order" : "orders"} placed`, tone: "accent", stock: undefined },
+    sorted[0] && { label: "Stock of the batch", who: shortName(sorted[0].symbol), detail: signedPct(changePct(sorted[0])), tone: "up", stock: sorted[0] },
+    worst && { label: "Flop of the batch", who: shortName(worst.symbol), detail: signedPct(changePct(worst)), tone: "down", stock: worst },
+  ] as (Award | false | null | undefined)[]).filter((award): award is Award => Boolean(award)).slice(0, 4);
   // The chart: the index from the open to the close, the 10,000 start as a dashed line, news as dots.
   const duration = Math.max(1, world.duration);
   const points = path.length >= 2 ? path : [{ t: 0, v: 10_000 }, { t: duration, v: world.index }];
@@ -330,7 +385,7 @@ function BatchReport({ world, path, still }: { world: PublicWorld | null; path: 
   });
   const index = (value: number) => value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return <section className={`stage-report ${up ? "is-up" : "is-down"}`} aria-label={`Batch ${pad2(world.batch)} report`}>
-    <header><h2>Batch {pad2(world.batch)} report</h2><span className="report-stamp">Closed</span></header>
+    <header><h2><span>Batch {pad2(world.batch)}</span> awards</h2><span className="report-stamp">Closed</span></header>
     <article className="report-market">
       <div className="report-market-head"><small>Dalaal-10</small><strong>{index(close)}</strong><b>{up ? "▲" : "▼"} {Math.abs(world.indexChange).toFixed(2)}%</b></div>
       <svg className="report-chart" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
@@ -343,19 +398,13 @@ function BatchReport({ world, path, still }: { world: PublicWorld | null; path: 
       </svg>
       <p className="report-chart-foot"><span>Open 10,000.00</span><span><i className="is-major"/>Major news <i/>Minor news</span><span>Close</span></p>
     </article>
-    <article className="report-movers">
-      <h3>Biggest movers</h3>
-      {movers.map((stock, i) => { const move = changePct(stock); return <div key={stock.symbol} className={move >= 0 ? "up" : "down"} style={{ "--i": i, "--w": `${Math.abs(move) / widest * 100}%` } as React.CSSProperties}>
-        <span className="report-mover-name"><Logo stock={stock} compact/><strong>{shortName(stock.symbol)}</strong></span>
-        <span className="report-mover-bar"><i/></span>
-        <b>{signedPct(move)}</b>
-      </div>; })}
-    </article>
-    <div className="report-stats">
-      {leader && <p><small>Winner</small><b className={leader.returnPct >= 0 ? "up" : "down"}>{signedPct(leader.returnPct)}</b><span>Terminal {pad2(leader.terminalNumber)}</span></p>}
-      <p><small>Room average</small><b className={average >= 0 ? "up" : "down"}>{signedPct(average)}</b><span>{entries.length} {entries.length === 1 ? "terminal" : "terminals"}</span></p>
-      <p><small>Stories</small><b>{stories.length}</b><span>{majors} major · {stories.length - majors} minor</span></p>
-    </div>
+    <p className="report-strip"><span>Room average <b className={average >= 0 ? "up" : "down"}>{signedPct(average)}</b></span><span>{stories.length} {stories.length === 1 ? "story" : "stories"} <b>{majors} major</b></span></p>
+    <ol className="report-awards">{awards.map((award, i) => <li key={award.label} className={`award tone-${award.tone}`} style={{ "--i": i } as React.CSSProperties}>
+      <div className="award-inner">
+        <div className="award-back"><small>{award.label}</small><b>?</b><span>The envelope, please</span></div>
+        <div className="award-front"><small>{award.label}</small><span className="award-who">{award.stock ? <Logo stock={award.stock} compact/> : <svg viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>}<strong>{award.who}</strong></span><span className="award-detail">{award.detail}{award.amount && <b> · {award.amount}</b>}</span></div>
+      </div>
+    </li>)}</ol>
     {entries.length > 0 && <article className="report-beat">
       <h3>Beat the Dalaal-10 <span>{beat.length} of {entries.length}</span></h3>
       <ol>{entries.map((entry, i) => <li key={entry.terminalNumber} className={entry.returnPct > world.indexChange ? "is-beat" : ""} style={{ "--i": i } as React.CSSProperties}>{pad2(entry.terminalNumber)}</li>)}</ol>
@@ -420,8 +469,8 @@ function Leaderboard({ world, final, onShowMarket, still = false }: { world: Pub
   const fill = (value: number) => hi > lo ? 18 + 82 * (value - lo) / (hi - lo) : 100;
   const tone = (entry: PublicLeaderboardEntry) => entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat";
   const podium = [entries[1], entries[0], entries[2]]; // second, first, third: the winner stands in the middle
-  return <section ref={board} className={`stage-board lb${final ? " is-final" : ""}`} aria-label={final ? "Final standings" : "Standings"} style={{ "--count": entries.length } as React.CSSProperties}>
-    {leadBanner && <div className="stage-lead" key={leadBanner.key} role="status"><span>New leader</span><strong>Terminal {pad2(leadBanner.terminal)} takes the lead</strong></div>}
+  return <section ref={board} className={`stage-board lb${final ? " is-final" : ""}${leadBanner ? " has-new-leader" : ""}`} aria-label={final ? "Final standings" : "Standings"} style={{ "--count": entries.length } as React.CSSProperties}>
+    {leadBanner && <div className="stage-lead" key={leadBanner.key} role="status"><b>Host</b><strong>Terminal {pad2(leadBanner.terminal)} takes the lead!</strong></div>}
     <header className="stage-board-head">
       <h2>{final ? "Final standings" : "Standings"}</h2>
       <span className="stage-board-meta">{final ? `Batch ${pad2(world?.batch ?? 1)} · closed` : entries.length ? `${entries.length} ${entries.length === 1 ? "terminal" : "terminals"} trading` : "No trades yet"}</span>
@@ -431,6 +480,7 @@ function Leaderboard({ world, final, onShowMarket, still = false }: { world: Pub
         const place = slot === 1 ? 1 : slot === 0 ? 2 : 3;
         if (!entry) return <div className={`lb-step place-${place} is-empty`} key={`empty-${place}`} aria-hidden="true"><b className="lb-medal">{place}</b><strong className="lb-terminal">?</strong><i className="lb-plinth"><span>{PLACE[place - 1]}</span></i></div>;
         return <div className={`lb-step place-${place} status-${entry.status}`} key={entry.terminalNumber} ref={keep(entry.terminalNumber)} aria-label={`${PLACE[place - 1]}: terminal ${pad2(entry.terminalNumber)}, ${money(entry.totalValue, 0)}, ${signedPct(entry.returnPct)}`}>
+          {final && <i className="lb-spotlight" aria-hidden="true"/>}
           {place === 1 && <i className="lb-rays" aria-hidden="true"/>}
           {place === 1 && <svg className="stage-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>}
           {place === 1 && final && <b className="lb-champion" aria-hidden="true">Champion</b>}
@@ -439,11 +489,11 @@ function Leaderboard({ world, final, onShowMarket, still = false }: { world: Pub
           <strong className="lb-terminal">{pad2(entry.terminalNumber)}<MoveBadge delta={moves[entry.terminalNumber]?.delta}/></strong>
           <span className="lb-value">{final ? <CountMoney to={entry.totalValue} delay={REVEAL_AT[place - 1] + .3} still={still}/> : money(entry.totalValue, 0)}</span>
           <span className={`lb-return ${tone(entry)}`}>{signedPct(entry.returnPct)}</span>
-          <i className="lb-plinth"><span>{PLACE[place - 1]}</span></i>
+          <i className="lb-plinth">{place === 1 && <b className="lb-bulbs" aria-hidden="true"/>}<span>{PLACE[place - 1]}</span></i>
         </div>;
       })}
     </div>
-    {final && leader && <p className="lb-drumroll" aria-hidden="true"><span>And the winner is</span><i/><i/><i/></p>}
+    {final && leader && <p className="lb-drumroll" aria-hidden="true"><span>And the winner is<i/><i/><i/></span></p>}
     {entries.length === 0 && <p className="lb-wait"><strong>Waiting for the first trade</strong><span>A terminal joins the board with its first buy or short.</span></p>}
     {entries.length > 3 && <ol className="lb-race" start={4}>
       {entries.slice(3).map((entry, i) => <li key={entry.terminalNumber} ref={keep(entry.terminalNumber)} className={`lb-row ${tone(entry)} status-${entry.status}`} style={{ "--fill": `${fill(entry.totalValue)}%`, "--r": entries.length - 4 - i } as React.CSSProperties}>
@@ -783,6 +833,8 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   // The moment trading opens: a burst of light and "Market open".
   const [opening, setOpening] = useState(false);
   const [closing, setClosing] = useState(false);
+  // The curtains close on the market, then open on the final standings.
+  const [curtainOpen, setCurtainOpen] = useState(false);
   // The host can switch animations off for every audience screen.
   const motion = world?.controls.animateAudience !== false;
   const flags = world?.controls.animations;
@@ -821,13 +873,26 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   }, [openKey]);
   useEffect(() => {
     if (!closeKey) return;
-    const timer = window.setTimeout(() => setClosing(false), 5200);
-    return () => window.clearTimeout(timer);
+    setCurtainOpen(false);
+    const open = window.setTimeout(() => setCurtainOpen(true), 4000);
+    const done = window.setTimeout(() => setClosing(false), 5400);
+    return () => { window.clearTimeout(open); window.clearTimeout(done); };
   }, [closeKey]);
 
   const visibleNews = latestNewsSet(world);
   const newsSetKey = `${world?.batch ?? 0}:${visibleNews.map(item => item.id).join(",")}`;
   const showNews = visibleNews.length > 0 && dismissedSet !== newsSetKey;
+  // A new set mid-batch opens with a "Breaking news" slab across the news panel, then the headlines land.
+  const lastSet = useRef("");
+  const [breaking, setBreaking] = useState("");
+  useEffect(() => {
+    const before = lastSet.current;
+    lastSet.current = newsSetKey;
+    if (!before || before === newsSetKey || !visibleNews.length || world?.status !== "live" || !on("newsArrival")) return;
+    setBreaking(newsSetKey);
+    const timer = window.setTimeout(() => setBreaking(""), 1500);
+    return () => window.clearTimeout(timer);
+  }, [newsSetKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // When a set lands, the companies it touches light up for a few seconds (no direction is revealed).
   const [glowKey, setGlowKey] = useState("");
   const seenSet = useRef<string | null>(null);
@@ -862,7 +927,8 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     return () => window.clearTimeout(timer);
   }, [status, world?.batch]);
   // The closing finale plays over the market itself; the standings and the invitation wait for it.
-  const finale = on("closing") && closing && status === "closed";
+  const curtains = on("closing") && closing && status === "closed";
+  const finale = curtains && !curtainOpen;
   const invite = !finale && on("invite") && (status === "ready" || (status === "closed" && (inviteTurn || !standingsAfterClose)));
   const final = standingsAfterClose && !invite && !finale;
   // A drumroll and a "ta-da" as the winner is revealed, once per batch.
@@ -905,7 +971,8 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
 
     {invite ? <div className="stage-body is-invite"><InviteScene world={world} still={!motion}/></div> : <div className="stage-body">
       {!final && <section className="stage-grid" aria-label="All 25 companies">{ordered.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} news={newsGlow.has(stock.symbol)} variant={variant}/>)}</section>}
-      {!final && <section className={`stage-news${showNews ? "" : " is-empty"}`} aria-label="Latest news">
+      {!final && <section className={`stage-news${showNews ? "" : " is-empty"}${breaking === newsSetKey ? " is-breaking" : ""}`} aria-label="Latest news">
+        {breaking === newsSetKey && <div className="stage-breaking" aria-hidden="true"><b>Breaking news</b><span>{visibleNews.length} {visibleNews.length === 1 ? "story" : "stories"} just in</span></div>}
         <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>{showNews ? "Latest news" : "News"}</span>{showNews && <button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button>}</header>
         {showNews ? <div className={`stage-news-cards count-${visibleNews.length}`}>{visibleNews.map((item, index) => <article key={item.id} className={`type-${item.type}`} style={{ "--i": index } as React.CSSProperties}>
           <div className="stage-news-meta"><span className={`stage-tag ${item.type}`}>{item.type === "major" ? "Major" : "Minor"}</span><span className="stage-news-scope">{scopeText(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div>
@@ -916,23 +983,21 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
       {final && <BatchReport world={world} path={indexPath} still={!on("finalReveal")}/>}
     </div>}
 
-    {finale && <div className="stage-finale" role="status" aria-live="polite">
-      <i className="stage-finale-veil" aria-hidden="true"/>
-      <span className="stage-finale-rings" aria-hidden="true"><i/><i/><i/></span>
-      <div className="stage-finale-card">
+    {curtains && <div className={`stage-curtains${curtainOpen ? " is-open" : ""}`} role="status" aria-live="polite">
+      <i className="curtain is-left" aria-hidden="true"/><i className="curtain is-right" aria-hidden="true"/><i className="curtain-valance" aria-hidden="true"/>
+      <ShowSign className="curtain-sign">
         <small>Closing bell · {batchLabel}</small>
         <strong>Market closed</strong>
-        <hr/>
         <p className="stage-finale-index"><span>Dalaal-10 closes at</span><b>{indexText}</b><em className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</em></p>
-        <p className="stage-finale-next">{(world?.leaderboard.length ?? 0) > 0 ? "Final standings next" : "Thanks for trading"}</p>
-      </div>
+        <p className="stage-finale-next">{(world?.leaderboard.length ?? 0) > 0 ? "And now, the final standings" : "Thanks for trading"}</p>
+      </ShowSign>
     </div>}
     {final && on("confetti") && <div className="stage-coins" aria-hidden="true">{COINS.map((coin, i) => <i key={i} style={{ "--x": `${coin.x}%`, "--delay": `${coin.delay}s`, "--size": coin.size, "--spin": `${coin.spin}deg` } as React.CSSProperties}/>)}</div>}
     {final && on("confetti") && <div className="stage-cannons" aria-hidden="true">{CANNON.map((piece, i) => <i key={i} className={`side-${piece.side} tone-${piece.tone}`} style={{ "--dx": `${piece.dx}vw`, "--dy": `${piece.dy}vh`, "--delay": `${piece.delay}s`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
     {final && on("confetti") && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
     {counting && (on("countdown") ? <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/> : <div className="stage-countdown is-plain" role="status" aria-live="assertive"><div className="cd-dial">{countdownSeconds > 0 && <strong>{countdownSeconds}</strong>}</div></div>)}
     {lastTen && on("lastTen") && <div className="stage-last-ten" aria-hidden="true" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}
-    {opening && on("marketOpen") && <div className="stage-open" aria-hidden="true"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
+    {opening && on("marketOpen") && <div className="stage-open" aria-hidden="true"><i className="show-spot is-left"/><i className="show-spot is-right"/><i className="stage-open-burst"/><ShowSign className="open-sign"><small>{batchLabel} · the bell has rung</small><strong>Market open</strong><span>Let the trading begin!</span></ShowSign></div>}
     {bells.needsTap && sound && <button type="button" className="stage-sound-prompt" onClick={() => undefined}><Icon name="sound"/><span><b>Tap to turn on the bells</b><small>Browsers keep sound off until the screen is touched once</small></span></button>}
     {preview && <a className="stage-preview-link" href="/ui-preview">Preview: compare all versions</a>}
   </main>;
