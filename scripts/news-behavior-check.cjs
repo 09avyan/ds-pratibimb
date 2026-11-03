@@ -24,11 +24,11 @@ for(const sign of [1,-1]) {
 }
 const a={headline:'Business loan rates fall',topic:'credit-cost',direction:1},b={headline:'Business loan rates rise',topic:'credit-cost',direction:-1};
 assert(newsContradicts(a,b));assert.throws(()=>validateNewsSelection([a,b]));assert.throws(()=>validateNewsSelection([b],[a]));
-// The brain starts 10 s in, so its first set (50–75 s from the start) lands after the 40 s checked here.
+// The brain starts 10 s in, so its first set (35–50 s from the start) lands after the 40 s checked here.
 const w=E.freshWorld('live',now);E.hostAction(w,'start',{},now);E.advance(w,w.startedAt+10_000);
 const tickBefore=w.tick,batchBefore=w.batch;E.hostAction(w,'autonomous-start',{},w.lastTickAt);
 assert(w.autonomousNews.enabled);assert.equal(w.batch,batchBefore);assert.equal(w.tick,tickBefore);assert(w.autonomousNews.nextAt>w.lastTickAt);
-for(let second=5;second<=40;second+=5){E.advance(w,w.startedAt+10_000+second*1000);assert.equal(w.autonomousNews.plannedAt,w.startedAt+10_000);assert(w.autonomousNews.nextAt<=w.autonomousNews.plannedAt+105_000);}
+for(let second=5;second<=30;second+=5){E.advance(w,w.startedAt+10_000+second*1000);assert.equal(w.autonomousNews.plannedAt,w.startedAt+10_000);assert(w.autonomousNews.nextAt<=w.autonomousNews.plannedAt+105_000);}
 const pauseAt=w.lastTickAt,oldDue=w.autonomousNews.nextAt;E.hostAction(w,'pause',{},pauseAt);E.advance(w,pauseAt+10_000);E.hostAction(w,'resume',{},pauseAt+20_000);assert.equal(w.autonomousNews.nextAt,oldDue+20_000);
 // Keep duplicates, offline devices and finished participants from distorting rank.
 const rankWorld=E.freshWorld('live',now);rankWorld.batch=1;
@@ -71,7 +71,7 @@ const turbulent=flat();turbulent.autonomousNews.plannedAt=now-15000;
 for(let n=1;n<=3;n++){const p=E.newPlayer('reader-'+n,turbulent.batch,now,true,n);turbulent.sessions[p.id]=p;}
 turbulent.headlines=[{...turbulent.news[0],createdAt:now-15000}];
 turbulent.stocks.forEach(stock=>{stock.newsBias=.003;stock.newsBiasClock={elapsed:15,duration:90};stock.newsMoves=[{logReturn:.04,elapsed:15,duration:35}];});
-const calm=chooseAutonomousNewsPlan(turbulent,now);assert.equal(calm.strategy,'calm');assert.equal(calm.indices.length,2);assert(calm.intervalSeconds>=70&&calm.intervalSeconds<=75);
+const calm=chooseAutonomousNewsPlan(turbulent,now);assert.equal(calm.strategy,'calm');assert.equal(calm.indices.length,2);assert(calm.intervalSeconds>=45&&calm.intervalSeconds<=50);
 assert(calm.indices.some(i=>turbulent.news[i].type==='minor'),'calm mode should include gentler stories');
 const nearSettled=flat();nearSettled.autonomousNews.plannedAt=now-60000;
 nearSettled.headlines=[{...nearSettled.news[0],createdAt:now-60000}];
@@ -79,7 +79,7 @@ nearSettled.sessions.p=E.newPlayer('quiet-player',nearSettled.batch,now,true,1);
 nearSettled.stocks[0].newsBias=.001;nearSettled.stocks[0].newsBiasClock={elapsed:60,duration:75};
 const overlap=chooseAutonomousNewsPlan(nearSettled,now);assert.equal(overlap.strategy,'lively');assert(overlap.intervalSeconds<=75);
 const waiting=structuredClone(nearSettled);waiting.stocks[0].newsBiasClock={elapsed:40,duration:90};waiting.autonomousNews.plannedAt=now-40000;
-const waitPlan=chooseAutonomousNewsPlan(waiting,now);assert(waitPlan.intervalSeconds<=75,'news keeps a 50–75s cadence even while earlier effects continue');
+const waitPlan=chooseAutonomousNewsPlan(waiting,now);assert(waitPlan.intervalSeconds<=75,'news keeps a 35–50s cadence even while earlier effects continue');
 const wealthy=structuredClone(nearSettled);wealthy.sessions.p.cash=9999999;
 assert.deepEqual(chooseAutonomousNewsPlan(wealthy,now).indices,overlap.indices,'player wealth alone must not change story selection');
 const closing=flat();closing.remaining=20;E.hostAction(closing,'autonomous-start',{},now);closing.autonomousNews.nextAt=now;
@@ -100,6 +100,6 @@ assert.equal(contextReading.engagedTerminals,1);assert.equal(contextReading.rece
 console.log('PASS: live session context and all trading-side signals.');
 
 // Starting the brain opens a fresh batch only when there is no active one.
-const startWithBrain=E.freshWorld('live',now);const initialBatch=startWithBrain.batch;E.hostAction(startWithBrain,'autonomous-start',{},now);assert.equal(startWithBrain.status,'countdown');assert.equal(startWithBrain.batch,initialBatch+1);assert.equal(startWithBrain.startedAt,now+5000);assert(startWithBrain.autonomousNews.enabled);assert(startWithBrain.autonomousNews.nextAt>=startWithBrain.startedAt+50000);
+const startWithBrain=E.freshWorld('live',now);const initialBatch=startWithBrain.batch;E.hostAction(startWithBrain,'autonomous-start',{},now);assert.equal(startWithBrain.status,'countdown');assert.equal(startWithBrain.batch,initialBatch+1);assert.equal(startWithBrain.startedAt,now+5000);assert(startWithBrain.autonomousNews.enabled);assert(startWithBrain.autonomousNews.nextAt>=startWithBrain.startedAt+35000);
 E.hostAction(startWithBrain,'autonomous-start',{},now+1000);assert.equal(startWithBrain.batch,initialBatch+1,'countdown start cannot create another batch');E.advance(startWithBrain,now+6000);const liveBatch=startWithBrain.batch;E.hostAction(startWithBrain,'autonomous-start',{},now+6000);assert.equal(startWithBrain.batch,liveBatch);assert.equal(startWithBrain.status,'live');
 E.hostAction(startWithBrain,'end',{},now+7000);E.hostAction(startWithBrain,'autonomous-start',{},now+8000);assert.equal(startWithBrain.status,'countdown');assert.equal(startWithBrain.batch,liveBatch+1);assert(startWithBrain.autonomousNews.history.some(entry=>entry.kind==='started'));console.log('PASS: brain start opens ready/closed batches, preserves live/countdown batches and uses the normal countdown.');

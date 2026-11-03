@@ -198,15 +198,15 @@
     "semantic_hash": ""
   },
   "scripts/brain-pacing-check.cjs": {
-    "mtime": 1793649452.0567188,
-    "seen": 1793650933.0448804,
-    "ast_hash": "70de1118a338ae5282875aaacd0f5cd9",
+    "mtime": 1793683941.2329578,
+    "seen": 1793684633.7358909,
+    "ast_hash": "2f158aaa2f4e905c25d34806506c0759",
     "semantic_hash": ""
   },
   "scripts/brain-scenarios.cjs": {
-    "mtime": 1793636778.762684,
-    "seen": 1793638310.0058622,
-    "ast_hash": "69eb6890a04ad55d42a1def1dbc3da4d",
+    "mtime": 1793683825.6867037,
+    "seen": 1793684633.735893,
+    "ast_hash": "a4ed09b6180b4a9c02b9d8b804c18f8d",
     "semantic_hash": ""
   },
   "scripts/brain-settings-check.cjs": {
@@ -216,9 +216,9 @@
     "semantic_hash": ""
   },
   "scripts/engine-smoke.cjs": {
-    "mtime": 1793636778.762684,
-    "seen": 1793638310.0059247,
-    "ast_hash": "6bfeb7cb92c28236edffd291cd22b8b1",
+    "mtime": 1793684532.9243317,
+    "seen": 1793684633.7359166,
+    "ast_hash": "8cfeed7842a43eb795ffa91cf08c548c",
     "semantic_hash": ""
   },
   "scripts/game-logs-check.cjs": {
@@ -228,9 +228,9 @@
     "semantic_hash": ""
   },
   "scripts/news-behavior-check.cjs": {
-    "mtime": 1793649569.339286,
-    "seen": 1793650933.044991,
-    "ast_hash": "02314b9d2e3c1db87e19d293e4d29a47",
+    "mtime": 1793684623.1435826,
+    "seen": 1793684633.7359364,
+    "ast_hash": "34aa725a9dea91b8b16a5eb249b07341",
     "semantic_hash": ""
   },
   "scripts/news-direction-check.cjs": {
@@ -258,9 +258,9 @@
     "semantic_hash": ""
   },
   "src/game/autonomous-news.ts": {
-    "mtime": 1793636778.7643144,
-    "seen": 1793638310.0060477,
-    "ast_hash": "c6304e78bf96b324e044e2cc82e64080",
+    "mtime": 1793684482.1560087,
+    "seen": 1793684633.7361329,
+    "ast_hash": "f01cb7b7ce6f3693f3f294a6b7a74382",
     "semantic_hash": ""
   },
   "src/game/catalog.ts": {
@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "src/game/engine.ts": {
-    "mtime": 1793664277.3066983,
-    "seen": 1793665217.707558,
-    "ast_hash": "d2b267c27a213e87f18c500600eeb7fe",
+    "mtime": 1793684623.1474884,
+    "seen": 1793684633.7361565,
+    "ast_hash": "d13dbe96253fafb1b7e2e2fee0f4caf7",
     "semantic_hash": ""
   },
   "src/game/host-auth.ts": {
@@ -300,9 +300,9 @@
     "semantic_hash": ""
   },
   "src/game/news-timing.ts": {
-    "mtime": 1793636778.7663357,
-    "seen": 1793638310.0061545,
-    "ast_hash": "9d4241b1b012c7cad7b33ee492a42955",
+    "mtime": 1793683825.6762722,
+    "seen": 1793684633.7362432,
+    "ast_hash": "659a3f9fb341e22608eecc16ed8d4f5d",
     "semantic_hash": ""
   },
   "src/game/store.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793680383.292184,
-    "seen": 1793680386.2940502,
-    "ast_hash": "ebcba94e14f53f108be6c519d8d1f7f3",
+    "mtime": 1793684623.1465163,
+    "seen": 1793684633.7364287,
+    "ast_hash": "c98fcaa7e3683d3cafb803a9b44a6807",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   "scripts/brain-window-check.cjs": {
-    "mtime": 1793649596.0268822,
-    "seen": 1793650933.0449507,
-    "ast_hash": "d6157d84f33fe7e55aa03eb8f1ac93ed",
+    "mtime": 1793684623.1506455,
+    "seen": 1793684633.735915,
+    "ast_hash": "fbc74d975b98bf96ffbe066cab000246",
     "semantic_hash": ""
   },
   "scripts/store-format-check.cjs": {
