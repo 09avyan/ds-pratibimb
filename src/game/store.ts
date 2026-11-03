@@ -1,5 +1,6 @@
 import type { Mode, Stock, World } from "./types";
 import { freshWorld } from "./engine";
+import { makeNews } from "./catalog";
 
 type Stored = { version: number; state: World };
 
@@ -37,8 +38,12 @@ type StoredStock = World["stocks"][number] & { packedCandles?: PackedCandles };
 // Candles are stored as small whole numbers: time step in milliseconds, prices in paise as
 // changes from the previous candle, then volume. About half the size of plain rows.
 const paise = (value: number) => Math.round(value * 100);
+// The news catalog is rebuilt from its seed (it is the same for every save of a batch), so it is not stored.
+const newsSeed = (world: World) => { const match = /^news-v\d+-(\d+)-0$/.exec(world.news[0]?.id ?? ""); return match ? Number(match[1]) : null; };
 export function packWorld(world: World): World {
-  return { ...world, stocks: world.stocks.map(stock => {
+  const seed = newsSeed(world);
+  const news = seed !== null && JSON.stringify(world.news) === JSON.stringify(makeNews(seed)) ? [] : world.news;
+  return { ...world, news, ...(news.length ? {} : { newsSeed: seed }), stocks: world.stocks.map(stock => {
     const t0 = stock.candles[0]?.time ?? 0;
     let lastTime = t0, lastClose = paise(stock.candles[0]?.open ?? 0);
     const d: number[] = [];
@@ -51,6 +56,9 @@ export function packWorld(world: World): World {
   }) };
 }
 export function unpackWorld(world: World): World {
+  const seed = (world as World & { newsSeed?: number }).newsSeed;
+  if (!world.news?.length && typeof seed === "number") world.news = makeNews(seed);
+  delete (world as World & { newsSeed?: number }).newsSeed;
   world.stocks = world.stocks.map(raw => {
     const { packedCandles, ...stock } = raw as StoredStock;
     if (!packedCandles) return stock;

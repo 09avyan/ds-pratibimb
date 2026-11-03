@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { advance, hostAction, indexValue } from "@/game/engine";
+import { advance, advanceForPoll, hostAction, indexValue } from "@/game/engine";
 import { mutate } from "@/game/store";
 import type { World } from "@/game/types";
 
@@ -22,7 +22,7 @@ function publicStatus(world: World) {
 
 export async function GET() {
   try {
-    const { world } = await mutate("live", advance, false, 700, true);
+    const { world } = await mutate("live", state => advanceForPoll(state), false, 700, true);
     return NextResponse.json(publicStatus(world), { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "The shared game is unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
