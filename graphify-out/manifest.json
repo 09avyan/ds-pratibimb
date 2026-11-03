@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/components/trader.tsx": {
-    "mtime": 1793689649.4025276,
-    "seen": 1793689656.2877095,
-    "ast_hash": "b73ba375a901d2b2648ae7aee1c64efe",
+    "mtime": 1793690017.9761999,
+    "seen": 1793690033.143072,
+    "ast_hash": "a543487c7e3c8498eb94f980ca2bf170",
     "semantic_hash": ""
   },
   "app/host/page.tsx": {
