@@ -227,7 +227,7 @@ The end-of-round screen tells the round as a story on one 1080p screen:
 - **Badges as stickers:** all nine; the locked ones say how to unlock them.
 - **One tip** for the next round, and the return button.
 
-Motion plays once in about 3 seconds, with confetti after a profitable round. It uses each version's own colours and stops with the host's trading-animation switch or under reduced motion.
+Press Space (or the button) to return to the ready state. On a short window the screen scrolls. Motion plays once in about 3 seconds, with confetti after a profitable round. It uses each version's own colours and stops with the host's trading-animation switch or under reduced motion.
 
 ### V4 trading screens
 - Small labels and figures were raised for parents on a 24" monitor: labels ≥ 11px, body text ≥ 13px, prices 15–18px and the header figures (clock, cash, portfolio, P&L) 18px. Layout and other versions are unchanged.

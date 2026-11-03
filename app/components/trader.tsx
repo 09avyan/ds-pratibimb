@@ -281,7 +281,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       const target = event.target as HTMLElement | null;
       if (event.code !== "Space" || event.repeat || target?.closest("input, textarea, select, button, [contenteditable]")) return;
       event.preventDefault();
-      document.querySelector<HTMLButtonElement>(".report-ready")?.click();
+      document.querySelector<HTMLButtonElement>(".wrap-cta")?.click();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
