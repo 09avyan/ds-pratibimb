@@ -330,6 +330,9 @@ function pushHeadlines(world: World, presetIndices: number[], at = Date.now()) {
   validateNewsSelection(indices.map(index => presets[index]), world.headlines);
   recordGameLog(world, { at, kind: "news", message: indices.map(index => presets[index].headline).join(" | "), data: { indices: indices.join(","), count: indices.length } });
   if (world.autonomousNews && indices.length) world.autonomousNews.lastPublishedElapsed = world.status === "live" ? world.duration - world.remaining : 0;
+  // Remember what has run so later batches tell every story before any repeats.
+  world.newsUsage ??= {};
+  for (const index of indices) world.newsUsage[index] = (world.newsUsage[index] ?? 0) + 1;
   const published = indices.map(index => {
     const news = { ...presets[index], id: id(), createdAt: at };
     const range = newsImpactRange(news);
