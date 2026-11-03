@@ -298,7 +298,22 @@ function BatchReport({ world }: { world: PublicWorld | null }) {
   </section>;
 }
 
-function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null; final: boolean; onShowMarket?: () => void }) {
+/** A portfolio counting up (or down) from the starting ₹10,00,000 to its final value, from `delay` seconds. */
+function CountMoney({ to, delay, still }: { to: number; delay: number; still: boolean }) {
+  const [value, setValue] = useState(still ? to : 1_000_000);
+  useEffect(() => {
+    if (still) { setValue(to); return; }
+    let raf = 0; const start = performance.now() + delay * 1000;
+    const step = (now: number) => { const p = Math.min(1, Math.max(0, (now - start) / 1100)); setValue(1_000_000 + (to - 1_000_000) * (1 - (1 - p) ** 3)); if (p < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [to, delay, still]);
+  return <>{money(value, 0)}</>;
+}
+// When each place is revealed in the final standings (seconds after the board appears).
+const REVEAL_AT = [5, 2.9, 2.2];
+
+function Leaderboard({ world, final, onShowMarket, still = false }: { world: PublicWorld | null; final: boolean; onShowMarket?: () => void; still?: boolean }) {
   const entries = world?.leaderboard ?? [];
   const moves = useRankMoves(entries);
   const rows = useRef(new Map<number, HTMLElement>());
@@ -353,22 +368,24 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
         return <div className={`lb-step place-${place} status-${entry.status}`} key={entry.terminalNumber} ref={keep(entry.terminalNumber)} aria-label={`${PLACE[place - 1]}: terminal ${pad2(entry.terminalNumber)}, ${money(entry.totalValue, 0)}, ${signedPct(entry.returnPct)}`}>
           {place === 1 && <i className="lb-rays" aria-hidden="true"/>}
           {place === 1 && <svg className="stage-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>}
+          {place === 1 && final && <b className="lb-champion" aria-hidden="true">Champion</b>}
           <b className="lb-medal">{entry.rank}</b>
           <small className="lb-label">Terminal</small>
           <strong className="lb-terminal">{pad2(entry.terminalNumber)}<MoveBadge delta={moves[entry.terminalNumber]?.delta}/></strong>
-          <span className="lb-value">{money(entry.totalValue, 0)}</span>
+          <span className="lb-value">{final ? <CountMoney to={entry.totalValue} delay={REVEAL_AT[place - 1] + .3} still={still}/> : money(entry.totalValue, 0)}</span>
           <span className={`lb-return ${tone(entry)}`}>{signedPct(entry.returnPct)}</span>
           <i className="lb-plinth"><span>{PLACE[place - 1]}</span></i>
         </div>;
       })}
     </div>
+    {final && leader && <p className="lb-drumroll" aria-hidden="true"><span>And the winner is</span><i/><i/><i/></p>}
     {entries.length === 0 && <p className="lb-wait"><strong>Waiting for the first trade</strong><span>A terminal joins the board with its first buy or short.</span></p>}
     {entries.length > 3 && <ol className="lb-race" start={4}>
-      {entries.slice(3).map(entry => <li key={entry.terminalNumber} ref={keep(entry.terminalNumber)} className={`lb-row ${tone(entry)} status-${entry.status}`} style={{ "--fill": `${fill(entry.totalValue)}%` } as React.CSSProperties}>
+      {entries.slice(3).map((entry, i) => <li key={entry.terminalNumber} ref={keep(entry.terminalNumber)} className={`lb-row ${tone(entry)} status-${entry.status}`} style={{ "--fill": `${fill(entry.totalValue)}%`, "--r": entries.length - 4 - i } as React.CSSProperties}>
         <i className="lb-bar" aria-hidden="true"/>
         <b className="lb-rank">{entry.rank}</b>
         <span className="lb-who"><strong>{pad2(entry.terminalNumber)}<MoveBadge delta={moves[entry.terminalNumber]?.delta}/></strong><small>{leader ? `${money(leader.totalValue - entry.totalValue, 0)} behind 1st` : ""}{!final && entry.status !== "live" ? ` · ${STATUS_LABEL[entry.status]}` : ""}</small></span>
-        <span className="lb-money"><span className="lb-value">{money(entry.totalValue, 0)}</span><span className={`lb-return ${tone(entry)}`}>{signedPct(entry.returnPct)}</span></span>
+        <span className="lb-money"><span className="lb-value">{final ? <CountMoney to={entry.totalValue} delay={.5 + (entries.length - 4 - i) * .12} still={still}/> : money(entry.totalValue, 0)}</span><span className={`lb-return ${tone(entry)}`}>{signedPct(entry.returnPct)}</span></span>
       </li>)}
     </ol>}
     {final && leader && <p className="stage-winner-line">Terminal {pad2(leader.terminalNumber)} finishes first with {money(leader.totalValue, 0)}, {signedMoney(leader.pnl)} on the starting ₹10,00,000.</p>}
@@ -423,6 +440,9 @@ const CANDLES = Array.from({ length: 28 }, (_, i) => {
   return { open, close, high: Math.max(open, close) + 3 + (i % 3), low: Math.min(open, close) - 3 - (i % 2) * 2 };
 });
 const CANDLE_LINE = smoothPath(CANDLES.map((candle, i) => ({ x: 18 + i * 35, y: 300 - candle.close * 3.4 })));
+// The winner's moment: gold coins rain down, and confetti fires from both bottom corners.
+const COINS = Array.from({ length: 34 }, (_, i) => ({ x: (i * 29.3 + 7) % 96, delay: (i % 11) * .09 + Math.floor(i / 11) * .22, size: 34 + (i * 17) % 22, spin: 540 + (i * 97) % 720 }));
+const CANNON = Array.from({ length: 56 }, (_, i) => ({ side: i % 2 ? "right" : "left", dx: (i % 2 ? -1 : 1) * (14 + (i * 13) % 34), dy: 48 + (i * 31) % 42, delay: (i % 7) * .035, spin: 300 + (i * 83) % 900, size: 14 + (i * 11) % 14, tone: i % 3 }));
 const CONFETTI = Array.from({ length: 140 }, (_, i) => ({ x: (i * 37.7) % 100, delay: (i % 14) * .13, drift: ((i * 53) % 40) - 20, spin: 280 + (i * 71) % 720, size: 14 + (i * 13) % 16, tone: i % 3 }));
 
 /** The rising candle chart drawn behind the countdown and the invitation. */
@@ -779,6 +799,13 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const finale = on("closing") && closing && status === "closed";
   const invite = !finale && on("invite") && (status === "ready" || (status === "closed" && (inviteTurn || !standingsAfterClose)));
   const final = standingsAfterClose && !invite && !finale;
+  // A drumroll and a "ta-da" as the winner is revealed, once per batch.
+  const fanfareFor = useRef(0);
+  useEffect(() => {
+    if (!final || !world || fanfareFor.current === world.batch || !on("finalReveal")) return;
+    fanfareFor.current = world.batch;
+    if (sound && world.leaderboard.length) bells.fanfare(3.4);
+  }, [final, world?.batch]); // eslint-disable-line react-hooks/exhaustive-deps
   const countdownSeconds = counting && world ? Math.max(0, Math.ceil((world.startedAt - clock) / 1000)) : 0;
   const remaining = useSmoothRemaining(world);
   const lowTime = status === "live" && (world ? remaining : 999) <= 30;
@@ -819,7 +846,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
           <p>{item.headline.split(" ").map((word, w) => <span className="stage-word" key={w} style={{ "--w": w } as React.CSSProperties}>{word} </span>)}</p>
         </article>)}</div> : <p className="stage-news-wait">{status === "live" ? "The next headlines are on their way." : "Headlines appear here once trading starts."}</p>}
       </section>}
-      <Leaderboard world={world} final={final} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
+      <Leaderboard world={world} final={final} still={!on("finalReveal")} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
       {final && <BatchReport world={world}/>}
     </div>}
 
@@ -834,6 +861,8 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
         <p className="stage-finale-next">{(world?.leaderboard.length ?? 0) > 0 ? "Final standings next" : "Thanks for trading"}</p>
       </div>
     </div>}
+    {final && on("confetti") && <div className="stage-coins" aria-hidden="true">{COINS.map((coin, i) => <i key={i} style={{ "--x": `${coin.x}%`, "--delay": `${coin.delay}s`, "--size": coin.size, "--spin": `${coin.spin}deg` } as React.CSSProperties}/>)}</div>}
+    {final && on("confetti") && <div className="stage-cannons" aria-hidden="true">{CANNON.map((piece, i) => <i key={i} className={`side-${piece.side} tone-${piece.tone}`} style={{ "--dx": `${piece.dx}vw`, "--dy": `${piece.dy}vh`, "--delay": `${piece.delay}s`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
     {final && on("confetti") && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
     {counting && (on("countdown") ? <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/> : <div className="stage-countdown is-plain" role="status" aria-live="assertive"><div className="cd-dial">{countdownSeconds > 0 && <strong>{countdownSeconds}</strong>}</div></div>)}
     {lastTen && on("lastTen") && <div className="stage-last-ten" aria-hidden="true" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}
