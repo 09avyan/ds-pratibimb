@@ -115,7 +115,9 @@ export async function mutate<T>(mode: Mode, update: (world: World) => T | Promis
   }
   // Live mode and production always use the shared Supabase store.
   if (mode === "test" && process.env.NODE_ENV === "development" && (!url() || !key() || !secret())) return mutateLocalTest(update);
-  for (let attempt = 0; attempt < 14; attempt++) {
+  // Give up after about 4.5 seconds so no screen waits longer than that for one answer.
+  const deadline = Date.now() + 4500;
+  for (let attempt = 0; attempt < 14 && (attempt === 0 || Date.now() < deadline); attempt++) {
     const cached = attempt === 0 && readCacheMs > 0 ? readCache.get(mode) : undefined;
     const fromCache = Boolean(cached && Date.now() - cached.at < readCacheMs);
     const stored: Stored | null = fromCache && cached ? { version: cached.version, state: structuredClone(cached.state) } : await load(mode);

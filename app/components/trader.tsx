@@ -152,6 +152,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const [drawer, setDrawer] = useState(false);
   const [dismissedNews, setDismissedNews] = useState("");
   const inFlight = useRef(false);
+  const staleAnswers = useRef(0);
   const submitting = useRef(false);
   const readController = useRef<AbortController | null>(null);
   const mutationVersion = useRef(0);
@@ -186,7 +187,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     const currentWorld = worldRef.current;
     const includeCandles = !audienceOnly && viewRef.current === "markets";
     const canReuseChart = includeCandles && chartSymbol.current === requestedStock && chartLastTime.current > 0;
-    const timeout = window.setTimeout(() => controller.abort(), 12000);
+    let timedOut = false;
+    const timeout = window.setTimeout(() => { timedOut = true; controller.abort(); }, 4000);
     try {
       const terminalQuery = terminal ? `&terminal=${terminal}` : "";
       const previewQuery = preview ? "&preview=1" : "";
@@ -201,7 +203,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       // Server instances can answer slightly out of order; never step back to an older state of the same batch,
       // or the screen flickers between countdown and live and misses the opening and closing moments.
       const previous = worldRef.current;
-      if (previous && data.batch === previous.batch && data.mode === previous.mode && data.revision < previous.revision) return;
+      if (previous && data.batch === previous.batch && data.mode === previous.mode && data.revision < previous.revision && staleAnswers.current++ < 3) return;
+      staleAnswers.current = 0;
       let nextWorld = mergeChartData(data as PublicWorld, worldRef.current, requestedStock, includeCandles);
       if (includeCandles) {
         chartSymbol.current = requestedStock;
@@ -209,7 +212,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       }
       worldRef.current = nextWorld;
       setWorld(nextWorld);
-    } catch (err) { if (!controller.signal.aborted) { failures.current += 1; nextSyncAt.current = Date.now() + Math.min(15000, 1000 * 2 ** failures.current); if (failures.current === 1) setToast(err instanceof Error ? err.message : "Reconnecting to the market…"); } }
+    } catch (err) { if (!controller.signal.aborted || timedOut) { failures.current += 1; nextSyncAt.current = Date.now() + Math.min(2000, 400 * failures.current); if (failures.current === 1) setToast(err instanceof Error ? err.message : "Reconnecting to the market…"); } }
     finally { clearTimeout(timeout); if (readController.current === controller) { inFlight.current = false; readController.current = null; } }
   }, [sessionId, mode, audienceOnly, terminal, uiVariant, preview]);
   useEffect(() => { if (!sessionId || audienceOnly) return; void sync(); const timer = window.setInterval(sync, world?.controls.tickRate === .5 ? 500 : 1000); return () => window.clearInterval(timer); }, [sessionId, audienceOnly, sync, world?.controls.tickRate]);
@@ -306,7 +309,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       const includeCandles = !audienceOnly && (viewRef.current === "markets" || action === "sandbox-start");
       const canReuseChart = includeCandles && action !== "sandbox-start" && chartSymbol.current === requestedStock && chartLastTime.current > 0;
       const candlesSince = canReuseChart ? Math.max(0, chartLastTime.current - 2000) : undefined;
-      const res = await fetch("/api/game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, sessionId, terminal, localPreview: preview, action, selectedStock: requestedStock, includeCandles, candlesSince, requestId: crypto.randomUUID(), ...payload }) });
+      const res = await fetch("/api/game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, sessionId, terminal, localPreview: preview, action, selectedStock: requestedStock, includeCandles, candlesSince, requestId: crypto.randomUUID(), ...payload }), signal: AbortSignal.timeout(8000) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Trade could not be completed.");
       const nextWorld = mergeChartData(data as PublicWorld, worldRef.current, requestedStock, includeCandles);
@@ -321,8 +324,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       else if (action === "end") setView("report");
       else if (action === "sandbox-start") { setView("markets"); setToast("Your next practice round is starting."); }
       return data;
-    } catch (err) { setToast(err instanceof Error ? err.message : "The market could not complete that action."); }
-    finally { submitting.current = false; nextSyncAt.current = Date.now() + 500; setBusy(false); }
+    } catch (err) { setToast(err instanceof Error && err.name === "TimeoutError" ? "The market is busy. Check your portfolio, then try again." : err instanceof Error ? err.message : "The market could not complete that action."); }
+    finally { submitting.current = false; nextSyncAt.current = Date.now() + 200; setBusy(false); }
   }
 
 
