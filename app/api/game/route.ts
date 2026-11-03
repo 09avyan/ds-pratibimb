@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     const { world } = await mutate(mode, state => {
       advanceForPoll(state, Date.now(), pollTickMs());
       if (sessionId) touchSession(state, sessionId, terminalNumber);
-    }, localPreview, 700, true);
+    }, localPreview, 1500, true);
     if (knownRevision === world.version) return new NextResponse(null, { status: 304, headers: { "Cache-Control": "no-store, max-age=0" } });
     return NextResponse.json(toPublic(world, sessionId, selectedStock, { includeCandles, candlesSince }), { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) { return errorResponse(error, 503); }
