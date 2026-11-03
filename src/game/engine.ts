@@ -301,13 +301,35 @@ function publishAutonomousNews(world: World, at: number, hostOverride = false) {
   return published;
 }
 
+/** A repeatable number in [0, 1) from a company and a time: who happens to trade at that moment. */
+function tapeNoise(symbol: string, at: number) {
+  let h = 2166136261 ^ Math.floor(at / 250);
+  for (let i = 0; i < symbol.length; i++) h = Math.imul(h ^ symbol.charCodeAt(i), 16777619);
+  h ^= h >>> 15; h = Math.imul(h, 2246822507); h ^= h >>> 13;
+  return (h >>> 0) / 4294967296;
+}
+
 function applyMove(world: World, stock: World["stocks"][number], move: number, volume: number, at: number) {
   // The exact price keeps moving underneath; the quoted and traded price is that price on a ₹0.05 tick,
   // so small moves on cheaper stocks accumulate instead of rounding away.
   const old = stock.price;
   const exact = clamp((stock.exact ?? old) * (1 + move), stock.previousClose * .68, stock.previousClose * 1.32);
   stock.exact = exact;
-  const close = toTick(exact);
+  // Realism without changing the market's moves: the underlying price above moves exactly as before,
+  // but a company only prints a trade when someone trades it. Heavyweights trade almost every update;
+  // smaller companies sometimes sit still for a moment and then catch up. A print lands on the buyer's
+  // or the seller's side of the price (one ₹0.05 tick either way), so the last price wobbles like a
+  // real tape. Over time the printed price tracks the underlying one, so volatility is unchanged.
+  const liquidity = .6 + .35 * Math.min(1, (stock.weight ?? 0) / .12);
+  const busy = Math.abs(move) > .0015 || (stock.newsMoves?.length ?? 0) > 0;
+  // Decided from the company and the moment, not the shared random sequence, so the market's own
+  // randomness is untouched.
+  const chance = tapeNoise(stock.symbol, at);
+  // A company sits still only while its true price is within two ticks of its last trade.
+  const prints = busy || chance < liquidity || Math.abs(exact - old) > .1;
+  const side = busy ? 0 : chance < .1 ? -.025 : chance > .9 ? .025 : 0;
+  const close = prints ? toTick(exact + side) : old;
+  if (!prints) volume = Math.round(volume * .15);
   const bar = stock.candles.at(-1);
   if (bar && at - bar.time < 1_500) {
     bar.high = Math.max(bar.high, close); bar.low = Math.min(bar.low, close); bar.close = close; bar.volume += volume;

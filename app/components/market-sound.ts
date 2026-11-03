@@ -5,11 +5,9 @@ import { useEffect, useRef, useState } from "react";
 /*
   Market sounds, synthesised with Web Audio (no audio files to download or fail).
 
-  The bell is modelled on an exchange's electric trading bell: a hammer striking a brass gong about
-  eighteen times a second, so it rings as one continuous, shimmering "brrrring" for a few seconds. Each
-  strike excites the gong's inharmonic partials (a slightly detuned pair at each partial gives the
-  metallic beating), adds a short hammer click, and everything rings on in a hall reverb. The closing
-  bell rings the same way and ends with three gavel knocks. The countdown is a soft wooden tick per
+  The bell is modelled on an exchange's electric trading bell (see renderBell): a hammer striking a brass
+  gong about seventeen times a second, the gong's modes ringing and overlapping, a crowd applauding, all
+  in a hall reverb. The closing bell ends with three gavel knocks. The countdown is a soft wooden tick per
   second, rising in pitch towards the open.
 */
 
@@ -85,52 +83,127 @@ function knock(ctx: AudioContext, out: AudioNode, at: number, frequency: number,
   source.start(at); source.stop(at + length + .02);
 }
 
-/**
- * The electric trading bell. The gong keeps ringing while the hammer re-strikes it ~18 times a second:
- * one sustained oscillator pair per partial, its loudness re-struck by a precomputed envelope (a sharp
- * rise and quick fall each strike over a ringing floor), then the gong rings out on its own.
- */
-function electricBell(ctx: AudioContext, out: AudioNode, start: number, seconds: number) {
-  const rate = 18, period = 1 / rate, points = 700;
-  for (const [ratio, amp, decay] of GONG) {
-    const tail = decay * 1.4;
-    const length = Math.ceil((seconds + tail) * points);
-    const curve = new Float32Array(length);
-    const ring = .012 + .02 / ratio; // higher partials fall faster after each strike
-    for (let i = 0; i < length; i++) {
-      const t = i / points;
-      let value: number;
-      if (t < seconds) {
-        const swell = Math.min(1, t / .06) * (t > seconds - .2 ? .65 + .35 * (seconds - t) / .2 : 1);
-        value = swell * (.5 + .5 * Math.exp(-(t % period) / ring));
-      } else value = .65 * Math.exp(-(t - seconds) / (decay * .45));
-      curve[i] = value * amp * .11;
+/*
+  The bell is rendered sample by sample, the way a real one makes sound: a bank of resonators, one per
+  vibration mode of a brass gong, each struck by the hammer and left ringing. Strikes land about 17 times
+  a second with small changes in timing and force (a real armature is never exact), so successive rings
+  overlap and beat against each other; when the hammer stops the gong rings out on its own. A crowd
+  applauds underneath, as on an exchange floor at the open and the close.
+*/
+// Vibration modes of a ~25 cm alarm-bell gong: frequency ratio to the lowest mode, level, ring time (s).
+// Close pairs (1 / 1.0036, 2.63 / 2.655) are the slightly unequal halves of the dome; they beat.
+const MODES: [number, number, number][] = [[1, 1, 3.4], [1.0036, .72, 3.1], [2.63, .55, 1.9], [2.655, .34, 1.8], [4.84, .34, 1.05], [7.46, .2, .62], [10.4, .13, .36], [13.7, .07, .22]];
+const BELL_HZ = 690;
+
+function random(seed: number) { let x = seed >>> 0 || 1; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x >>> 0) / 4294967296); }; }
+
+/** The bell itself, stereo, `ring` seconds of hammering and then the natural ring-out. */
+function renderBell(rate: number, ring: number, seed: number): [Float32Array, Float32Array] {
+  const length = Math.ceil((ring + 3.2) * rate);
+  const left = new Float32Array(length), right = new Float32Array(length);
+  const rnd = random(seed);
+  // Strike times and forces: the armature spins up over the first strikes, then runs ~17 Hz with jitter.
+  const strikes: { at: number; force: number }[] = [];
+  for (let t = 0, i = 0; t < ring; i++) {
+    strikes.push({ at: Math.floor(t * rate), force: (.82 + rnd() * .18) * Math.min(1, .55 + i * .15) });
+    const hz = 17.2 * (1 + (rnd() - .5) * .1) * Math.min(1, .7 + i * .1);
+    t += 1 / hz;
+  }
+  // The hammer's contact is a very short pulse (about 0.7 ms); a hard hit excites the high modes more.
+  const pulse = Math.max(3, Math.round(rate * .0007));
+  const excitation = new Float32Array(length);
+  for (const { at, force } of strikes) for (let k = 0; k < pulse && at + k < length; k++) excitation[at + k] += force * Math.sin(Math.PI * (k + .5) / pulse);
+  MODES.forEach(([ratio, level, t60], index) => {
+    const f = BELL_HZ * ratio * (1 + (rnd() - .5) * .002);
+    const r = Math.exp(-6.91 / (t60 * rate)), w = 2 * Math.PI * f / rate;
+    const a1 = 2 * r * Math.cos(w), a2 = -r * r, gain = level * Math.sin(w) * .9;
+    const pan = .5 + (index % 2 ? .18 : -.18) * (index / MODES.length + .3);
+    let y1 = 0, y2 = 0;
+    for (let n = 0; n < length; n++) {
+      const y = a1 * y1 + a2 * y2 + excitation[n] * gain;
+      y2 = y1; y1 = y;
+      left[n] += y * (1 - pan); right[n] += y * pan;
     }
-    curve[length - 1] = 0;
-    for (const detune of ratio < 3 ? [-1.8, 1.8] : [0]) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 760 * ratio + detune * ratio;
-      gain.gain.value = 0;
-      gain.gain.setValueCurveAtTime(curve, start, seconds + tail);
-      osc.connect(gain).connect(out);
-      osc.start(start); osc.stop(start + seconds + tail + .05);
+  });
+  // The click of metal on metal at each strike, small and bright.
+  for (const { at, force } of strikes) {
+    let lp = 0;
+    for (let k = 0; k < Math.round(rate * .004) && at + k < length; k++) {
+      const env = Math.exp(-k / (rate * .0009));
+      const v = (rnd() * 2 - 1) * env;
+      const hp = v - lp; lp += (v - lp) * .35;
+      left[at + k] += hp * .05 * force; right[at + k] += hp * .05 * force;
     }
   }
-  // The hammer's click on each strike.
-  const strikes = Math.round(seconds * rate);
-  for (let i = 0; i < strikes; i++) knock(ctx, out, start + i * period, 3400, 1.4, .045 * Math.min(1, (i + 1) / 3), .025);
+  return [left, right];
+}
+
+/** Applause from a crowd of about seventy, each clapping at their own pace, with a little cheering. */
+function renderApplause(rate: number, seconds: number, startAt: number, seed: number): [Float32Array, Float32Array] {
+  const length = Math.ceil((startAt + seconds + 2.5) * rate);
+  const left = new Float32Array(length), right = new Float32Array(length);
+  const rnd = random(seed);
+  const swell = (t: number) => t < startAt ? 0 : Math.min(1, (t - startAt) / 1.1) * (t > startAt + seconds ? Math.max(0, 1 - (t - startAt - seconds) / 2.4) : 1);
+  for (let person = 0; person < 70; person++) {
+    const hz = 3 + rnd() * 2.4, pan = rnd(), body = .18 + rnd() * .5, loud = .5 + rnd() * .5;
+    const clapLength = Math.round(rate * (.012 + rnd() * .01));
+    for (let t = startAt + rnd() * .6; t < startAt + seconds + 2.4; t += (1 / hz) * (1 + (rnd() - .5) * .16)) {
+      const level = swell(t) * loud;
+      if (level <= 0.01) continue;
+      const at = Math.floor(t * rate); let lp = 0;
+      for (let k = 0; k < clapLength && at + k < length; k++) {
+        const v = (rnd() * 2 - 1) * Math.exp(-k / (clapLength * .22));
+        lp += (v - lp) * body;           // each pair of hands has its own colour
+        const x = (v - lp * .6) * level * .045;
+        left[at + k] += x * (1 - pan); right[at + k] += x * pan;
+      }
+    }
+  }
+  // A low murmur and cheer of the floor under the clapping.
+  let a = 0, b = 0;
+  for (let n = 0; n < length; n++) {
+    const t = n / rate, level = swell(t);
+    if (!level) continue;
+    const v = rnd() * 2 - 1; a += (v - a) * .045; b += (a - b) * .06;
+    const wave = .55 + .45 * Math.sin(t * 2.1 + Math.sin(t * .7) * 2);
+    left[n] += b * level * wave * .5; right[n] += b * level * (1.1 - wave * .4) * .5;
+  }
+  return [left, right];
+}
+
+/** Bells are rendered once per page (about 40 ms) and kept, so ringing them later costs nothing. */
+const bellCache = new WeakMap<BaseAudioContext, Partial<Record<BellKind, AudioBuffer>>>();
+function bellBuffer(ctx: BaseAudioContext, kind: BellKind) {
+  const cached = bellCache.get(ctx) ?? {};
+  if (cached[kind]) return cached[kind]!;
+  const rate = ctx.sampleRate, ring = kind === "open" ? 4.4 : 3.6;
+  const [bl, br] = renderBell(rate, ring, kind === "open" ? 7 : 11);
+  const [al, ar] = renderApplause(rate, ring + (kind === "open" ? .8 : 1.6), .35, kind === "open" ? 3 : 5);
+  const length = Math.max(bl.length, al.length);
+  const buffer = ctx.createBuffer(2, length, rate);
+  const outL = buffer.getChannelData(0), outR = buffer.getChannelData(1);
+  let peak = 0;
+  for (let n = 0; n < length; n++) {
+    outL[n] = (bl[n] ?? 0) + (al[n] ?? 0) * .9; outR[n] = (br[n] ?? 0) + (ar[n] ?? 0) * .9;
+    peak = Math.max(peak, Math.abs(outL[n]), Math.abs(outR[n]));
+  }
+  const scale = peak > 0 ? .62 / peak : 1;
+  for (let n = 0; n < length; n++) { outL[n] *= scale; outR[n] *= scale; }
+  cached[kind] = buffer; bellCache.set(ctx, cached);
+  return buffer;
 }
 
 export function ringBell(ctx: AudioContext, kind: BellKind) {
   const { out } = rig(ctx);
   const now = ctx.currentTime + .05;
-  if (kind === "open") { electricBell(ctx, out, now, 4.2); return; }
-  electricBell(ctx, out, now, 3.6);
+  const source = ctx.createBufferSource();
+  source.buffer = bellBuffer(ctx, kind);
+  source.connect(out);
+  source.start(now);
+  if (kind === "open") return;
   // The gavel: three firm knocks once the bell stops.
   for (let i = 0; i < 3; i++) {
-    const at = now + 4.1 + i * .55;
+    const at = now + 4.0 + i * .55;
     knock(ctx, out, at, 700, 1.3, 2.4, .09);   // the crack of wood on wood
     const thump = ctx.createOscillator();      // the body of the block
     const gain = ctx.createGain();
@@ -142,6 +215,13 @@ export function ringBell(ctx: AudioContext, kind: BellKind) {
     thump.connect(gain).connect(out);
     thump.start(at); thump.stop(at + .22);
   }
+}
+
+/** Renders both bells ahead of time, once sound is unlocked, so the first ring starts instantly. */
+function warmBells(ctx: AudioContext) {
+  const run = () => { bellBuffer(ctx, "open"); bellBuffer(ctx, "close"); };
+  const idle = (window as unknown as { requestIdleCallback?: (fn: () => void) => void }).requestIdleCallback;
+  if (idle) idle(run); else window.setTimeout(run, 200);
 }
 
 /** One countdown second: a soft wooden tick with a short tone, a step higher each second. */
@@ -194,7 +274,7 @@ export function useMarketSound(world: SoundWorld, enabled: boolean, countdown = 
       void ctx.resume().then(() => {
         if (ctx.state !== "running") return;
         setNeedsTap(false);
-        if (wasLocked) chime(ctx);
+        if (wasLocked) { chime(ctx); warmBells(ctx); }
       });
     };
     const events = ["pointerdown", "touchstart", "click", "keydown"] as const;
