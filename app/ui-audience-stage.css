@@ -418,9 +418,9 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-tile-price strong i { margin-right: .06em; }
 .stage-tile[data-tick="up"] .stage-tile-price strong { color: var(--up); transition: none; }
 .stage-tile[data-tick="down"] .stage-tile-price strong { color: var(--down); transition: none; }
-.stage-tile-price span { padding: .2em .45em; border-radius: var(--r-chip); font: 800 min(16cqh, 9cqw) / 1 var(--num); font-stretch: var(--num-w); white-space: nowrap; }
-.stage-tile.is-up .stage-tile-price span { color: var(--up); background: color-mix(in srgb, var(--up) 15%, transparent); }
-.stage-tile.is-down .stage-tile-price span { color: var(--down); background: color-mix(in srgb, var(--down) 15%, transparent); }
+.stage-tile-price > span { padding: .2em .45em; border-radius: var(--r-chip); font: 800 min(16cqh, 9cqw) / 1 var(--num); font-stretch: var(--num-w); white-space: nowrap; }
+.stage-tile.is-up .stage-tile-price > span { color: var(--up); background: color-mix(in srgb, var(--up) 15%, transparent); }
+.stage-tile.is-down .stage-tile-price > span { color: var(--down); background: color-mix(in srgb, var(--down) 15%, transparent); }
 .stage-spark { position: absolute; right: 0; bottom: 0; z-index: 0; width: 58%; height: 40%; opacity: .6; pointer-events: none; }
 .stage-spark-area { fill: url(#stage-spark-up); }
 .stage-spark-line { fill: none; stroke: var(--up); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
@@ -431,7 +431,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
   /* The change moves to the top-right corner so the price gets the whole width. */
   .stage-tile > .stage-tile-price { position: static; }
   .stage-tile-price strong { font-size: min(46cqh, 18cqw); }
-  .stage-tile-price span { position: absolute; top: 0; right: 0; z-index: 1; padding: .15em .35em; font-size: min(26cqh, 8cqw); }
+  .stage-tile-price > span { position: absolute; top: 0; right: 0; z-index: 1; padding: .15em .35em; font-size: min(26cqh, 8cqw); }
   .stage-tile-top { padding-right: 31cqw; }
   .stage-tile-top b { font-size: min(34.5cqh, 10.8cqw); }
   .stage-tile-top .company-mark { width: min(26cqh, 9cqw); height: min(26cqh, 9cqw); }
@@ -501,9 +501,9 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 /* V3 Clay Market — the clay workshop: news in a column beside the board, standings as a strip of
    clay tablets below; panels drop in and bounce; a price squashes like clay when it ticks. */
 .v-arcade .stage-tile { border-radius: calc(26 * var(--u)); border-bottom: calc(6 * var(--u)) solid rgba(0, 0, 0, .28); box-shadow: none; }
-.v-arcade .stage-tile.is-up .stage-tile-price span { color: #fff; background: #3f8f4c; }
-.v-arcade .stage-tile.is-down .stage-tile-price span { color: #fff; background: #c6452d; }
-.v-arcade .stage-tile-price span { border-radius: 999px; }
+.v-arcade .stage-tile.is-up .stage-tile-price > span { color: #fff; background: #3f8f4c; }
+.v-arcade .stage-tile.is-down .stage-tile-price > span { color: #fff; background: #c6452d; }
+.v-arcade .stage-tile-price > span { border-radius: 999px; }
 .v-arcade .stage-board, .v-arcade .stage-news { border-radius: calc(26 * var(--u)); border-bottom: calc(6 * var(--u)) solid rgba(0, 0, 0, .25); }
 .stage.v-arcade[data-status="live"] .stage-tile { animation-name: stage-drop; animation-duration: .9s; animation-timing-function: linear; animation-delay: calc(var(--i, 0) * 55ms + 120ms); }
 .v-arcade .stage-tile[data-tick] .stage-tile-price strong { animation: stage-squash .5s cubic-bezier(.3, 1.6, .4, 1); transform-origin: left bottom; }
@@ -517,8 +517,8 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .v-gallery .stage-tile, .v-tangram .stage-tile { color: var(--heat-ink); box-shadow: none; }
 .v-gallery .stage-tile.is-up, .v-tangram .stage-tile.is-up { background: color-mix(in oklab, var(--heat-up) calc(25% + var(--heat, 0) * 75%), var(--surface)); }
 .v-gallery .stage-tile.is-down, .v-tangram .stage-tile.is-down { background: color-mix(in oklab, var(--heat-down) calc(25% + var(--heat, 0) * 75%), var(--surface)); }
-.v-gallery .stage-tile-price span, .v-tangram .stage-tile-price span, .v-gallery .stage-tile.is-up .stage-tile-price span, .v-gallery .stage-tile.is-down .stage-tile-price span, .v-tangram .stage-tile.is-up .stage-tile-price span, .v-tangram .stage-tile.is-down .stage-tile-price span { color: inherit; background: color-mix(in srgb, #000 18%, transparent); }
-.stage-light.v-gallery .stage-tile-price span, .stage-light.v-tangram .stage-tile-price span { background: color-mix(in srgb, #fff 45%, transparent) !important; }
+.v-gallery .stage-tile-price > span, .v-tangram .stage-tile-price > span, .v-gallery .stage-tile.is-up .stage-tile-price > span, .v-gallery .stage-tile.is-down .stage-tile-price > span, .v-tangram .stage-tile.is-up .stage-tile-price > span, .v-tangram .stage-tile.is-down .stage-tile-price > span { color: inherit; background: color-mix(in srgb, #000 18%, transparent); }
+.stage-light.v-gallery .stage-tile-price > span, .stage-light.v-tangram .stage-tile-price > span { background: color-mix(in srgb, #fff 45%, transparent) !important; }
 .v-gallery .stage-tile[data-tick="up"] .stage-tile-price strong, .v-gallery .stage-tile[data-tick="down"] .stage-tile-price strong, .v-tangram .stage-tile[data-tick="up"] .stage-tile-price strong, .v-tangram .stage-tile[data-tick="down"] .stage-tile-price strong { color: inherit; }
 .v-gallery .stage-spark-line, .v-tangram .stage-spark-line { stroke: currentColor !important; opacity: .7; }
 .v-gallery .stage-spark-area, .v-tangram .stage-spark-area { fill: currentColor !important; opacity: .1; }
@@ -540,12 +540,12 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .v-broadcast .stage-tile-top b { color: var(--accent); font-size: min(44cqh, 7cqw); font-stretch: 70%; text-transform: uppercase; letter-spacing: 0; }
 .v-broadcast .stage-tile-price { flex-direction: row; align-items: baseline; gap: 3cqw; }
 .v-broadcast .stage-tile-price strong { font-size: min(54cqh, 8.2cqw); }
-.v-broadcast .stage-tile-price span { min-width: 5.2em; padding: .15em .35em; text-align: right; font-size: min(34cqh, 5cqw); }
+.v-broadcast .stage-tile-price > span { min-width: 5.2em; padding: .15em .35em; text-align: right; font-size: min(34cqh, 5cqw); }
 .v-broadcast .stage-spark { display: none; }
 .v-broadcast .stage-tile-top .company-mark { display: none; }
 .v-broadcast .stage-tile-top { padding-right: 0 !important; }
 .v-broadcast .stage-tile > .stage-tile-price { position: relative !important; }
-.v-broadcast .stage-tile-price span { position: static !important; }
+.v-broadcast .stage-tile-price > span { position: static !important; }
 .v-broadcast .stage-tile-top b { font-size: min(50cqh, 7cqw) !important; }
 .v-broadcast .stage-tile-price strong { font-size: min(54cqh, 8.2cqw) !important; }
 .stage.v-broadcast[data-status="live"] .stage-tile { animation-name: stage-flap; animation-duration: .6s; animation-delay: calc(var(--i, 0) * 40ms + 120ms); transform-origin: 50% 0; }
@@ -938,3 +938,16 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
   .lb-race { flex: none; }
   .lb-row { flex: none; height: 62px; max-height: none; }
 }
+
+/* Market breadth under the index: the share of companies rising, as one bar that slides with the market. */
+.stage-breadth { display: grid; grid-column: 1 / -1; gap: calc(5 * var(--u)); width: 100%; min-width: calc(300 * var(--u)); }
+.stage-breadth > i { position: relative; display: block; height: calc(10 * var(--u)); overflow: hidden; border-radius: 999px; background: var(--down); }
+.stage-breadth > i::before { position: absolute; inset: 0 auto 0 0; width: var(--rise, 50%); border-radius: 999px 0 0 999px; background: var(--up); content: ""; transition: width 1.1s cubic-bezier(.2, .8, .2, 1); }
+.stage-breadth > i::after { position: absolute; top: 0; bottom: 0; left: var(--rise, 50%); width: calc(4 * var(--u)); margin-left: calc(-2 * var(--u)); background: var(--bg); content: ""; transition: left 1.1s cubic-bezier(.2, .8, .2, 1); }
+.stage-breadth small { display: flex; justify-content: space-between; font: 800 max(11px, calc(18 * var(--u))) / 1 var(--num); }
+.stage-breadth small b { padding: 0; background: none !important; font: inherit; }
+.stage-breadth .up { color: var(--up); } .stage-breadth .down { color: var(--down); }
+/* Rolling digits on every price: the strip slides instead of the number blinking. */
+.stage-tile-price strong .odo { vertical-align: baseline; }
+.stage-tile-price em .odo-d { vertical-align: -.1em; }
+@media (prefers-reduced-motion: reduce) { .odo-strip, .stage-breadth > i::before, .stage-breadth > i::after { transition: none; } }

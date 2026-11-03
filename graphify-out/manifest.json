@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793707967.7071898,
-    "seen": 1793708335.7432868,
-    "ast_hash": "45af641841b4f98983a3a0b5c34b5b21",
+    "mtime": 1793708475.3696578,
+    "seen": 1793708683.670698,
+    "ast_hash": "d1431e061b8e20f70e5b98327e6ae38d",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -168,9 +168,9 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793708183.5170178,
-    "seen": 1793708335.743718,
-    "ast_hash": "aa94238a90e7d04b7a47ecc3145ba6a0",
+    "mtime": 1793708335.839342,
+    "seen": 1793708683.6711178,
+    "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
     "semantic_hash": ""
   },
   "next.config.ts": {
