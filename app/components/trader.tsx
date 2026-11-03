@@ -198,6 +198,10 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       if (!res.ok) throw new Error(data.error || "Market data is unavailable.");
       if (revision !== mutationVersion.current || requestedStock !== selectedRef.current) return;
       failures.current = 0;
+      // Server instances can answer slightly out of order; never step back to an older state of the same batch,
+      // or the screen flickers between countdown and live and misses the opening and closing moments.
+      const previous = worldRef.current;
+      if (previous && data.batch === previous.batch && data.mode === previous.mode && data.revision < previous.revision) return;
       let nextWorld = mergeChartData(data as PublicWorld, worldRef.current, requestedStock, includeCandles);
       if (includeCandles) {
         chartSymbol.current = requestedStock;
