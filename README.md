@@ -187,7 +187,21 @@ Trading and audience dashboards show the latest published set only, with the ful
 - **Closing finale (about 5 seconds):** the panels go dark one by one in reading order, the bell rings out in three rings, and a "Market closed" card shows the batch and the closing Dalaal-10 level and change, then the final standings take the stage. Host → Animations → *Closing finale* turns it off.
 - **Steady tiles:** a company with no move yet shows a grey "0.00%" (never red). V3 tiles stay still on a tick: only the price colour changes.
 - **Same layout, seven looks:** every version keeps the same arrangement (news on top, the 25 companies below, standings on the right) with its own theme. V4 shows a move bar along the foot of each panel; V6 has a whole record in each sleeve; there are no glossy light bands sweeping across panels, rows or the podium.
-- **Invitation:** before a round, and between rounds (15 s after every 25 s of final standings), the wall shows "Can you beat the market?" with the rules, the last round's winner (or the biggest movers) and a running price tape. Host → Animations → *Between-round invitation* turns it off.
+- **Invitation:** before a round, and between rounds (15 s after every 25 s of final standings), the wall sells the game to the room. It shows:
+  - "Can you beat the market?", word by word.
+  - The stakes: ₹10,00,000 counting up, 25 companies and the round length.
+  - Three steps that take turns lighting up: sit at any terminal, watch the news, buy, sell or short.
+  - A looping "how it works" example (labelled as an example; these stories never enter the game): a breaking story lands, an arrow drops and a real company's price counts up or down in answer.
+  - Last round's winner as a dare ("Can you beat it?").
+  - A candle chart drawing itself behind, and a running price tape.
+
+  Host → Animations → *Between-round invitation* turns it off.
+- **Batch report:** after every batch, beside the final standings. It shows:
+  - where the Dalaal-10 closed and its change
+  - the best and worst stock of the batch
+  - the winner's return and the room's average return
+  - how many terminals beat the Dalaal-10
+  - how many stories broke
 - **Company panels:** one colour signal each. The price stays in the ink colour (it flashes green or red only as it ticks), and the day's change sits in a filled green or red badge beside the name; the name gets all the width the badge leaves. Heat-map versions (V4, V7) tint panels gently by the size of the move.
 - **Standings as a podium and a race.** The top three stand on gold, silver and bronze steps, the leader in the middle under a crown; ranks 4–10 run as a race, each row with a track that shows its portfolio against the field and how far it is behind first place. With three or fewer terminals the podium fills the panel; before the first trade the steps wait with question marks. Each version dresses it its own way: LED dots and an LED track (V1), orbit rings and brass-edged glass steps (V2), clay blocks that bob (V3), a spectrum pinwheel and heat-filled rows (V4), square desk steps (V5), records for medals and a turning record behind the winner (V6), a paper pinwheel and cut-corner steps (V7). Moving between the podium and the race breaks the terminal into pixels that fly to its new place. After the closing bell the same podium is shown large: third, then second, then the winner rise in turn (about 2.5 seconds in all).
 - **A real tape:** heavyweight companies trade on almost every update; smaller ones sometimes sit still for a moment and then catch up, and a trade lands on the buyer's or seller's side of the price (one ₹0.05 tick), so the last price wobbles like a real tape. The underlying price moves exactly as before, so volatility is unchanged (measured: 30-second volatility 0.01570 printed and underlying). During a news reaction every affected company trades on every update, and a company never sits more than two ticks away from its true price.
