@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { advance, executeTrade, hostAction, newPlayer, settle, toPublic } from "@/game/engine";
+import { advance, advanceForPoll, executeTrade, hostAction, newPlayer, settle, toPublic } from "@/game/engine";
 import { recordGameLog } from "@/game/logs";
 import { TERMINAL_ACTIVE_WINDOW_MS, TERMINAL_COUNT } from "@/game/terminals";
 import { mutate } from "@/game/store";
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
   if (sessionId && !terminalNumber) return errorResponse(new Error(mode === "test" ? "Open a numbered practice terminal, from /test/01 through /test/10." : "Open your numbered terminal URL, from /play/01 through /play/10."));
   try {
     const { world } = await mutate(mode, state => {
-      advance(state);
+      advanceForPoll(state);
       if (sessionId) touchSession(state, sessionId, terminalNumber);
     }, localPreview, 700, true);
     if (knownRevision === world.version) return new NextResponse(null, { status: 304, headers: { "Cache-Control": "no-store, max-age=0" } });
