@@ -184,25 +184,28 @@ Trading and audience dashboards show the latest published set only, with the ful
   - V7 cut paper: a heat map of cut-corner pieces casting hard paper shadows on a geometric ground; pieces turn in and snap.
 - **Shared moments:** the countdown light show with pixel numbers and each version's own motif; "Market open" in the version's colour; news landing word by word with the companies it touches glowing; rank changes that break rows into pixels and reassemble; a new-leader banner; the last ten seconds (pixel ghost number and red edge); the closing finale (below); final standings revealed on the podium (third, second, then the winner), then confetti. All motion stops under reduced motion or from the host's Settings → Screen animations.
 - **Entrances, once per batch:** each version opens its board its own way, only in the first seconds after the opening bell: LEDs powering on in a scattered order (V1), a spiral from the centre (V2), columns of clay dropping in (V3), a diagonal colour wash (V4), rows printing like a terminal (V5), sleeves flipping face-up (V6), pieces turning into place from the outside in (V7). Nothing replays afterwards, so ticks and news glows never make panels jump or fade.
-- **Closing finale (about 5 seconds):** the panels go dark one by one in reading order, the bell rings out in three rings, and a "Market closed" card shows the batch and the closing Dalaal-10 level and change, then the final standings take the stage. Host → Animations → *Closing finale* turns it off.
+- **Closing curtains (about 5 seconds):** the panels go dark in reading order while the curtains close (red velvet; blue in V2 and V7, purple in V4), "Market closed" lights up on them, then they open on the final standings. Host → Animations → *Closing curtains* turns them off.
 - **Steady tiles:** a company with no move yet shows a grey "0.00%" (never red). V3 tiles stay still on a tick: only the price colour changes.
 - **Same layout, seven looks:** every version keeps the same arrangement (news on top, the 25 companies below, standings on the right) with its own theme. V4 shows a move bar along the foot of each panel; V6 has a whole record in each sleeve; there are no glossy light bands sweeping across panels, rows or the podium.
-- **Invitation:** before a round, and between rounds (15 s after every 25 s of final standings), the wall sells the game to the room. It shows:
-  - "Can you beat the market?", word by word.
-  - The stakes: ₹10,00,000 counting up, 25 companies and the round length.
-  - Three steps that take turns lighting up: sit at any terminal, watch the news, buy, sell or short.
-  - A looping "how it works" example (labelled as an example; these stories never enter the game): a breaking story lands, an arrow drops, a real company's price counts up or down in answer, and the payoff of a 50-share trade made on the news counts up. A bar shows the example's progress.
-  - "Finish top three and your terminal goes up on this screen."
-  - Ambient motion: an underline that draws itself under "the market?" every ten seconds, company logos filing past inside the "25 companies" card, and faint live price chips drifting up behind the example.
-  - Last round's winner as a dare: "turned ₹10,00,000 into …", the gain in minutes, and "Can you beat it?".
-  - A candle chart drawing itself behind, and a running price tape.
+- **Invitation, a game-show attract loop:** before a round, and between rounds (15 s after every 25 s of final standings), the wall runs scenes like an arcade cabinet, each on a lit stage with a bulb-ringed marquee sign and a host's caption typing underneath. Spotlights are fixed pools that fade in with each scene; nothing sweeps across the screen. The scenes:
+  1. **Title card:** "Can you beat the market?", with ₹10,00,000 counting up.
+  2. **How to play:** three steps beside a looping, labelled example (a story breaks, a price answers, a 50-share trade pays).
+  3. **Today's hall of fame:** the record to beat on the marquee, with the next five below.
+  4. **Last round's highlights:** between rounds only; the winner, the stock of the round, and how many beat the index.
+  5. **Your seat is waiting:** a ringing bell and the call to sit down.
 
   Host → Animations → *Between-round invitation* turns it off.
-- **Batch report:** after every batch, beside the final standings. It fills in while the podium builds:
-  - **The market story:** the Dalaal-10 drawing itself from the 10,000 open (a dashed line) to the close, with a dot where each news set broke (filled for major) and the close counting up. The wall records the index as the batch runs, kept per batch in session storage; a wall that joined late draws open to close.
-  - **Biggest movers:** the top three gainers and losers as a diverging bar chart from a centre line.
-  - **The room:** the winner's return, the room average, and the stories that broke (major and minor).
+- **Hall of fame:** every finished live batch adds its traders' results; the day's 10 best by gain stay, across batches and resets (practice rounds never count). Host → Settings → *Clear hall of fame* empties it.
+- **Batch awards:** after every batch, beside the final standings. It shows:
+  - **The market story:** the Dalaal-10 drawing itself from the 10,000 open to the close, with dots where news broke. The wall records the index during the batch; a wall that joined late draws open to close.
+  - **A strip:** the room average and the stories that broke.
+  - **The awards:** four envelopes, face down, flipping open one by one once the winner is crowned: *Best single trade*, *Most active trader*, *Stock of the batch* and *Flop of the batch*.
   - **Beat the Dalaal-10:** one dot per terminal, lit for each one that beat the index.
+- **The game show, big moments only:** prices and standings stay still between moments. The moments:
+  - **Opening:** the spotlights come up and a "Market open · Let the trading begin!" sign drops in.
+  - **News:** a new set mid-batch opens with a red "Breaking news" slab across the news panel.
+  - **New leader:** the host's caption types "Terminal 02 takes the lead!", the top step's bulbs chase, and the new leader slams onto the podium.
+  - **The bell:** curtains close on the market, "Market closed" lights up on them with the closing index, then they open on the final standings as the podium reveal starts, with a spotlight on each step and a bulb-ringed "And the winner is…".
 - **Company panels:** one colour signal each. The price stays in the ink colour (it flashes green or red only as it ticks), and the day's change sits in a filled green or red badge beside the name; the name gets all the width the badge leaves. Heat-map versions (V4, V7) tint panels gently by the size of the move.
 - **Standings as a podium and a race.** The top three stand on gold, silver and bronze steps, the leader in the middle under a crown; ranks 4–10 run as a race, each row with a track that shows its portfolio against the field and how far it is behind first place. With three or fewer terminals the podium fills the panel; before the first trade the steps wait with question marks. Each version dresses it its own way: LED dots and an LED track (V1), orbit rings and brass-edged glass steps (V2), clay blocks that bob (V3), a spectrum pinwheel and heat-filled rows (V4), square desk steps (V5), records for medals and a turning record behind the winner (V6), a paper pinwheel and cut-corner steps (V7). Moving between the podium and the race breaks the terminal into pixels that fly to its new place. After the closing bell the same podium is shown large, revealed like a game show (about 7 seconds):
   1. Ranks 10 to 4 slide in from the bottom of the table, each portfolio counting up from ₹10,00,000.
