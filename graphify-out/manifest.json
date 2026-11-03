@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793716109.369089,
-    "seen": 1793716825.882263,
-    "ast_hash": "6468c30e1ec360b871f64d70ddc28c9c",
+    "mtime": 1793717924.139745,
+    "seen": 1793718551.262686,
+    "ast_hash": "42efaf41ba9860f38b1e62ec2d0eb7fa",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -114,9 +114,9 @@
     "semantic_hash": ""
   },
   "app/layout.tsx": {
-    "mtime": 1793650387.8028488,
-    "seen": 1793650933.0443633,
-    "ast_hash": "8ce4b20f53e5aeaf706bd6e7f1ad5701",
+    "mtime": 1793718056.3303223,
+    "seen": 1793718551.262958,
+    "ast_hash": "824f4a8fc43f49655e47108d3596445b",
     "semantic_hash": ""
   },
   "app/page.tsx": {
@@ -168,8 +168,8 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793716821.0239768,
-    "seen": 1793716825.8829737,
+    "mtime": 1793718547.775679,
+    "seen": 1793718551.2631438,
     "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
     "semantic_hash": ""
   },
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793716821.0129504,
-    "seen": 1793716825.8839772,
-    "ast_hash": "2f699d001c3a926da809adb80d1bf694",
+    "mtime": 1793718547.7712142,
+    "seen": 1793718551.2638173,
+    "ast_hash": "99c2f7bef91f512566c79fdae11681a1",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -426,9 +426,9 @@
     "semantic_hash": ""
   },
   "src/game/animations.ts": {
-    "mtime": 1793669937.0807848,
-    "seen": 1793672242.6835797,
-    "ast_hash": "d7931e20d42f373b62fa7e09d883899f",
+    "mtime": 1793717276.916564,
+    "seen": 1793718551.263499,
+    "ast_hash": "c34179d603115c78dc71685e38704b7e",
     "semantic_hash": ""
   },
   "app/components/market-sound.ts": {
@@ -441,6 +441,12 @@
     "mtime": 1793707967.6708808,
     "seen": 1793708335.743395,
     "ast_hash": "f964d4e97ab756898ffafed7bc395959",
+    "semantic_hash": ""
+  },
+  "app/components/audience-views.tsx": {
+    "mtime": 1793718305.7846434,
+    "seen": 1793718551.2626889,
+    "ast_hash": "eddb512e2068c129b0efc510ff553835",
     "semantic_hash": ""
   },
   "pnpm-lock.yaml": {

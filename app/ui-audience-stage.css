@@ -932,3 +932,60 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
   .lb-race { flex: none; }
   .lb-row { flex: none; height: 62px; max-height: none; }
 }
+
+/* ======================================================================
+   The invitation: before and between rounds the wall sells the game to the room. One huge question,
+   the rules in a line, proof that a parent just won, and the market running along the bottom.
+   ====================================================================== */
+.stage .stage-body.is-invite { display: flex !important; }
+.invite { position: relative; display: grid; flex: 1 1 auto; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; gap: calc(24 * var(--u)) calc(56 * var(--u)); min-width: 0; min-height: 0; padding: calc(48 * var(--u)) calc(64 * var(--u)) 0; overflow: hidden; border-radius: var(--r-panel); background: var(--surface); }
+.invite-pitch { display: grid; align-self: center; align-content: center; gap: calc(30 * var(--u)); min-width: 0; container-type: inline-size; }
+.invite h2 { display: grid; margin: 0; color: var(--ink); font: 900 min(calc(156 * var(--u)), 12.4cqw) / .92 var(--head); letter-spacing: -.035em; white-space: nowrap; }
+.invite h2 span { display: block; animation: invite-rise .9s cubic-bezier(.2, .9, .2, 1) both; }
+.invite h2 span + span { color: var(--accent); animation-delay: .14s; }
+.invite-lede { max-width: 32ch; margin: 0; color: var(--ink); font: 600 calc(40 * var(--u)) / 1.3 var(--head); animation: invite-rise .9s cubic-bezier(.2, .9, .2, 1) .3s both; }
+.invite-steps { display: flex; flex-wrap: wrap; gap: .35em 1em; margin: 0; color: var(--ink); font: 850 calc(46 * var(--u)) / 1.1 var(--head); letter-spacing: -.015em; }
+.invite-steps b { animation: invite-rise .7s cubic-bezier(.2, .9, .2, 1) both; }
+.invite-steps b:nth-child(1) { animation-delay: .45s; } .invite-steps b:nth-child(2) { animation-delay: .55s; color: var(--accent); } .invite-steps b:nth-child(3) { animation-delay: .65s; }
+.invite-cta { display: inline-flex; justify-self: start; align-items: center; gap: .6em; margin: 0; padding: .55em 1.1em; border-radius: 999px; color: var(--on-accent, #fff); background: var(--accent); font: 800 calc(36 * var(--u)) / 1 var(--head); animation: invite-rise .7s cubic-bezier(.2, .9, .2, 1) .8s both, invite-pulse 2.6s ease-in-out 1.6s infinite; }
+.invite-cta i { width: .5em; height: .5em; border-radius: 50%; background: currentColor; animation: invite-blink 1.2s ease-in-out infinite; }
+.invite-proof { display: grid; align-self: center; min-width: 0; animation: invite-rise 1s cubic-bezier(.2, .9, .2, 1) .5s both; }
+.invite-winner { display: grid; justify-items: start; gap: calc(14 * var(--u)); padding: calc(48 * var(--u)) calc(52 * var(--u)); border-radius: var(--r-panel); background: var(--surface-2); }
+.invite-crown { width: calc(96 * var(--u)); height: calc(68 * var(--u)); fill: var(--gold); animation: invite-bob 3s ease-in-out infinite; }
+.invite-winner small, .invite-movers small { color: var(--muted); font: 700 max(14px, calc(30 * var(--u))) / 1 var(--head); }
+.invite-winner strong { color: var(--ink); font: 900 calc(84 * var(--u)) / 1 var(--num); font-stretch: var(--num-w); letter-spacing: -.02em; }
+.invite-winner b { font: 900 calc(150 * var(--u)) / .95 var(--num); font-stretch: var(--num-w); letter-spacing: -.035em; white-space: nowrap; }
+.invite-winner b.up { color: var(--up); } .invite-winner b.down { color: var(--down); }
+.invite-winner span { color: var(--muted); font: 700 calc(34 * var(--u)) / 1.2 var(--head); }
+.invite-movers { display: grid; gap: calc(14 * var(--u)); }
+.invite-movers > div { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: calc(16 * var(--u)); padding: calc(18 * var(--u)) calc(22 * var(--u)); border-radius: var(--r-tile); background: var(--surface-2); font: 800 calc(34 * var(--u)) / 1 var(--num); }
+.invite-movers .company-mark { width: calc(46 * var(--u)); height: calc(46 * var(--u)); border-radius: 50%; background: #fff; overflow: hidden; }
+.invite-movers strong { overflow: hidden; color: var(--ink); font-family: var(--name); text-overflow: ellipsis; white-space: nowrap; }
+.invite-movers b { padding: .18em .4em; border-radius: var(--r-chip); font-size: .8em; }
+.invite-movers .up b { color: var(--on-up); background: var(--up); } .invite-movers .down b { color: var(--on-down); background: var(--down); }
+.invite-tape { grid-column: 1 / -1; margin: 0 calc(-64 * var(--u)); padding: calc(24 * var(--u)) 0; overflow: hidden; background: var(--surface-2); }
+.invite-tape > div { display: flex; gap: calc(64 * var(--u)); width: max-content; animation: invite-tape 70s linear infinite; }
+.invite-tape span { display: inline-flex; align-items: baseline; gap: .45em; color: var(--ink); font: 800 calc(40 * var(--u)) / 1 var(--num); font-stretch: var(--num-w); white-space: nowrap; }
+.invite-tape span b { font-family: var(--name); font-weight: 800; }
+.invite-tape span i { font-style: normal; }
+.invite-tape .up i { color: var(--up); } .invite-tape .down i { color: var(--down); }
+@keyframes invite-rise { from { opacity: 0; transform: translateY(calc(44 * var(--u))); } to { opacity: 1; transform: none; } }
+@keyframes invite-pulse { 50% { transform: scale(1.04); } }
+@keyframes invite-blink { 50% { opacity: .25; } }
+@keyframes invite-bob { 50% { transform: translateY(calc(-8 * var(--u))) rotate(-4deg); } }
+@keyframes invite-tape { to { transform: translateX(-50%); } }
+.stage.no-motion .invite *, .stage.off-ambient .invite-tape > div { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .invite * { animation: none !important; } }
+/* Versions dress it their own way, with the materials they already use. */
+.v-broadcast .invite h2, .v-broadcast .invite-steps { text-transform: uppercase; }
+.v-broadcast .invite h2 { font-size: min(calc(140 * var(--u)), 10.6cqw); }
+.v-broadcast .invite-tape { background: #000; } .v-broadcast .invite-tape span { color: #fff4d6; }
+.v-arcade .invite-winner, .v-arcade .invite-movers > div { border-bottom: calc(8 * var(--u)) solid rgba(0, 0, 0, .25); }
+.v-tangram .invite-winner { clip-path: polygon(0 0, calc(100% - 40 * var(--u)) 0, 100% calc(40 * var(--u)), 100% 100%, 0 100%); }
+.v-orbit .invite-winner { box-shadow: inset 0 0 0 calc(2 * var(--u)) color-mix(in srgb, var(--accent) 55%, transparent); }
+/* Squarer screens and phones: one column. */
+@media (max-aspect-ratio: 7 / 5), (max-width: 760px) {
+  .invite { grid-template-columns: minmax(0, 1fr); padding: calc(40 * var(--u)) calc(40 * var(--u)) 0; }
+  .invite h2 { font-size: min(calc(120 * var(--u)), 12.4cqw); }
+  .invite-tape { margin: 0 calc(-40 * var(--u)); }
+}

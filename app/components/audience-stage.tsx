@@ -6,6 +6,7 @@ import type { PublicLeaderboardEntry, PublicNews, PublicWorld, Stock } from "@/g
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
 import { animationOffClasses, animationOn } from "@/game/animations";
 import { useMarketSound } from "./market-sound";
+import { DialView, FlapView, NewsCrawl, PebbleView, RackView, RaceView, TreemapView } from "./audience-views";
 import { changePct, fmtTime, latestNewsSet, money, smoothPath, useSmoothRemaining } from "./market-parts";
 
 /*
@@ -165,6 +166,36 @@ function disperse(board: HTMLElement, moved: { row: HTMLElement; from: number; f
 }
 
 const PLACE = ["1st", "2nd", "3rd"];
+
+/** Before and between rounds: the wall sells the game to everyone walking past. */
+function InviteScene({ world }: { world: PublicWorld | null }) {
+  const stocks = world?.stocks ?? [];
+  const minutes = Math.max(1, Math.round((world?.duration ?? 300) / 60));
+  const leader = world?.status === "closed" ? world.leaderboard[0] : undefined;
+  const movers = [...stocks].sort((a, b) => Math.abs(changePct(b)) - Math.abs(changePct(a))).slice(0, 4);
+  const tape = [...stocks, ...stocks];
+  return <section className="invite" aria-label="Play Dalaal Street">
+    <div className="invite-pitch">
+      <h2><span>Can you beat</span><span>the market?</span></h2>
+      <p className="invite-lede">Start with ₹10,00,000. Trade 25 companies for {minutes} minutes while the news breaks. The biggest portfolio wins.</p>
+      <p className="invite-steps"><b>Pick a terminal.</b><b>Read the news.</b><b>Beat the room.</b></p>
+      <p className="invite-cta"><i aria-hidden="true"/>{world?.status === "closed" ? "Next round starts soon: take any free terminal" : "Take any terminal: trading opens at the bell"}</p>
+    </div>
+    <aside className="invite-proof">
+      {leader ? <div className="invite-winner">
+        <svg className="invite-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>
+        <small>Last round's winner</small>
+        <strong>Terminal {pad2(leader.terminalNumber)}</strong>
+        <b className={leader.pnl >= 0 ? "up" : "down"}>{signedMoney(leader.pnl)}</b>
+        <span>in {minutes} minutes · {signedPct(leader.returnPct)}</span>
+      </div> : <div className="invite-movers">
+        <small>Moving right now</small>
+        {movers.map(stock => { const move = changePct(stock); return <div key={stock.symbol} className={move >= 0 ? "up" : "down"}><Logo stock={stock} compact/><strong>{shortName(stock.symbol)}</strong><span>{money(stock.price, 2)}</span><b>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</b></div>; })}
+      </div>}
+    </aside>
+    <div className="invite-tape" aria-hidden="true"><div>{tape.map((stock, i) => { const move = changePct(stock); return <span key={i} className={move >= 0 ? "up" : "down"}><b>{shortName(stock.symbol)}</b>{money(stock.price, 2)}<i>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</i></span>; })}</div></div>
+  </section>;
+}
 
 function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null; final: boolean; onShowMarket?: () => void }) {
   const entries = world?.leaderboard ?? [];
@@ -615,7 +646,18 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const status = world?.status ?? "ready";
   const indexText = world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00";
   // At the closing bell the leaderboard takes the whole stage until the next batch or a tap on "Show the market".
-  const final = status === "closed" && (world?.leaderboard.length ?? 0) > 0 && marketAfterClose !== world?.batch;
+  const standingsAfterClose = status === "closed" && (world?.leaderboard.length ?? 0) > 0 && marketAfterClose !== world?.batch;
+  // Between rounds the wall takes turns: 25 s of final standings, then 15 s inviting the room to play.
+  const [inviteTurn, setInviteTurn] = useState(false);
+  useEffect(() => {
+    if (status !== "closed") { setInviteTurn(false); return; }
+    let showing = false;
+    const flip = () => { showing = !showing; setInviteTurn(showing); timer = window.setTimeout(flip, showing ? 15_000 : 25_000); };
+    let timer = window.setTimeout(flip, 25_000);
+    return () => window.clearTimeout(timer);
+  }, [status, world?.batch]);
+  const invite = on("invite") && (status === "ready" || (status === "closed" && (inviteTurn || !standingsAfterClose)));
+  const final = standingsAfterClose && !invite;
   const countdownSeconds = counting && world ? Math.max(0, Math.ceil((world.startedAt - clock) / 1000)) : 0;
   const remaining = useSmoothRemaining(world);
   const lowTime = status === "live" && (world ? remaining : 999) <= 30;
@@ -647,9 +689,16 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
       </div>
     </header>
 
-    <div className="stage-body">
-      {!final && <section className="stage-grid" aria-label="All 25 companies">{ordered.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} news={newsGlow.has(stock.symbol)}/>)}</section>}
-      {!final && <section className={`stage-news${showNews ? "" : " is-empty"}`} aria-label="Latest news">
+    {invite ? <div className="stage-body is-invite"><InviteScene world={world}/></div> : <div className="stage-body">
+      {!final && (variant === "orbit" ? <DialView world={world}/>
+        : variant === "arcade" ? <PebbleView stocks={stocks}/>
+        : variant === "gallery" ? <RaceView stocks={stocks}/>
+        : variant === "broadcast" ? <FlapView stocks={stocks}/>
+        : variant === "conservatory" ? <RackView stocks={stocks}/>
+        : variant === "tangram" ? <TreemapView stocks={stocks}/>
+        : <section className="stage-grid" aria-label="All 25 companies">{ordered.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} news={newsGlow.has(stock.symbol)}/>)}</section>)}
+      {!final && variant === "default" && <NewsCrawl items={showNews ? visibleNews : [{ id: "wait", type: "minor", headline: status === "live" ? "The next headlines are on their way." : "Headlines appear here once trading starts." }]}/>}
+      {!final && variant !== "default" && <section className={`stage-news${showNews ? "" : " is-empty"}`} aria-label="Latest news">
         <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>{showNews ? "Latest news" : "News"}</span>{showNews && <button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button>}</header>
         {showNews ? <div className={`stage-news-cards count-${visibleNews.length}`}>{visibleNews.map((item, index) => <article key={item.id} className={`type-${item.type}`} style={{ "--i": index } as React.CSSProperties}>
           <div className="stage-news-meta"><span className={`stage-tag ${item.type}`}>{item.type === "major" ? "Major" : "Minor"}</span><span className="stage-news-scope">{scopeText(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div>
@@ -657,7 +706,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
         </article>)}</div> : <p className="stage-news-wait">{status === "live" ? "The next headlines are on their way." : "Headlines appear here once trading starts."}</p>}
       </section>}
       <Leaderboard world={world} final={final} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
-    </div>
+    </div>}
 
     {on("closing") && closing && <div className="stage-shutter" aria-hidden="true"><i/><i/><strong>Market closed</strong></div>}
     {final && on("confetti") && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
