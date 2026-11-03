@@ -425,10 +425,10 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-tile-top { display: flex; align-items: center; gap: 4cqw; min-width: 0; }
 .stage-tile-top .company-mark { flex: none; width: min(17cqh, 12cqw); height: min(17cqh, 12cqw); border: 0; border-radius: 50%; background: #fff; overflow: hidden; }
 .stage-tile-top .company-mark > img { width: 100%; height: 100%; }
-.stage-tile-top b { min-width: 0; overflow: hidden; font: 750 min(20cqh, 10.5cqw) / 1.05 var(--name); font-stretch: var(--name-w); letter-spacing: -.01em; text-overflow: ellipsis; white-space: nowrap; }
+.stage-tile-top b { min-width: 0; overflow: hidden; font: 750 min(23cqh, 12.1cqw) / 1.05 var(--name); font-stretch: var(--name-w); letter-spacing: -.01em; text-overflow: ellipsis; white-space: nowrap; }
 .stage-tile-sector { display: none; }
 .stage-tile-price { display: flex; flex-direction: column; align-items: flex-start; gap: 3cqh; }
-.stage-tile-price strong { font: 850 min(34cqh, 18.5cqw) / .95 var(--num); font-stretch: var(--num-w); letter-spacing: -.025em; white-space: nowrap; transition: color .6s; }
+.stage-tile-price strong { font: 850 min(31cqh, 18.5cqw) / .95 var(--num); font-stretch: var(--num-w); letter-spacing: -.025em; white-space: nowrap; transition: color .6s; }
 .stage-tile-price strong i, .stage-tile-price strong em { font-size: .6em; font-style: normal; font-weight: 700; opacity: .72; }
 .stage-tile-price strong i { margin-right: .06em; }
 .stage-tile[data-tick="up"] .stage-tile-price strong { color: var(--up); transition: none; }
@@ -445,10 +445,10 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 @container tile (min-aspect-ratio: 19 / 10) {
   /* The change moves to the top-right corner so the price gets the whole width. */
   .stage-tile > .stage-tile-price { position: static; }
-  .stage-tile-price strong { font-size: min(56cqh, 18.5cqw); }
+  .stage-tile-price strong { font-size: min(46cqh, 18cqw); }
   .stage-tile-price span { position: absolute; top: 0; right: 0; z-index: 1; padding: .15em .35em; font-size: min(26cqh, 8cqw); }
-  .stage-tile-top { padding-right: 30cqw; }
-  .stage-tile-top b { font-size: min(30cqh, 10.5cqw); }
+  .stage-tile-top { padding-right: 31cqw; }
+  .stage-tile-top b { font-size: min(34.5cqh, 10.8cqw); }
   .stage-tile-top .company-mark { width: min(26cqh, 9cqw); height: min(26cqh, 9cqw); }
   .stage-spark { width: 40%; height: 32%; opacity: .45; }
 }
@@ -591,7 +591,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .v-broadcast .stage-tile-top { padding-right: 0 !important; }
 .v-broadcast .stage-tile > .stage-tile-price { position: relative !important; }
 .v-broadcast .stage-tile-price span { position: static !important; }
-.v-broadcast .stage-tile-top b { font-size: min(44cqh, 7cqw) !important; }
+.v-broadcast .stage-tile-top b { font-size: min(50cqh, 7cqw) !important; }
 .v-broadcast .stage-tile-price strong { font-size: min(54cqh, 8.2cqw) !important; }
 .stage.v-broadcast[data-status="live"] .stage-tile { animation-name: stage-flap; animation-duration: .6s; animation-delay: calc(var(--i, 0) * 40ms + 120ms); transform-origin: 50% 0; }
 .v-broadcast .stage-tile[data-tick] .stage-tile-price strong { animation: stage-flip .45s cubic-bezier(.3, 1.4, .4, 1); transform-origin: 50% 50%; }
@@ -775,3 +775,46 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 /* Readable from 15 feet: names and prices never go below these sizes on a 1080p board. */
 .stage-tile-top b { min-height: 1em; }
 @media (prefers-reduced-motion: reduce) { .stage-body::before, .stage-tile::before { animation: none !important; } }
+
+/* Sound prompt: browsers block audio until the page is touched once; this makes that impossible to miss. */
+.stage-sound-prompt { position: fixed; left: 50%; bottom: calc(28 * var(--u)); z-index: 95; display: flex; align-items: center; gap: calc(18 * var(--u)); padding: calc(18 * var(--u)) calc(30 * var(--u)); border: 0; border-radius: 999px; color: var(--on-accent); background: var(--accent); box-shadow: 0 calc(16 * var(--u)) calc(50 * var(--u)) rgba(0, 0, 0, .45); font-family: var(--head); text-align: left; cursor: pointer; transform: translateX(-50%); animation: stage-prompt 2.4s ease-in-out infinite; }
+.stage-sound-prompt svg { width: calc(46 * var(--u)); height: calc(46 * var(--u)); fill: currentColor; }
+.stage-sound-prompt b { display: block; font: 800 calc(30 * var(--u)) / 1.1 var(--head); }
+.stage-sound-prompt small { display: block; margin-top: calc(4 * var(--u)); font: 600 calc(18 * var(--u)) / 1.2 var(--head); opacity: .85; }
+@keyframes stage-prompt { 50% { transform: translateX(-50%) scale(1.04); } }
+
+/* A price change floats its amount up from the panel. */
+.stage-tile > .stage-delta { position: absolute; right: calc(12 * var(--u)); bottom: calc(10 * var(--u)); z-index: 3; padding: .1em .35em; border-radius: var(--r-chip); font: 850 min(17cqh, 7cqw) / 1 var(--num); font-stretch: var(--num-w); pointer-events: none; animation: stage-delta 1.3s cubic-bezier(.2, .8, .2, 1) both; }
+.stage-delta.up { color: var(--up); background: color-mix(in srgb, var(--up) 18%, var(--surface)); }
+.stage-delta.down { color: var(--down); background: color-mix(in srgb, var(--down) 18%, var(--surface)); }
+@keyframes stage-delta { 0% { opacity: 0; transform: translateY(60%) scale(.7); } 18% { opacity: 1; transform: none; } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-60%); } }
+.v-broadcast .stage-delta { display: none; }
+
+/* The Dalaal-10 drawn live beside its value. */
+.stage-index { grid-template-columns: auto auto auto; }
+.stage-index-label { grid-column: 1 / -1; }
+.stage-index-spark { width: calc(150 * var(--u)); height: calc(56 * var(--u)); overflow: visible; }
+.stage-index-spark path { fill: none; stroke: var(--up); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.stage-index-spark.down path { stroke: var(--down); }
+.stage-index-spark circle { fill: var(--up); animation: stage-ping 1.6s var(--ease) infinite; transform-box: fill-box; transform-origin: center; }
+.stage-index-spark.down circle { fill: var(--down); }
+
+/* A crown over the leader's rank. */
+.stage-crown { position: absolute; top: calc(-2 * var(--u)); left: calc(14 * var(--u)); z-index: 2; width: calc(34 * var(--u)); height: calc(24 * var(--u)); fill: var(--gold); filter: drop-shadow(0 0 calc(8 * var(--u)) color-mix(in srgb, var(--gold) 70%, transparent)); animation: stage-crown-bob 2.4s ease-in-out infinite; }
+@keyframes stage-crown-bob { 50% { transform: translateY(calc(-4 * var(--u))) rotate(-6deg); } }
+.stage-standing.is-leader { overflow: visible; }
+.stage-standing.is-leader .stage-standing-rank { margin-top: calc(10 * var(--u)); }
+
+/* The host's individual switches (Host → Animations). Overlays are not drawn at all when off. */
+.stage.off-boardEntrance[data-status="live"] .stage-tile:not(.is-news) { animation: none !important; }
+.stage.off-priceTick .stage-tile::after { display: none; }
+.stage.off-priceTick .stage-tile[data-tick] .stage-tile-price strong, .stage.off-priceTick .stage-tile[data-tick] .company-mark { color: inherit; animation: none !important; }
+.stage.off-priceTick .stage-tile[data-tick] { animation: none !important; }
+.stage.off-priceDelta .stage-delta, .stage.off-leadBanner .stage-lead, .stage.off-crown .stage-crown, .stage.off-indexSpark .stage-index-spark { display: none !important; }
+.stage.off-newsArrival .stage-news-cards > article, .stage.off-newsArrival .stage-word { animation: none !important; }
+.stage.off-newsGlow .stage-tile.is-news { animation: none !important; }
+.stage.off-newsGlow .stage-tile.is-news::after { display: none; }
+.stage.off-ambient::before, .stage.off-ambient .stage-body::before, .stage.off-ambient .stage-tile::before { display: none !important; }
+.stage.off-ambient.v-arcade .stage-tile, .stage.off-ambient .stage-standing.is-leader::after { animation: none !important; }
+.stage.off-lastTen.is-last-ten::after { display: none; }
+.stage.off-finalReveal.is-final .stage-standing, .stage.off-finalReveal.is-final .stage-winner-line { animation: none !important; }

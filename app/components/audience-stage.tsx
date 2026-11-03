@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PublicLeaderboardEntry, PublicNews, PublicWorld, Stock } from "@/game/types";
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
+import { animationOffClasses, animationOn } from "@/game/animations";
 import { changePct, fmtTime, latestNewsSet, money, smoothPath, useSmoothRemaining } from "./market-parts";
 
 /*
@@ -65,10 +66,20 @@ function useMarketBells(world: PublicWorld | null, enabled: boolean) {
   };
   // Browsers only allow sound after a tap or key press on the page.
   useEffect(() => {
-    const unlock = () => { const ctx = context(); if (ctx && ctx.state !== "running") void ctx.resume().then(() => setNeedsTap(false)); else setNeedsTap(false); };
-    window.addEventListener("pointerdown", unlock);
-    window.addEventListener("keydown", unlock);
-    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); };
+    // The first tap or key press unlocks sound; a short chime confirms the bells will be heard.
+    const unlock = () => {
+      const ctx = context();
+      if (!ctx) return;
+      const wasLocked = ctx.state !== "running";
+      void ctx.resume().then(() => {
+        if (ctx.state !== "running") return;
+        setNeedsTap(false);
+        if (wasLocked) strike(ctx, ctx.destination, ctx.currentTime + .05, 1180, .12, .9);
+      });
+    };
+    const events = ["pointerdown", "touchstart", "click", "keydown"] as const;
+    events.forEach(name => window.addEventListener(name, unlock));
+    return () => events.forEach(name => window.removeEventListener(name, unlock));
   }, []);
   useEffect(() => {
     if (!enabled) { setNeedsTap(false); return; }
@@ -166,6 +177,21 @@ function useTick(value: number) {
   return tick;
 }
 
+/* ---------- The Dalaal-10, drawn live ---------- */
+
+/** The index's recent path, kept on this screen (the last 90 updates of this batch). */
+function IndexSpark({ value, batch, up }: { value: number; batch: number; up: boolean }) {
+  const history = useRef<{ batch: number; points: number[] }>({ batch, points: [] });
+  if (history.current.batch !== batch) history.current = { batch, points: [] };
+  const points = history.current.points;
+  if (value && points.at(-1) !== value) { points.push(value); if (points.length > 90) points.shift(); }
+  if (points.length < 2) return <svg className="stage-index-spark" viewBox="0 0 100 40" aria-hidden="true"/>;
+  const lo = Math.min(...points), hi = Math.max(...points), span = hi - lo || 1;
+  const xy = points.map((p, i) => ({ x: i * 100 / (points.length - 1), y: 36 - (p - lo) / span * 32 }));
+  const end = xy[xy.length - 1];
+  return <svg className={`stage-index-spark ${up ? "up" : "down"}`} viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><path d={smoothPath(xy)}/><circle cx={end.x} cy={end.y} r="3"/></svg>;
+}
+
 /* ---------- Standings ---------- */
 
 /*
@@ -236,7 +262,7 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
       const top = row.offsetTop;
       next.set(terminal, top);
       const before = tops.current.get(terminal);
-      if (reduce || !tops.current.size || row.closest(".no-motion")) return;
+      if (reduce || !tops.current.size || row.closest(".no-motion, .off-rankChange")) return;
       if (before === undefined) { row.animate([{ opacity: 0, transform: "translateX(28px)" }, { opacity: 1, transform: "none" }], { duration: 500, easing: "cubic-bezier(.2,.8,.2,1)" }); return; }
       if (Math.abs(before - top) > 1) moved.push({ row, from: before });
     });
@@ -266,6 +292,7 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
       <div className="stage-board-cols" aria-hidden="true"><span>Rank</span><span>Terminal</span><span>Portfolio</span><span>Return</span></div>
       <ol className="stage-board-rows" style={{ "--rows": entries.length } as React.CSSProperties}>
         {entries.map((entry, index) => <li key={entry.terminalNumber} ref={element => { if (element) rows.current.set(entry.terminalNumber, element); else rows.current.delete(entry.terminalNumber); }} className={`stage-standing${index === 0 ? " is-leader" : ""} medal-${Math.min(entry.rank, 4)} status-${entry.status}`} style={{ "--i": index, "--reveal": entries.length - 1 - index } as React.CSSProperties}>
+          {index === 0 && <svg className="stage-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>}
           <b className="stage-standing-rank"><span>{entry.rank}</span></b>
           <span className="stage-standing-name"><strong>{pad2(entry.terminalNumber)}</strong><MoveBadge delta={moves[entry.terminalNumber]?.delta}/>{!final && entry.status !== "live" && <small>{STATUS_LABEL[entry.status]}</small>}</span>
           <span className="stage-standing-value">{money(entry.totalValue, 0)}</span>
@@ -295,6 +322,15 @@ function Spark({ stock }: { stock: Stock }) {
 function StockTile({ stock, index, news }: { stock: Stock; index: number; news?: boolean }) {
   const move = changePct(stock);
   const tick = useTick(stock.price);
+  // The size of the last price change, shown floating up from the panel.
+  const lastPrice = useRef(stock.price);
+  const [delta, setDelta] = useState<{ value: number; key: number } | null>(null);
+  useEffect(() => {
+    const change = stock.price - lastPrice.current;
+    lastPrice.current = stock.price;
+    if (Math.abs(change) < .001) return;
+    setDelta({ value: change, key: Date.now() });
+  }, [stock.price]);
   const ring = Math.max(Math.abs((index % 5) - 2), Math.abs(Math.floor(index / 5) - 2));
   const heat = Math.min(1, Math.abs(move) / 4);
   const [rupees, paise] = money(stock.price, 2).replace("₹", "").split(".");
@@ -302,6 +338,7 @@ function StockTile({ stock, index, news }: { stock: Stock; index: number; news?:
     <div className="stage-tile-top"><Logo stock={stock} compact/><b>{shortName(stock.symbol)}</b><small className="stage-tile-sector">{stock.sector}</small></div>
     <div className="stage-tile-price"><strong><i>₹</i>{rupees}<em>.{paise}</em></strong><span>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</span></div>
     <Spark stock={stock}/>
+    {delta && <span className={`stage-delta ${delta.value > 0 ? "up" : "down"}`} key={delta.key} aria-hidden="true">{delta.value > 0 ? "+" : "−"}{Math.abs(delta.value).toFixed(2)}</span>}
   </article>;
 }
 
@@ -584,6 +621,8 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const [closing, setClosing] = useState(false);
   // The host can switch animations off for every audience screen.
   const motion = world?.controls.animateAudience !== false;
+  const flags = world?.controls.animations;
+  const on = (key: string) => motion && animationOn(flags, key);
   const lastStatus = useRef(world?.status);
   useEffect(() => {
     const before = lastStatus.current;
@@ -638,7 +677,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const clockLabel = status === "live" ? world?.controls.paused ? "Paused" : "Time left" : status === "countdown" ? "Starting" : status === "closed" ? `${batchLabel} · closed` : `${batchLabel} · ready`;
   const clockText = status === "live" ? fmtTime(remaining) : status === "closed" ? "00:00" : fmtTime(world?.duration ?? 300);
   const clockFill = status === "live" ? timeLeft : status === "closed" ? 0 : 1;
-  return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}${showNews ? " has-news" : ""}${motion ? "" : " no-motion"}${lastTen ? " is-last-ten" : ""}`} data-status={status}>
+  return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}${showNews ? " has-news" : ""}${motion ? animationOffClasses(flags) : " no-motion"}${lastTen ? " is-last-ten" : ""}`} data-status={status}>
     <svg className="stage-defs" aria-hidden="true" focusable="false"><defs>
       <linearGradient id="stage-spark-up" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{ stopColor: "var(--up)", stopOpacity: .34 }}/><stop offset="1" style={{ stopColor: "var(--up)", stopOpacity: 0 }}/></linearGradient>
       <linearGradient id="stage-spark-down" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{ stopColor: "var(--down)", stopOpacity: .3 }}/><stop offset="1" style={{ stopColor: "var(--down)", stopOpacity: 0 }}/></linearGradient>
@@ -650,7 +689,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
         <span>{clockText}</span>
         <i className="stage-clock-bar" aria-hidden="true" style={{ transform: `scaleX(${clockFill})` }}/>
       </div>
-      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10 index</span><strong data-tick={indexTick ?? undefined}>{indexText}</strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b></div>
+      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10 index</span><strong data-tick={indexTick ?? undefined}>{indexText}</strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b><IndexSpark value={world?.index ?? 0} batch={world?.batch ?? 0} up={returnPct >= 0}/></div>
       <div className="stage-tools">
         <button type="button" className={`stage-icon${bells.needsTap ? " needs-tap" : ""}`} onClick={() => setSound(value => !value)} aria-pressed={sound} title={sound ? "Bells on" : "Bells off"} aria-label={sound ? "Turn bells off" : "Turn bells on"}><Icon name={sound ? "sound" : "mute"}/></button>
         <button type="button" className="stage-icon" onClick={onTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}><Icon name={theme === "light" ? "moon" : "sun"}/></button>
@@ -670,11 +709,12 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
       <Leaderboard world={world} final={final} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
     </div>
 
-    {motion && closing && <div className="stage-shutter" aria-hidden="true"><i/><i/><strong>Market closed</strong></div>}
-    {final && motion && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
-    {counting && (motion ? <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/> : <div className="stage-countdown is-plain" role="status" aria-live="assertive"><div className="cd-dial">{countdownSeconds > 0 && <strong>{countdownSeconds}</strong>}</div></div>)}
-    {lastTen && motion && <div className="stage-last-ten" aria-hidden="true" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}
-    {opening && motion && <div className="stage-open" aria-hidden="true"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
+    {on("closing") && closing && <div className="stage-shutter" aria-hidden="true"><i/><i/><strong>Market closed</strong></div>}
+    {final && on("confetti") && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
+    {counting && (on("countdown") ? <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/> : <div className="stage-countdown is-plain" role="status" aria-live="assertive"><div className="cd-dial">{countdownSeconds > 0 && <strong>{countdownSeconds}</strong>}</div></div>)}
+    {lastTen && on("lastTen") && <div className="stage-last-ten" aria-hidden="true" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}
+    {opening && on("marketOpen") && <div className="stage-open" aria-hidden="true"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
+    {bells.needsTap && sound && <button type="button" className="stage-sound-prompt" onClick={() => undefined}><Icon name="sound"/><span><b>Tap to turn on the bells</b><small>Browsers keep sound off until the screen is touched once</small></span></button>}
     {preview && <a className="stage-preview-link" href="/ui-preview">Preview: compare all versions</a>}
   </main>;
 }

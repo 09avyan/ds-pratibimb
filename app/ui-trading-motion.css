@@ -21,7 +21,7 @@ html:has(.stage-embed .stage-countdown), body:has(.stage-embed .stage-countdown)
 .trade-chip { position: absolute; padding: 10px 18px; border-radius: 999px; color: #fff; background: var(--burst); box-shadow: 0 10px 30px color-mix(in srgb, var(--burst) 55%, transparent), 0 0 0 3px color-mix(in srgb, #fff 35%, transparent); font: 800 18px/1 system-ui, sans-serif; white-space: nowrap; }
 
 /* Prices stay green after a rise and red after a fall (the theme's own colours), and glow as they tick. */
-.tick-price { display: inline-block; border-radius: 6px; transition: color .7s ease, background-color .7s ease, text-shadow .7s ease; }
+.tick-price { position: relative; display: inline-block; border-radius: 6px; transition: color .7s ease, background-color .7s ease, text-shadow .7s ease; }
 .terminal.has-motion .tick-price[data-tick="up"] { text-shadow: 0 0 10px color-mix(in srgb, var(--up, #16a34a) 45%, transparent); transition: none; }
 .terminal.has-motion .tick-price[data-tick="down"] { text-shadow: 0 0 10px color-mix(in srgb, var(--down, #e11d48) 45%, transparent); transition: none; }
 
@@ -53,3 +53,18 @@ html:has(.stage-embed .stage-countdown), body:has(.stage-embed .stage-countdown)
 
 /* A coloured price keeps its theme colour; only the glow stops when animations are off. */
 .terminal .tick-price.positive, .terminal .tick-price.negative { transition: color .3s ease; }
+
+/* A price change floats its amount up from the price. */
+.tick-delta { position: absolute; left: 100%; top: -.2em; margin-left: .3em; padding: 0 .3em; border-radius: 4px; font-size: .55em; font-weight: 800; line-height: 1.4; white-space: nowrap; pointer-events: none; animation: tm-delta 1.2s cubic-bezier(.2, .8, .2, 1) both; }
+.tick-delta.up { color: var(--up, #16a34a); background: color-mix(in srgb, var(--up, #16a34a) 15%, transparent); }
+.tick-delta.down { color: var(--down, #e11d48); background: color-mix(in srgb, var(--down, #e11d48) 15%, transparent); }
+@keyframes tm-delta { 0% { opacity: 0; transform: translateY(40%); } 20% { opacity: 1; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-120%); } }
+.terminal.no-motion .tick-delta { display: none; }
+.stock-card .tick-delta { display: none; }
+
+/* The host's individual switches for terminals. */
+.terminal.off-tradePriceColour .tick-price.positive, .terminal.off-tradePriceColour .tick-price.negative { color: inherit !important; }
+.terminal.off-tradePriceTick .tick-price[data-tick] { text-shadow: none !important; }
+.terminal.off-tradeDelta .tick-delta { display: none !important; }
+.terminal.off-tradeNews .market-news-list > article, .terminal.off-tradeNews .news-word { animation: none !important; }
+.terminal.off-tradeButton .execute-button::after { display: none !important; }

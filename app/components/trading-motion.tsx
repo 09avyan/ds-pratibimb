@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PublicWorld } from "@/game/types";
 import { CountdownScene, PixelText } from "./audience-stage";
 import { useSmoothRemaining } from "./market-parts";
+import { animationOn } from "@/game/animations";
 
 /*
   The trading terminal's big moments, shared with the audience wall so the whole room feels one event:
@@ -31,12 +32,16 @@ export function TerminalMoments({ world, theme, variant }: { world: PublicWorld 
   if (!world) return null;
   const seconds = counting ? Math.max(0, Math.ceil((world.startedAt - clock) / 1000)) : 0;
   const lastTen = status === "live" && !world.controls.paused && remaining <= 10 && remaining > 0;
-  if (!counting && !moment && !lastTen) return null;
-  return <div className={`stage stage-${theme} v-${variant} stage-embed${lastTen ? " is-last-ten" : ""}`} aria-hidden={!counting || undefined}>
-    {counting && <CountdownScene seconds={seconds} variant={variant} light={theme === "light"}/>}
-    {lastTen && <div className="stage-last-ten" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}
-    {moment === "open" && <div className="stage-open"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
-    {moment === "close" && <div className="stage-shutter"><i/><i/><strong>Market closed</strong></div>}
+  const flags = world.controls.animations;
+  const showCount = counting && animationOn(flags, "tradeCountdown");
+  const showTen = lastTen && animationOn(flags, "tradeLastTen");
+  const show = moment === "open" ? animationOn(flags, "tradeMarketOpen") : moment === "close" ? animationOn(flags, "tradeClosing") : false;
+  if (!showCount && !show && !showTen) return null;
+  return <div className={`stage stage-${theme} v-${variant} stage-embed${showTen ? " is-last-ten" : ""}`} aria-hidden={!showCount || undefined}>
+    {showCount && <CountdownScene seconds={seconds} variant={variant} light={theme === "light"}/>}
+    {showTen && <div className="stage-last-ten" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}
+    {show && moment === "open" && <div className="stage-open"><i className="stage-open-burst"/><i className="stage-open-ring"/><strong>Market open</strong></div>}
+    {show && moment === "close" && <div className="stage-shutter"><i/><i/><strong>Market closed</strong></div>}
   </div>;
 }
 
@@ -107,6 +112,7 @@ export function TickPrice({ value, children }: { value: number; children: React.
   const last = useRef(value);
   const [dir, setDir] = useState<"up" | "down" | null>(null);
   const [tick, setTick] = useState<"up" | "down" | null>(null);
+  const [delta, setDelta] = useState<{ value: number; key: number } | null>(null);
   useEffect(() => {
     const before = last.current;
     last.current = value;
@@ -114,8 +120,9 @@ export function TickPrice({ value, children }: { value: number; children: React.
     const next = value > before ? "up" : "down";
     setDir(next);
     setTick(next);
+    setDelta({ value: value - before, key: Date.now() });
     const timer = window.setTimeout(() => setTick(null), 800);
     return () => window.clearTimeout(timer);
   }, [value]);
-  return <strong className={`tick-price${dir === "up" ? " positive" : dir === "down" ? " negative" : ""}`} data-dir={dir ?? undefined} data-tick={tick ?? undefined}>{children}</strong>;
+  return <strong className={`tick-price${dir === "up" ? " positive" : dir === "down" ? " negative" : ""}`} data-dir={dir ?? undefined} data-tick={tick ?? undefined}>{children}{delta && <span className={`tick-delta ${delta.value > 0 ? "up" : "down"}`} key={delta.key} aria-hidden="true">{delta.value > 0 ? "+" : "−"}{Math.abs(delta.value).toFixed(2)}</span>}</strong>;
 }
