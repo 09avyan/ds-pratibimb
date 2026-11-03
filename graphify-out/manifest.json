@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793718700.9984064,
-    "seen": 1793718859.6268451,
-    "ast_hash": "964fb799768c98a8c0fda10eab67f4ba",
+    "mtime": 1793719983.2125773,
+    "seen": 1793720498.5372036,
+    "ast_hash": "a0328070ed9500d731a008e2e6d65321",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793718765.6841486,
-    "seen": 1793718859.6280508,
-    "ast_hash": "d758c9261bc60bb6ba7a2d0f90feefba",
+    "mtime": 1793720495.0224223,
+    "seen": 1793720498.5382936,
+    "ast_hash": "5ad0f3fe242bf6913c33344290c408c4",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -426,9 +426,9 @@
     "semantic_hash": ""
   },
   "src/game/animations.ts": {
-    "mtime": 1793717276.916564,
-    "seen": 1793718551.263499,
-    "ast_hash": "c34179d603115c78dc71685e38704b7e",
+    "mtime": 1793720000.637573,
+    "seen": 1793720498.537972,
+    "ast_hash": "698abd0748ee11bd899740a77e0b3b30",
     "semantic_hash": ""
   },
   "app/components/market-sound.ts": {
