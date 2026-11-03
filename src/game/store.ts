@@ -1,4 +1,4 @@
-import type { Mode, World } from "./types";
+import type { Mode, Stock, World } from "./types";
 import { freshWorld } from "./engine";
 
 type Stored = { version: number; state: World };
@@ -29,23 +29,45 @@ async function rpc<T>(name: string, body: Record<string, unknown>): Promise<T> {
 /*
   Storage format. Price history is most of the state (25 companies × hundreds of candles), and every
   update reads and writes the whole row, so candles are stored as compact number rows with times
-  relative to the first: [time − t0, open, high, low, close, volume]. The engine always sees ordinary
+  relative to the first, delta-encoded in paise (see packWorld). The engine always sees ordinary
   candles; a state saved before this format loads unchanged.
 */
-type PackedCandles = { t0: number; rows: number[][] };
+type PackedCandles = { t0: number; rows: number[][] } | { t0: number; p0: number; d: number[] };
 type StoredStock = World["stocks"][number] & { packedCandles?: PackedCandles };
+// Candles are stored as small whole numbers: time step in milliseconds, prices in paise as
+// changes from the previous candle, then volume. About half the size of plain rows.
+const paise = (value: number) => Math.round(value * 100);
 export function packWorld(world: World): World {
   return { ...world, stocks: world.stocks.map(stock => {
     const t0 = stock.candles[0]?.time ?? 0;
-    return { ...stock, candles: [], packedCandles: { t0, rows: stock.candles.map(c => [c.time - t0, c.open, c.high, c.low, c.close, c.volume]) } } as StoredStock;
+    let lastTime = t0, lastClose = paise(stock.candles[0]?.open ?? 0);
+    const d: number[] = [];
+    for (const c of stock.candles) {
+      const open = paise(c.open), close = paise(c.close);
+      d.push(c.time - lastTime, open - lastClose, paise(c.high) - open, open - paise(c.low), close - open, Math.round(c.volume));
+      lastTime = c.time; lastClose = close;
+    }
+    return { ...stock, candles: [], packedCandles: { t0, p0: paise(stock.candles[0]?.open ?? 0), d } } as StoredStock;
   }) };
 }
 export function unpackWorld(world: World): World {
   world.stocks = world.stocks.map(raw => {
     const { packedCandles, ...stock } = raw as StoredStock;
     if (!packedCandles) return stock;
-    const { t0, rows } = packedCandles;
-    return { ...stock, candles: rows.map(([dt, open, high, low, close, volume]) => ({ time: t0 + dt, open, high, low, close, volume })) };
+    if ("rows" in packedCandles) {
+      const { t0, rows } = packedCandles;
+      return { ...stock, candles: rows.map(([dt, open, high, low, close, volume]) => ({ time: t0 + dt, open, high, low, close, volume })) };
+    }
+    const { t0, p0, d } = packedCandles;
+    const candles: Stock["candles"] = [];
+    let time = t0, close = p0;
+    for (let i = 0; i + 5 < d.length; i += 6) {
+      time += d[i];
+      const open = close + d[i + 1];
+      close = open + d[i + 4];
+      candles.push({ time, open: open / 100, high: (open + d[i + 2]) / 100, low: (open - d[i + 3]) / 100, close: close / 100, volume: d[i + 5] });
+    }
+    return { ...stock, candles };
   });
   return world;
 }

@@ -231,9 +231,13 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   const roundDirection = world.headlines.reduce((sum, story) => sum + Math.sign(story.direction), 0);
   const marketDirection = Math.sign(reading.indexChange);
   const recentDirectionCount = world.headlines.slice(0, 5).reduce((sum, news) => sum + Math.sign(news.direction), 0);
+  // Across batches: stories told fewer times than the rest come first, so every story (and with it every
+  // mix of stories) runs before any repeats. A strong fit for the room can still outweigh one repeat.
+  const usage = world.newsUsage ?? {};
+  const leastUsed = Math.min(...world.news.map((_, index) => usage[index] ?? 0));
   const scoreStory = (item: { news: News; index: number }) => {
     const scope = scopeOf(item.news);
-    let score = 0;
+    let score = -4 * ((usage[item.index] ?? 0) - leastUsed);
     const recentStories = world.headlines.filter(story => at - story.createdAt < 100_000);
     const sameCompany = scope === "stock" && recentStories.some(story => story.symbols?.some(symbol => item.news.symbols?.includes(symbol)));
     const sameSector = scope === "sector" && recentStories.some(story => story.sector === item.news.sector && scopeOf(story) !== "economy");
