@@ -288,11 +288,6 @@ function Spark({ stock }: { stock: Stock }) {
   </svg>;
 }
 
-/** V5's prices on split-flap characters: a changed character remounts and flips. */
-function Flaps({ text }: { text: string }) {
-  return <b className="stage-flaps" aria-hidden="true">{[...text].map((ch, i) => <b key={`${text.length - i}:${ch}`} className={/[0-9]/.test(ch) ? "stage-flap" : "stage-flap sep"}>{ch}</b>)}</b>;
-}
-
 function StockTile({ stock, index, news, variant }: { stock: Stock; index: number; news?: boolean; variant?: string }) {
   const move = changePct(stock);
   const tick = useTick(stock.price);
@@ -308,10 +303,10 @@ function StockTile({ stock, index, news, variant }: { stock: Stock; index: numbe
   const ring = Math.max(Math.abs((index % 5) - 2), Math.abs(Math.floor(index / 5) - 2));
   const heat = Math.min(1, Math.abs(move) / 4);
   const [rupees, paise] = money(stock.price, 2).replace("₹", "").split(".");
-  return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}${news ? " is-news" : ""}`} data-tick={tick ?? undefined} data-sector={stock.sector} style={{ "--i": index, "--ring": ring, "--heat": heat.toFixed(3) } as React.CSSProperties} title={stock.name} aria-label={`${stock.name} ${money(stock.price, 2)}, ${move >= 0 ? "up" : "down"} ${Math.abs(move).toFixed(2)}%`}>
+  return <article className={`stage-tile ${Math.abs(move) < .005 ? "is-flat" : move > 0 ? "is-up" : "is-down"}${news ? " is-news" : ""}`} data-tick={tick ?? undefined} data-sector={stock.sector} style={{ "--i": index, "--row": Math.floor(index / 5), "--col": index % 5, "--scatter": index * 7 % 25, "--ring": ring, "--heat": heat.toFixed(3) } as React.CSSProperties} title={stock.name} aria-label={`${stock.name} ${money(stock.price, 2)}, ${move >= 0 ? "up" : "down"} ${Math.abs(move).toFixed(2)}%`}>
     <div className="stage-tile-body">
       <div className="stage-tile-top"><Logo stock={stock} compact/><b>{shortName(stock.symbol)}</b><small className="stage-tile-sector">{stock.sector}</small></div>
-      <div className="stage-tile-price">{variant === "broadcast" ? <strong className="is-flaps"><i>₹</i><Flaps text={`${rupees}.${paise}`}/></strong> : <strong><i>₹</i>{rupees}<em>.{paise}</em></strong>}<span>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</span></div>
+      <div className="stage-tile-price"><strong><i>₹</i>{rupees}<em>.{paise}</em></strong><span>{Math.abs(move) < .005 ? "0.00%" : `${move > 0 ? "▲" : "▼"} ${Math.abs(move).toFixed(2)}%`}</span></div>
     </div>
     {variant === "gallery" ? <span className={`stage-movebar ${move >= 0 ? "up" : "down"}`} aria-hidden="true"><i style={{ width: `${Math.min(100, Math.abs(move) / 5 * 100)}%` }}/></span> : <Spark stock={stock}/>}
     {delta && <span className={`stage-delta ${delta.value > 0 ? "up" : "down"}`} key={delta.key} aria-hidden="true">{delta.value > 0 ? "+" : "−"}{Math.abs(delta.value).toFixed(2)}</span>}
@@ -604,12 +599,26 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const moments = useRef<{ opened: number; closed: number } | null>(null);
   const [openKey, setOpenKey] = useState(0);
   const [closeKey, setCloseKey] = useState(0);
+  // The board's entrance plays only in its first seconds; afterwards nothing can restart it.
+  const [enterKey, setEnterKey] = useState(0);
+  const [entering, setEntering] = useState(false);
   useEffect(() => {
+    if (!enterKey) return;
+    setEntering(true);
+    const timer = window.setTimeout(() => setEntering(false), 4200);
+    return () => window.clearTimeout(timer);
+  }, [enterKey]);
+  useLayoutEffect(() => {
     if (!world) return;
-    if (!moments.current) { moments.current = { opened: world.status === "live" || world.status === "closed" ? world.batch : 0, closed: world.status === "closed" ? world.batch : 0 }; return; }
+    if (!moments.current) {
+      moments.current = { opened: world.status === "live" || world.status === "closed" ? world.batch : 0, closed: world.status === "closed" ? world.batch : 0 };
+      if (world.status === "live") setEnterKey(-world.batch);
+      return;
+    }
     const m = moments.current;
-    if (world.status === "live" && m.opened !== world.batch && world.duration - world.remaining < 8) { m.opened = world.batch; setOpenKey(world.batch); }
-    if (world.status === "closed" && m.closed !== world.batch) { m.opened = world.batch; m.closed = world.batch; setCloseKey(world.batch); }
+    if (world.status === "live" && m.opened !== world.batch && world.duration - world.remaining < 8) { m.opened = world.batch; setOpenKey(world.batch); setEnterKey(world.batch); }
+    // Closing is decided before the frame is painted, so the final standings never flash first.
+    if (world.status === "closed" && m.closed !== world.batch) { m.opened = world.batch; m.closed = world.batch; setCloseKey(world.batch); setClosing(true); }
   }, [world?.status, world?.batch, world?.startedAt]);
   useEffect(() => {
     if (!openKey) return;
@@ -619,8 +628,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   }, [openKey]);
   useEffect(() => {
     if (!closeKey) return;
-    setClosing(true);
-    const timer = window.setTimeout(() => setClosing(false), 2600);
+    const timer = window.setTimeout(() => setClosing(false), 5200);
     return () => window.clearTimeout(timer);
   }, [closeKey]);
 
@@ -660,8 +668,10 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     let timer = window.setTimeout(flip, 25_000);
     return () => window.clearTimeout(timer);
   }, [status, world?.batch]);
-  const invite = on("invite") && (status === "ready" || (status === "closed" && (inviteTurn || !standingsAfterClose)));
-  const final = standingsAfterClose && !invite;
+  // The closing finale plays over the market itself; the standings and the invitation wait for it.
+  const finale = on("closing") && closing && status === "closed";
+  const invite = !finale && on("invite") && (status === "ready" || (status === "closed" && (inviteTurn || !standingsAfterClose)));
+  const final = standingsAfterClose && !invite && !finale;
   const countdownSeconds = counting && world ? Math.max(0, Math.ceil((world.startedAt - clock) / 1000)) : 0;
   const remaining = useSmoothRemaining(world);
   const lowTime = status === "live" && (world ? remaining : 999) <= 30;
@@ -673,7 +683,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const clockLabel = status === "live" ? world?.controls.paused ? "Paused" : "Time left" : status === "countdown" ? "Starting" : status === "closed" ? `${batchLabel} · closed` : `${batchLabel} · ready`;
   const clockText = status === "live" ? fmtTime(remaining) : status === "closed" ? "00:00" : fmtTime(world?.duration ?? 300);
   const clockFill = status === "live" ? timeLeft : status === "closed" ? 0 : 1;
-  return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}${showNews ? " has-news" : ""}${motion ? animationOffClasses(flags) : " no-motion"}${lastTen ? " is-last-ten" : ""}`} data-status={status}>
+  return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}${showNews ? " has-news" : ""}${motion ? animationOffClasses(flags) : " no-motion"}${lastTen ? " is-last-ten" : ""}${entering && status === "live" ? " is-entering" : ""}${finale ? " is-closing" : ""}`} data-status={status}>
     <svg className="stage-defs" aria-hidden="true" focusable="false"><defs>
       <linearGradient id="stage-spark-up" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{ stopColor: "var(--up)", stopOpacity: .34 }}/><stop offset="1" style={{ stopColor: "var(--up)", stopOpacity: 0 }}/></linearGradient>
       <linearGradient id="stage-spark-down" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{ stopColor: "var(--down)", stopOpacity: .3 }}/><stop offset="1" style={{ stopColor: "var(--down)", stopOpacity: 0 }}/></linearGradient>
@@ -705,7 +715,17 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
       <Leaderboard world={world} final={final} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
     </div>}
 
-    {on("closing") && closing && <div className="stage-shutter" aria-hidden="true"><i/><i/><strong>Market closed</strong></div>}
+    {finale && <div className="stage-finale" role="status" aria-live="polite">
+      <i className="stage-finale-veil" aria-hidden="true"/>
+      <span className="stage-finale-rings" aria-hidden="true"><i/><i/><i/></span>
+      <div className="stage-finale-card">
+        <small>Closing bell · {batchLabel}</small>
+        <strong>Market closed</strong>
+        <hr/>
+        <p className="stage-finale-index"><span>Dalaal-10 closes at</span><b>{indexText}</b><em className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</em></p>
+        <p className="stage-finale-next">{(world?.leaderboard.length ?? 0) > 0 ? "Final standings next" : "Thanks for trading"}</p>
+      </div>
+    </div>}
     {final && on("confetti") && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
     {counting && (on("countdown") ? <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/> : <div className="stage-countdown is-plain" role="status" aria-live="assertive"><div className="cd-dial">{countdownSeconds > 0 && <strong>{countdownSeconds}</strong>}</div></div>)}
     {lastTen && on("lastTen") && <div className="stage-last-ten" aria-hidden="true" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}

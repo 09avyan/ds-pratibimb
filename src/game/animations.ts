@@ -17,7 +17,7 @@ export const ANIMATIONS: readonly AnimationInfo[] = [
   { key: "indexSpark", screen: "audience", label: "Index line", detail: "The live line of the Dalaal-10 in the header." },
   { key: "ambient", screen: "audience", label: "Background motion", detail: "Light sweeps, stars, breathing clay, spinning records, shimmer." },
   { key: "lastTen", screen: "audience", label: "Last ten seconds", detail: "The pixel ghost number and red edge pulse." },
-  { key: "closing", screen: "audience", label: "Closing shutter", detail: "Shutters slam on \"Market closed\" at the bell." },
+  { key: "closing", screen: "audience", label: "Closing finale", detail: "The board goes dark panel by panel, the bell rings out and \"Market closed\" shows the closing index." },
   { key: "finalReveal", screen: "audience", label: "Final standings reveal", detail: "Standings revealed from last place up to the winner." },
   { key: "invite", screen: "audience", label: "Between-round invitation", detail: "Before and between rounds the wall invites parents to play: the pitch, the last winner and a running price tape." },
   { key: "confetti", screen: "audience", label: "Confetti", detail: "Gold confetti over the final standings." },
