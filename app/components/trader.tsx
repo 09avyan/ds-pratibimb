@@ -248,6 +248,26 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       setView(current => current === "report" ? current : "report");
   }, [audienceOnly, world?.mode, world?.status, player?.ended]);
 
+  function returnToReady() {
+    const next = crypto.randomUUID(); localStorage.setItem(sessionStorageKey(mode, terminal, preview), next);
+    setSessionId(next); setView("markets"); setToast(isTest ? "You’re ready to rejoin this practice round." : "You’re ready for the next batch.");
+  }
+  // After a hosted batch ends, the report stays up for 30 seconds, then the terminal returns to the ready state by itself.
+  const [autoReady, setAutoReady] = useState<number | null>(null);
+  const autoReadyOn = view === "report" && mode !== "test" && world?.status === "closed";
+  useEffect(() => {
+    if (!autoReadyOn) { setAutoReady(null); return; }
+    const end = Date.now() + 30_000;
+    setAutoReady(30);
+    const timer = window.setInterval(() => {
+      const left = Math.ceil((end - Date.now()) / 1000);
+      if (left > 0) { setAutoReady(left); return; }
+      window.clearInterval(timer); returnToReady();
+    }, 250);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoReadyOn]);
+
   async function send(action: string, payload: Record<string, unknown> = {}) {
     if (!sessionId || submitting.current) return;
     submitting.current = true;
@@ -313,7 +333,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
     <main className={`workspace ${view === "markets" ? "workspace-markets" : "workspace-wide"}`}>
       {isTest && <div className="autonomous-band"><span className="live-dot"/> TEST MARKET · ISOLATED PRACTICE <span>Six minute rounds use the same rules as a live session.</span></div>}
-      {world && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - clockNow) / 1000))} seconds` : world.status === "closed" ? isTest ? "Practice round complete" : "The batch has ended" : isTest ? "Practice round ready" : "The market is ready"}<span>{world.status === "countdown" ? "The market is starting on every device." : world.status === "closed" ? isTest ? "Start another isolated practice round when you’re ready." : "Review your report to return to the ready state." : isTest ? "Your isolated practice market is ready." : "The host will start the shared batch shortly."}</span>{isTest && (world.status === "closed" || world.status === "ready") && <button type="button" className="outline-button" disabled={busy} onClick={() => void send("sandbox-start")}>Start practice round</button>}</div>}
+      {world && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - clockNow) / 1000))} seconds` : world.status === "closed" ? isTest ? "Practice round complete" : "The batch has ended" : isTest ? "Practice round ready" : "The market is ready"}<span>{world.status === "countdown" ? "The market is starting on every device." : world.status === "closed" ? isTest ? "Start another isolated practice round when you’re ready." : "The report returns to the ready state on its own after 30 seconds." : isTest ? "Your isolated practice market is ready." : "The host will start the shared batch shortly."}</span>{isTest && (world.status === "closed" || world.status === "ready") && <button type="button" className="outline-button" disabled={busy} onClick={() => void send("sandbox-start")}>Start practice round</button>}</div>}
       {view === "markets" && stock && <>
         <StockPriceTicker stocks={world?.stocks ?? []}/>
         {latestNews.length > 0 && (dismissedNews === newsKey ? <button type="button" className="news-reopen" onClick={() => setDismissedNews("")}>News <span>{latestNews.length}</span></button> : <section className="market-news-feed" aria-label="Latest news set">
@@ -369,7 +389,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
       {view === "report" && report && <section className="results-view"><div className="results-heading"><span className="eyebrow">SESSION COMPLETE · BATCH {world?.batch}</span><h1>That’s a wrap<span>.</span></h1><p>Here’s what your decisions added up to. This is a fictional learning simulation, not investment advice.</p></div><div className="results-value"><small>FINAL PORTFOLIO VALUE</small><strong>{money(report.value, 0)}</strong><span className={report.pnl >= 0 ? "positive" : "negative"}>{report.pnl >= 0 ? "+" : ""}{money(report.pnl, 0)} · {report.returnPct >= 0 ? "+" : ""}{report.returnPct.toFixed(2)}%</span></div><div className="portfolio-summary report-metrics"><Metric label={world?.status === "closed" ? "FINAL POSITION" : "POSITION SO FAR"} value={world?.standing ? `${world.standing.rank} / ${world.standing.total}` : "—"} note="Ranked by total portfolio value"/><Metric label="AVAILABLE CASH" value={money(report.cash, 0)}/><Metric label="TOTAL TRADES" value={String(report.tradeCount)}/><Metric label="WIN / LOSS CLOSES" value={`${report.winners} / ${report.losers}`}/><Metric label="DIVERSIFICATION" value={`${report.sectors} sectors`}/></div>
         <div className="report-trade-pair">{([["BEST CLOSED TRADE", report.bestTrade], ["TOUGHEST CLOSED TRADE", report.worstTrade]] as const).map(([label, trade]) => <article className={`report-trade-card${trade ? trade.realized >= 0 ? " positive-result" : " negative-result" : " empty-result"}`} key={label}><span className="eyebrow">{label}</span>{trade ? <><div className="report-trade-title"><b>{trade.symbol}</b><span>{trade.side} · {trade.qty} shares</span></div><strong className={trade.realized >= 0 ? "positive" : "negative"}>{trade.realized > 0 ? "+" : ""}{money(trade.realized, 0)} <small>realised</small></strong><small className="report-trade-meta">{money(trade.price)} per share · {new Date(trade.time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</small></> : <p>{label === "TOUGHEST CLOSED TRADE" && report.bestTrade ? "No losing trade this round." : "No closed trades yet. Best and toughest realized trades will appear here."}</p>}</article>)}</div>
-        <div className="report-panels"><div className="report-panel"><span className="eyebrow">YOUR LEARNING NOTES</span>{report.lessons.map((l, i) => <p key={i}><i>{String(i + 1).padStart(2, "0")}</i>{l}</p>)}</div><div className="report-panel"><span className="eyebrow">BADGES EARNED FROM YOUR ACTIONS · {report.badges.length}</span><div className="badge-grid">{report.badges.length ? report.badges.map(b => <span className="achievement" key={b.name}><i>✳</i><b>{b.name}</b><small>{b.detail}</small></span>) : <p>Place an order, explore another part of the market, or try a short to earn a badge.</p>}</div></div></div><button className="execute-button report-ready" onClick={() => { if (isTest && world?.status === "closed") { void send("sandbox-start"); return; } const next = crypto.randomUUID(); localStorage.setItem(sessionStorageKey(mode, terminal, preview), next); setSessionId(next); setView("markets"); setToast(isTest ? "You’re ready to rejoin this practice round." : "You’re ready for the next batch."); }}>{isTest && world?.status === "closed" ? "Start another practice round" : isTest ? "Return to practice market" : "Return to ready state"} <span>→</span></button>
+        <div className="report-panels"><div className="report-panel"><span className="eyebrow">YOUR LEARNING NOTES</span>{report.lessons.map((l, i) => <p key={i}><i>{String(i + 1).padStart(2, "0")}</i>{l}</p>)}</div><div className="report-panel"><span className="eyebrow">BADGES EARNED FROM YOUR ACTIONS · {report.badges.length}</span><div className="badge-grid">{report.badges.length ? report.badges.map(b => <span className="achievement" key={b.name}><i>✳</i><b>{b.name}</b><small>{b.detail}</small></span>) : <p>Place an order, explore another part of the market, or try a short to earn a badge.</p>}</div></div></div><button className="execute-button report-ready" onClick={() => { if (isTest && world?.status === "closed") { void send("sandbox-start"); return; } returnToReady(); }}>{isTest && world?.status === "closed" ? "Start another practice round" : isTest ? "Return to practice market" : "Return to ready state"} <span>→</span></button>{autoReady !== null && <p className="report-auto">Returning to the ready state in {autoReady}s</p>}
       </section>}
       <footer className="workspace-footer"><span>SIMULATED MARKET · FICTIONAL PRICES · NO REAL TRADES</span><span>© PULSE / DALAA<span>L</span> STREET</span></footer>
     </main>
