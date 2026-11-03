@@ -148,7 +148,7 @@ export function WrapScreen({ report, world, motion, cta, onCta, autoReady }: { r
       <div className="wrap-card wrap-tip">
         <span className="eyebrow">Tip for next round</span>
         <p>{tip}</p>
-        <button type="button" className="execute-button wrap-cta" onClick={onCta}>{cta} <span>→</span></button>
+        <button type="button" className="execute-button wrap-cta" onClick={onCta}>{cta} <kbd>Space</kbd></button>
         {autoReady !== null && <small className="wrap-auto"><i style={{ "--left": autoReady } as React.CSSProperties}/>Back to the ready screen in {autoReady}s</small>}
         <small className="wrap-note">A fictional learning simulation, not investment advice.</small>
       </div>

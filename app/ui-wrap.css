@@ -3,7 +3,8 @@
    Built from each version's tokens (--card, --secondary, --line, --ink, --muted, --accent, --up,
    --down), so every version keeps its own colours. Motion runs once, in order, in about 3 seconds.
    ====================================================================== */
-.wrap { --wrap-ease: cubic-bezier(.2, .9, .25, 1); position: relative; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 14px; width: min(1480px, 100%); min-height: 0; margin: 6px auto 18px; }
+/* The screen is taller than a small window: it keeps its natural height and the workspace scrolls. */
+.wrap { --wrap-ease: cubic-bezier(.2, .9, .25, 1); position: relative; display: grid; flex: none; grid-template-rows: auto auto auto; gap: 14px; width: min(1480px, 100%); margin: 6px auto 18px; }
 .wrap .eyebrow { display: block; }
 .wrap-card { position: relative; min-width: 0; padding: 16px 18px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: var(--shadow); animation: wrap-rise .6s var(--wrap-ease) both; }
 
@@ -83,7 +84,8 @@
 
 .wrap-tip { display: grid; align-content: start; gap: 10px; animation-delay: 1.5s; }
 .wrap-tip p { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.45; }
-.wrap-cta { margin-top: auto; min-height: 48px; border-radius: 10px; }
+.wrap-cta { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: auto; min-height: 48px; border-radius: 10px; }
+.wrap-cta kbd { padding: 3px 8px; border: 1px solid currentColor; border-radius: 6px; font: 700 11px var(--mono); opacity: .8; }
 .wrap-auto { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
 .wrap-auto i { width: 14px; height: 14px; border: 2px solid var(--accent); border-right-color: transparent; border-radius: 50%; animation: wrap-spin 1s linear infinite; }
 .wrap-note { color: var(--faint, var(--muted)); font-size: 10px; }
