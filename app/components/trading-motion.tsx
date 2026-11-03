@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { serverNow } from "./server-clock";
 import type { PublicWorld } from "@/game/types";
 import { CountdownScene, PixelText } from "./audience-stage";
 import { useSmoothRemaining } from "./market-parts";
@@ -13,11 +14,11 @@ import { animationOn } from "@/game/animations";
   The host's "trading animations" switch turns all of it off.
 */
 export function TerminalMoments({ world, theme, variant }: { world: PublicWorld | null; theme: "light" | "dark"; variant: string }) {
-  const [clock, setClock] = useState(() => Date.now());
+  const [clock, setClock] = useState(() => serverNow());
   const [moment, setMoment] = useState<"open" | "close" | null>(null);
   const status = world?.status;
   const counting = status === "countdown";
-  useEffect(() => { if (!counting) return; const timer = window.setInterval(() => setClock(Date.now()), 200); return () => window.clearInterval(timer); }, [counting]);
+  useEffect(() => { if (!counting) return; const timer = window.setInterval(() => setClock(serverNow()), 200); return () => window.clearInterval(timer); }, [counting]);
   // Each batch's opening and closing moment plays once, even if this screen missed the countdown or
   // briefly saw an older answer.
   const seen = useRef<{ opened: number; closed: number } | null>(null);
@@ -26,7 +27,7 @@ export function TerminalMoments({ world, theme, variant }: { world: PublicWorld 
     if (!world) return;
     if (!seen.current) { seen.current = { opened: status === "live" || status === "closed" ? world.batch : 0, closed: status === "closed" ? world.batch : 0 }; return; }
     const m = seen.current;
-    if (status === "live" && m.opened !== world.batch && Date.now() - world.startedAt < 8000) { m.opened = world.batch; setCue({ kind: "open", batch: world.batch }); }
+    if (status === "live" && m.opened !== world.batch && world.duration - world.remaining < 8) { m.opened = world.batch; setCue({ kind: "open", batch: world.batch }); }
     if (status === "closed" && m.closed !== world.batch) { m.opened = world.batch; m.closed = world.batch; setCue({ kind: "close", batch: world.batch }); }
   }, [status, world?.batch, world?.startedAt]);
   useEffect(() => {

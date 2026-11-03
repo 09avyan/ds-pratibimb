@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { noteServerTime, serverNow } from "./server-clock";
 import type { Mode, Player, PublicWorld, Stock, Trade } from "@/game/types";
 import { AudienceStage, Odometer } from "./audience-stage";
 import { animationOffClasses, animationOn } from "@/game/animations";
@@ -147,7 +148,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const [busy, setBusy] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [themeReady, setThemeReady] = useState(false);
-  const [clockNow, setClockNow] = useState(Date.now);
+  const [clockNow, setClockNow] = useState(serverNow);
   const [menu, setMenu] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [dismissedNews, setDismissedNews] = useState("");
@@ -194,9 +195,11 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
       const previewQuery = preview ? "&preview=1" : "";
       const revisionQuery = currentWorld && (!includeCandles || canReuseChart) ? `&revision=${currentWorld.revision}` : "";
       const chartQuery = includeCandles ? `${canReuseChart ? `&candlesSince=${Math.max(0, chartLastTime.current - 2000)}` : ""}` : "&chart=0";
+      const sentAt = Date.now();
       const res = await fetch(`/api/game?mode=${mode}&selected=${encodeURIComponent(requestedStock)}${sessionId ? `&session=${encodeURIComponent(sessionId)}` : ""}${terminalQuery}${previewQuery}${revisionQuery}${chartQuery}`, { cache: "no-store", signal: controller.signal });
       if (res.status === 304) { failures.current = 0; return; }
       const data = await res.json();
+      noteServerTime(data.serverNow, sentAt, Date.now());
       if (!res.ok) throw new Error(data.error || "Market data is unavailable.");
       if (revision !== mutationVersion.current || requestedStock !== selectedRef.current) return;
       failures.current = 0;
@@ -221,8 +224,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   useSteadyBeat(() => { void sync(); }, world?.controls.tickRate === .5 ? 500 : 1000, audienceOnly);
   useEffect(() => {
     if (world?.status !== "countdown") return;
-    setClockNow(Date.now());
-    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
+    setClockNow(serverNow());
+    const timer = window.setInterval(() => setClockNow(serverNow()), 250);
     return () => window.clearInterval(timer);
   }, [world?.status, world?.startedAt]);
   useEffect(() => { readController.current?.abort(); nextSyncAt.current = 0; void sync(); }, [selected, sync]);
@@ -393,7 +396,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
               <div className="focus-price-row"><TickPrice key={stock.symbol} value={stock.price}>{money(stock.price)}</TickPrice><span className={`stock-change ${changePct(stock) >= 0 ? "positive" : "negative"}`}>{changePct(stock) >= 0 ? "+" : ""}{changePct(stock).toFixed(2)}%</span><small>SESSION</small></div>
               <MainChart key={stock.symbol} stock={stock} kind={chartType} trades={world?.player?.history ?? []} startedAt={world?.startedAt ?? 0} position={player?.holdings[stock.symbol]?.qty ? { side: "Long", ...player.holdings[stock.symbol] } : player?.shorts[stock.symbol]?.qty ? { side: "Short", ...player.shorts[stock.symbol] } : undefined}/>
               {player?.shorts[stock.symbol]?.qty ? <div className="chart-active-position">OPEN SHORT · {player.shorts[stock.symbol].qty} shares at {money(player.shorts[stock.symbol].avg)} average</div> : null}
-              <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.tickRate ?? 1} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
+              <div className="chart-toolbar"><span>INTRADAY <b>·</b> {world?.controls.priceSeconds ?? 2} SEC</span><div className="chart-toggle">{(["Line", "Candles"] as const).map(t => <button key={t} onClick={() => setChartType(t)} className={chartType === t ? "active" : ""}>{t === "Line" ? "⌁" : "▥"} {t}</button>)}</div></div>
               <div className="chart-foot"><span><i/> Open <b>{money(stock.base)}</b></span><span>High <b>{money(Math.max(stock.price, ...stock.candles.map(c => c.high)))}</b></span><span>Low <b>{money(Math.min(stock.price, ...stock.candles.map(c => c.low)))}</b></span></div>
               <section id="inline-order-ticket" className="inline-order-ticket" aria-label={`Trade ${stock.name}`}>{orderTicket}</section>
             </div>

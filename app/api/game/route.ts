@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { advance, advanceForPoll, executeTrade, hostAction, newPlayer, settle, toPublic } from "@/game/engine";
 import { recordGameLog } from "@/game/logs";
 import { TERMINAL_ACTIVE_WINDOW_MS, TERMINAL_COUNT } from "@/game/terminals";
-import { mutate, pollTickMs } from "@/game/store";
+import { mutate, databaseSlow } from "@/game/store";
 import type { Mode, World } from "@/game/types";
 
 export const runtime = "nodejs";
@@ -56,11 +56,11 @@ export async function GET(request: NextRequest) {
   if (sessionId && !terminalNumber) return errorResponse(new Error(mode === "test" ? "Open a numbered practice terminal, from /test/01 through /test/10." : "Open your numbered terminal URL, from /play/01 through /play/10."));
   try {
     const { world } = await mutate(mode, state => {
-      advanceForPoll(state, Date.now(), pollTickMs());
+      advanceForPoll(state, Date.now(), databaseSlow());
       if (sessionId) touchSession(state, sessionId, terminalNumber);
     }, localPreview, 1500, true);
     if (knownRevision === world.version) return new NextResponse(null, { status: 304, headers: { "Cache-Control": "no-store, max-age=0" } });
-    return NextResponse.json(toPublic(world, sessionId, selectedStock, { includeCandles, candlesSince }), { headers: { "Cache-Control": "no-store, max-age=0" } });
+    return NextResponse.json({ ...toPublic(world, sessionId, selectedStock, { includeCandles, candlesSince }), serverNow: Date.now() }, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) { return errorResponse(error, 503); }
 }
 
@@ -127,11 +127,11 @@ export async function POST(request: NextRequest) {
       }
       if (action === "news-read") return state.latestNewsId;
       throw new Error("Choose a valid market action.");
-    }, localPreview);
+    }, localPreview, 1);
     if (result && typeof result === "object" && "orderError" in result) return errorResponse(new Error(result.orderError));
     const candlesSinceValue = body.candlesSince;
     const candlesSince = typeof candlesSinceValue === "number" && Number.isFinite(candlesSinceValue) ? candlesSinceValue : undefined;
     const includeCandles = body.includeCandles !== false;
-    return NextResponse.json({ ...toPublic(world, sessionId, String(body.selectedStock ?? body.symbol ?? "RELIANCE"), { includeCandles, candlesSince }), result }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+    return NextResponse.json({ ...toPublic(world, sessionId, String(body.selectedStock ?? body.symbol ?? "RELIANCE"), { includeCandles, candlesSince }), result, serverNow: Date.now() }, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) { return errorResponse(error); }
 }
