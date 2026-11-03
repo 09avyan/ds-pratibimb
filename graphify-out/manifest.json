@@ -24,15 +24,15 @@
     "semantic_hash": ""
   },
   "app/api/auto/route.ts": {
-    "mtime": 1793692604.015193,
-    "seen": 1793692811.7051504,
-    "ast_hash": "6b215d26b631b2ef88c23101c247d7d6",
+    "mtime": 1793693183.6542401,
+    "seen": 1793693284.6898615,
+    "ast_hash": "4ff3c8eca90e7f5566a16a70d8918a58",
     "semantic_hash": ""
   },
   "app/api/game/route.ts": {
-    "mtime": 1793692604.0142386,
-    "seen": 1793692811.7051525,
-    "ast_hash": "3f63ad70b6ec0e2c9e25b93acbea9f4b",
+    "mtime": 1793693183.653059,
+    "seen": 1793693284.6898637,
+    "ast_hash": "8d1ecd41e3d187493194137aba7ce180",
     "semantic_hash": ""
   },
   "app/api/host/login/route.ts": {
@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "app/api/host/route.ts": {
-    "mtime": 1793692604.014809,
-    "seen": 1793692811.7052143,
-    "ast_hash": "ca0de1f88672d311e696600ea635be94",
+    "mtime": 1793693183.6536317,
+    "seen": 1793693284.6899228,
+    "ast_hash": "06284886a3055d21a32d6cc979fc99a0",
     "semantic_hash": ""
   },
   "app/audience/page.tsx": {
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/game/store.ts": {
-    "mtime": 1793692611.6426103,
-    "seen": 1793692811.7063358,
-    "ast_hash": "352f435e014ce88a0a7dc7cdb109ac04",
+    "mtime": 1793693183.6524162,
+    "seen": 1793693284.6909993,
+    "ast_hash": "9d9842ede7277743321a74b443b24d99",
     "semantic_hash": ""
   },
   "src/game/terminals.ts": {
