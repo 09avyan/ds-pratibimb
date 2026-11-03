@@ -249,9 +249,12 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   }, [audienceOnly, world?.mode, world?.status, player?.ended]);
 
   function returnToReady() {
+    setChartType("Line");
     const next = crypto.randomUUID(); localStorage.setItem(sessionStorageKey(mode, terminal, preview), next);
     setSessionId(next); setView("markets"); setToast(isTest ? "You’re ready to rejoin this practice round." : "You’re ready for the next batch.");
   }
+  // Every new batch and every return to the ready state starts on the line chart.
+  useEffect(() => { setChartType("Line"); }, [world?.batch, world?.status === "ready"]);
   // After a hosted batch ends, the report stays up for 30 seconds, then the terminal returns to the ready state by itself.
   const [autoReady, setAutoReady] = useState<number | null>(null);
   const autoReadyOn = view === "report" && mode !== "test" && world?.status === "closed";
