@@ -713,8 +713,8 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
 
 /** Polls move the market at most every 2 seconds (the candle length), so the shared row is written
  *  half as often; trades and host actions still advance immediately. */
-export function advanceForPoll(world: World, now = Date.now()) {
-  if (world.status === "live" && !world.controls.paused && now - world.lastTickAt < 2000) return;
+export function advanceForPoll(world: World, now = Date.now(), minMs = 2000) {
+  if (world.status === "live" && !world.controls.paused && now - world.lastTickAt < minMs) return;
   advance(world, now);
 }
 export function hostAction(world: World, action: string, payload: Record<string, unknown> = {}, at = Date.now()) {

@@ -114,6 +114,12 @@ async function mutateLocalTest<T>(update: (world: World) => T | Promise<T>, scop
 
 /** `bestEffort` (polls): when another request is saving, skip this save instead of queueing and retrying;
  *  the other request's state wins and this poll still answers with an up-to-date world. */
+/* Self-protection: when saves get slow (the database is short of disk throughput), polls write less often
+   for a while, so the database recovers instead of falling further behind. */
+let slowUntil = 0;
+function noteSaveTime(ms: number) { if (ms > 900) slowUntil = Date.now() + 60_000; }
+/** Seconds between market ticks that a poll may write: 2 normally, 5 while the database is slow. */
+export const pollTickMs = () => Date.now() < slowUntil ? 5000 : 2000;
 export async function mutate<T>(mode: Mode, update: (world: World) => T | Promise<T>, localOnly = false, readCacheMs = 0, bestEffort = false): Promise<{ world: World; result: T }> {
   // Keep the isolated test market previewable with no Supabase setup during local development.
   // UI previews request this explicitly so they never touch the configured shared store.
@@ -139,8 +145,10 @@ export async function mutate<T>(mode: Mode, update: (world: World) => T | Promis
     // Unchanged reads need one database round trip at most, and none when the cache is fresh.
     if (stored && world.version === initialRevision) return { world, result };
     let saved = false;
+    const saveStarted = Date.now();
     try { saved = await rpc<boolean>("save_game_state", { p_secret: secret(), p_mode: mode, p_expected_version: version, p_state: packWorld(world) }); }
-    catch (error) { if (!before) throw error; }
+    catch (error) { noteSaveTime(Date.now() - saveStarted); if (!before) throw error; }
+    noteSaveTime(Date.now() - saveStarted);
     if (saved) { remember(mode, version + 1, world); return { world, result }; }
     if (before) return { world: before, result };
     await new Promise(resolve => setTimeout(resolve, Math.min(400, 25 * 2 ** Math.min(attempt, 4) + Math.random() * 40)));
