@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793664346.6961596,
-    "seen": 1793665217.7068055,
-    "ast_hash": "fe0e30ce76805d18e37c6dc70d26bc0c",
+    "mtime": 1793670393.9243686,
+    "seen": 1793672242.6827936,
+    "ast_hash": "95a6e597fdce26acb718d5a2ed36c177",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -78,9 +78,9 @@
     "semantic_hash": ""
   },
   "app/components/host-console.tsx": {
-    "mtime": 1793664318.8727305,
-    "seen": 1793665217.7068298,
-    "ast_hash": "f855613859095736327c069f8c028de8",
+    "mtime": 1793669959.00142,
+    "seen": 1793672242.6828196,
+    "ast_hash": "ef05b4b1b7b163e875ab3f57f443c130",
     "semantic_hash": ""
   },
   "app/components/host-logs.tsx": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/components/trader.tsx": {
-    "mtime": 1793664346.6984725,
-    "seen": 1793665217.7068884,
-    "ast_hash": "abba7a68a2470f4e7519b9f8ea419283",
+    "mtime": 1793669937.0801594,
+    "seen": 1793672242.682892,
+    "ast_hash": "31b9ff29e03c21299cf74097ee1e300a",
     "semantic_hash": ""
   },
   "app/host/page.tsx": {
@@ -168,8 +168,8 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793665214.9602995,
-    "seen": 1793665217.7070978,
+    "mtime": 1793672249.2080622,
+    "seen": 1793672505.463477,
     "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
     "semantic_hash": ""
   },
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793665214.974252,
-    "seen": 1793665217.7077758,
-    "ast_hash": "385fddbbd1eeba76af15e854c6c67dc1",
+    "mtime": 1793672239.2089112,
+    "seen": 1793672242.6839042,
+    "ast_hash": "3256019e804c36d96e4fce18fe6a0dee",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -426,9 +426,15 @@
     "semantic_hash": ""
   },
   "src/game/animations.ts": {
-    "mtime": 1793664271.0489051,
-    "seen": 1793665217.7075157,
-    "ast_hash": "3d78f0566734ca664147e68889a1afb9",
+    "mtime": 1793669937.0807848,
+    "seen": 1793672242.6835797,
+    "ast_hash": "d7931e20d42f373b62fa7e09d883899f",
+    "semantic_hash": ""
+  },
+  "app/components/market-sound.ts": {
+    "mtime": 1793670070.22998,
+    "seen": 1793672242.6828682,
+    "ast_hash": "caf85eea3965bab13b8f97db886be596",
     "semantic_hash": ""
   },
   "pnpm-lock.yaml": {

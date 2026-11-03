@@ -4,6 +4,7 @@ export type AnimationInfo = { key: string; screen: AnimationScreen; label: strin
 
 export const ANIMATIONS: readonly AnimationInfo[] = [
   { key: "countdown", screen: "audience", label: "Countdown light show", detail: "Pixel numbers, streaks, spotlights and the version's motif. Off: a plain number." },
+  { key: "countdownSound", screen: "audience", label: "Countdown ticks (sound)", detail: "A soft tick for each countdown second, rising towards the opening bell." },
   { key: "marketOpen", screen: "audience", label: "Market open burst", detail: "The burst of light and words when trading starts." },
   { key: "boardEntrance", screen: "audience", label: "Board entrance", detail: "Each version's way of bringing the 25 companies in." },
   { key: "priceTick", screen: "audience", label: "Price ticks", detail: "The flash and each version's effect when a price changes." },

@@ -261,3 +261,9 @@
 .anim-switch.is-on i { transform: translateX(20px); }
 .anim-switch:disabled { cursor: not-allowed; }
 .anim-switch:focus-visible { outline: 3px solid #16a34a; outline-offset: 2px; }
+
+/* The host's bells switch in the top bar. */
+.host-bells { padding: 7px 12px; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: 999px; background: transparent; color: inherit; font: 600 12.5px/1 system-ui, sans-serif; cursor: pointer; }
+.host-bells.is-on { border-color: #16a34a; color: #16a34a; }
+.host-bells.needs-tap { animation: host-bells-pulse 1.4s ease-in-out infinite; }
+@keyframes host-bells-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, #16a34a 25%, transparent); } }

@@ -1,17 +1,17 @@
 # Graph Report - ds-pratibimb  (2026-11-03)
 
 ## Corpus Check
-- 72 files · ~54,606 words
+- 73 files · ~56,462 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 20 file(s) not represented in the graph (top: .css 16, (none) 2, .example 1)
 
 ## Summary
-- 650 nodes · 1338 edges · 33 communities (28 shown, 5 thin omitted)
+- 663 nodes · 1370 edges · 32 communities (27 shown, 5 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 6 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f5da7a0f`
+- Built from commit: `5ce070c3`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -37,9 +37,8 @@
 - audience-leaderboard-check.cjs
 - compilerOptions
 - brain-scenarios.cjs
-- TerminalEntry
-- typescript
-- brain-mix-check.cjs
+- trader-parts.tsx
+- brain-pacing-check.cjs
 - ref_node_fs
 - brain-settings-check.cjs
 - game-logs-check.cjs
@@ -50,10 +49,10 @@
 - Skills architecture
 
 ## God Nodes (most connected - your core abstractions)
-1. `Trader()` - 41 edges
+1. `Trader()` - 42 edges
 2. `advance()` - 36 edges
 3. `hostAction()` - 31 edges
-4. `HostConsole()` - 25 edges
+4. `HostConsole()` - 27 edges
 5. `next` - 23 edges
 6. `AudienceStage()` - 21 edges
 7. `mutate()` - 18 edges
@@ -64,27 +63,27 @@
 ## Surprising Connections (you probably didn't know these)
 - `Examples` --references--> `Trader()`  [INFERRED]
   docs/skills/SKILLS_USAGE.md → app/components/trader.tsx
+- `VersionHome()` --calls--> `uiVariantForVersion()`  [EXTRACTED]
+  app/[version]/page.tsx → src/ui-options.ts
 - `GET()` --indirect_call--> `advance()`  [INFERRED]
   app/api/auto/route.ts → src/game/engine.ts
 - `GET()` --indirect_call--> `advance()`  [INFERRED]
   app/api/host/route.ts → src/game/engine.ts
-- `VersionHome()` --calls--> `uiVariantForVersion()`  [EXTRACTED]
-  app/[version]/page.tsx → src/ui-options.ts
-- `POST()` --calls--> `advance()`  [EXTRACTED]
-  app/api/auto/route.ts → src/game/engine.ts
+- `StockTile()` --calls--> `Logo()`  [EXTRACTED]
+  app/components/audience-stage.tsx → src/components/trader-parts.tsx
 
 ## Import Cycles
 - None detected.
 
-## Communities (33 total, 5 thin omitted)
+## Communities (32 total, 5 thin omitted)
 
 ### Community 0 - "store.ts"
-Cohesion: 0.07
-Nodes (41): dynamic, GET(), POST(), publicStatus(), runtime, dynamic, GET(), POST() (+33 more)
+Cohesion: 0.09
+Nodes (25): assert, before, fs, now, restored, stored, ts, w (+17 more)
 
 ### Community 1 - "types.ts"
-Cohesion: 0.10
-Nodes (61): dynamic, errorResponse(), GET(), modeOf(), POST(), readTerminal(), runtime, touchSession() (+53 more)
+Cohesion: 0.07
+Nodes (80): dynamic, GET(), POST(), publicStatus(), runtime, dynamic, errorResponse(), GET() (+72 more)
 
 ### Community 2 - "next"
 Cohesion: 0.08
@@ -96,7 +95,7 @@ Nodes (26): a, assert, b, calm, closing, context, contextReading, effectWorld (+
 
 ### Community 4 - "trader.tsx"
 Cohesion: 0.06
-Nodes (80): AudiencePage(), dynamic, AutoPage(), dynamic, AudienceStage(), BellKind, CANDLE_LINE, CANDLES (+72 more)
+Nodes (74): AudiencePage(), dynamic, AudienceStage(), CANDLE_LINE, CANDLES, CONFETTI, CountdownScene(), DIGITS (+66 more)
 
 ### Community 5 - "Cloud setup"
 Cohesion: 0.29
@@ -111,16 +110,16 @@ Cohesion: 0.53
 Nodes (5): bad(), install_cli(), ok(), PATH, skills-bootstrap.sh script
 
 ### Community 8 - "engine-smoke.cjs"
-Cohesion: 0.05
-Nodes (40): affectedSymbols(), assert, fs, now, roundAfterFirstSet(), scopeOf(), ts, activeBrainWorld (+32 more)
+Cohesion: 0.06
+Nodes (31): activeBrainWorld, activePlan, assert, autonomousWorld, boundedSpacingWorld, compact, covered, deltaChart (+23 more)
 
 ### Community 9 - "catalog.ts"
-Cohesion: 0.14
-Nodes (10): economyStories, INDEX_WEIGHTS, NEWS_CATALOG_VERSION, NEWS_PRESETS, NewsPreset, rows, sectorStories, STOCK_SYMBOLS (+2 more)
+Cohesion: 0.15
+Nodes (9): economyStories, NEWS_CATALOG_VERSION, NEWS_PRESETS, NewsPreset, rows, sectorStories, STOCK_SYMBOLS, stockStories (+1 more)
 
 ### Community 10 - "types.ts"
-Cohesion: 0.11
-Nodes (18): labels, MAX_GAME_LOGS, AutonomousNews, AutonomousNewsIntensity, AutonomousNewsLogEntry, AutonomousNewsReading, AutonomousNewsResponse, AutonomousPacingFactor (+10 more)
+Cohesion: 0.18
+Nodes (11): AutonomousNews, AutonomousNewsIntensity, AutonomousNewsReading, AutonomousPacingFactor, Candle, Controls, GameLog, NewsMove (+3 more)
 
 ### Community 12 - "price-tick-check.cjs"
 Cohesion: 0.18
@@ -132,15 +131,15 @@ Nodes (19): dependencies, next@16.4.0, react@19.3.0, react-dom@19.3.0, devDepend
 
 ### Community 14 - "Dalaal Street"
 Cohesion: 0.09
-Nodes (22): 25 companies, Audience bells, Audience stage (every version: `/audience`, `/v1/audience` … `/v7/audience`), Compact brain and situation-aware pacing, Dalaal Street, Host brain details, How the game works, Latest host and display refinements (+14 more)
+Nodes (22): 25 companies, Audience stage (every version: `/audience`, `/v1/audience` … `/v7/audience`), Bells and countdown sound, Compact brain and situation-aware pacing, Dalaal Street, Host brain details, How the game works, Latest host and display refinements (+14 more)
 
 ### Community 15 - "host-console.tsx"
-Cohesion: 0.08
-Nodes (27): describeHostAction(), editableControls(), fmtTime(), HOST_SECTIONS, HOST_SHORTCUTS, HostActionEntry, HostConsole(), act() (+19 more)
+Cohesion: 0.07
+Nodes (39): describeHostAction(), editableControls(), fmtTime(), HOST_SECTIONS, HOST_SHORTCUTS, HostActionEntry, HostConsole(), act() (+31 more)
 
 ### Community 16 - "autonomous-news.ts"
-Cohesion: 0.23
-Nodes (11): NEWS_AUTO_MAX_INTERVAL_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_IMPACT_DECAY, NEWS_IMPACT_DRIFT_NORMALIZER, NEWS_IMPACT_DURATION_MULTIPLIER (+3 more)
+Cohesion: 0.31
+Nodes (12): activeTerminalPlayers(), chooseAutonomousNewsPlan(), clamp(), latestSet(), readAutonomousNewsSignals(), readNewsResponse(), scopeOf(), storyKey() (+4 more)
 
 ### Community 18 - "audience-leaderboard-check.cjs"
 Cohesion: 0.11
@@ -152,31 +151,27 @@ Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModu
 
 ### Community 20 - "brain-scenarios.cjs"
 Cohesion: 0.20
-Nodes (7): assert, fs, modes, ts, newsContradicts(), Story, News
+Nodes (8): assert, fs, modes, ts, newsContradicts(), Story, validateNewsSelection(), News
 
-### Community 21 - "TerminalEntry"
-Cohesion: 0.32
-Nodes (5): TerminalEntry(), dynamic, PlayPage(), dynamic, TestPage()
+### Community 21 - "trader-parts.tsx"
+Cohesion: 0.12
+Nodes (20): AutoPage(), dynamic, AutoLauncher(), AutoStatus, clock(), money(), TerminalEntry(), dynamic (+12 more)
 
-### Community 22 - "typescript"
-Cohesion: 0.25
-Nodes (7): typescript@5.9.3, typescript, assert, fs, ts, w, ANIMATIONS
-
-### Community 23 - "brain-mix-check.cjs"
-Cohesion: 0.33
-Nodes (4): assert, cases, fs, ts
+### Community 22 - "brain-pacing-check.cjs"
+Cohesion: 0.28
+Nodes (7): affectedSymbols(), assert, fs, now, roundAfterFirstSet(), scopeOf(), ts
 
 ### Community 24 - "ref_node_fs"
-Cohesion: 0.22
-Nodes (6): assert, fs, ts, assert, fs, ts
+Cohesion: 0.14
+Nodes (12): typescript@5.9.3, typescript, assert, cases, fs, ts, assert, fs (+4 more)
 
 ### Community 25 - "brain-settings-check.cjs"
 Cohesion: 0.14
 Nodes (11): assert, baseline, before, changes, difficulties, fs, now, paused (+3 more)
 
 ### Community 29 - "game-logs-check.cjs"
-Cohesion: 0.17
-Nodes (10): assert, authPath, fs, Module, {NextRequest}, now, path, storePath (+2 more)
+Cohesion: 0.15
+Nodes (11): assert, authPath, fs, Module, {NextRequest}, now, path, storePath (+3 more)
 
 ### Community 33 - "trading-flow-check.cjs"
 Cohesion: 0.15
@@ -192,23 +187,23 @@ Nodes (7): Dalaal Street — agent instructions, graphify, Skills: how they work
 
 ## Knowledge Gaps
 - **1 isolated node(s):** `PATH`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 325 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 330 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `next` connect `next` to `store.ts`, `types.ts`, `trading-flow-check.cjs`, `trader.tsx`, `package.json`, `layout.tsx`, `game-logs-check.cjs`?**
-  _High betweenness centrality (0.117) - this node is a cross-community bridge._
+- **Why does `next` connect `next` to `types.ts`, `trading-flow-check.cjs`, `package.json`, `layout.tsx`, `trader-parts.tsx`, `game-logs-check.cjs`?**
+  _High betweenness centrality (0.114) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `advance()` (e.g. with `GET()` and `GET()`) actually correct?**
   _`advance()` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `PATH` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `store.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.07246376811594203 - nodes in this community are weakly interconnected._
-- **Why does `typescript` connect `typescript` to `store.ts`, `trading-flow-check.cjs`, `news-behavior-check.cjs`, `engine-smoke.cjs`, `price-tick-check.cjs`, `package.json`, `news-live-check.cjs`, `audience-leaderboard-check.cjs`, `brain-scenarios.cjs`, `brain-mix-check.cjs`, `ref_node_fs`, `brain-settings-check.cjs`, `game-logs-check.cjs`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
+  _Cohesion score 0.08994708994708994 - nodes in this community are weakly interconnected._
+- **Why does `typescript` connect `ref_node_fs` to `store.ts`, `trading-flow-check.cjs`, `news-behavior-check.cjs`, `trader.tsx`, `engine-smoke.cjs`, `price-tick-check.cjs`, `package.json`, `news-live-check.cjs`, `audience-leaderboard-check.cjs`, `brain-scenarios.cjs`, `brain-pacing-check.cjs`, `brain-settings-check.cjs`, `game-logs-check.cjs`?**
+  _High betweenness centrality (0.047) - this node is a cross-community bridge._
 - **Should `types.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.09672619047619048 - nodes in this community are weakly interconnected._
-- **Why does `Trader()` connect `trader.tsx` to `types.ts`, `next`, `Using the skills`?**
+  _Cohesion score 0.06812585499316005 - nodes in this community are weakly interconnected._
+- **Why does `Trader()` connect `trader.tsx` to `next`, `trader-parts.tsx`, `Using the skills`, `host-console.tsx`?**
   _High betweenness centrality (0.035) - this node is a cross-community bridge._

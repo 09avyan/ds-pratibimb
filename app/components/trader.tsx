@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Mode, Player, PublicWorld, Stock, Trade } from "@/game/types";
 import { AudienceStage, Odometer } from "./audience-stage";
 import { animationOffClasses, animationOn } from "@/game/animations";
+import { useSteadyBeat } from "./market-sound";
 import { announceTrade, TerminalMoments, TickPrice, TradeCelebration } from "./trading-motion";
 import { equity, performance, shortValue } from "@/game/engine";
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
@@ -175,7 +176,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     setThemeReady(true);
   }, []);
   const sync = useCallback(async () => {
-    if ((!audienceOnly && !sessionId) || inFlight.current || submitting.current || document.hidden || !navigator.onLine || Date.now() < nextSyncAt.current) return;
+    // The audience wall keeps updating in a background tab so its bells still ring at the open and close.
+    if ((!audienceOnly && !sessionId) || inFlight.current || submitting.current || (document.hidden && !audienceOnly) || !navigator.onLine || Date.now() < nextSyncAt.current) return;
     inFlight.current = true;
     const controller = new AbortController();
     readController.current = controller;
@@ -206,7 +208,10 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     } catch (err) { if (!controller.signal.aborted) { failures.current += 1; nextSyncAt.current = Date.now() + Math.min(15000, 1000 * 2 ** failures.current); if (failures.current === 1) setToast(err instanceof Error ? err.message : "Reconnecting to the market…"); } }
     finally { clearTimeout(timeout); if (readController.current === controller) { inFlight.current = false; readController.current = null; } }
   }, [sessionId, mode, audienceOnly, terminal, uiVariant, preview]);
-  useEffect(() => { if (!sessionId && !audienceOnly) return; void sync(); const timer = window.setInterval(sync, world?.controls.tickRate === .5 ? 500 : 1000); return () => window.clearInterval(timer); }, [sessionId, audienceOnly, sync, world?.controls.tickRate]);
+  useEffect(() => { if (!sessionId || audienceOnly) return; void sync(); const timer = window.setInterval(sync, world?.controls.tickRate === .5 ? 500 : 1000); return () => window.clearInterval(timer); }, [sessionId, audienceOnly, sync, world?.controls.tickRate]);
+  // The audience wall polls on a worker's beat, which browsers do not slow down in a background tab.
+  useEffect(() => { if (audienceOnly) void sync(); }, [audienceOnly, sync]);
+  useSteadyBeat(() => { void sync(); }, world?.controls.tickRate === .5 ? 500 : 1000, audienceOnly);
   useEffect(() => {
     if (world?.status !== "countdown") return;
     setClockNow(Date.now());
@@ -214,7 +219,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     return () => window.clearInterval(timer);
   }, [world?.status, world?.startedAt]);
   useEffect(() => { readController.current?.abort(); nextSyncAt.current = 0; void sync(); }, [selected, sync]);
-  useEffect(() => { const resume = () => { if (!document.hidden && navigator.onLine) { nextSyncAt.current = 0; void sync(); } else readController.current?.abort(); }; document.addEventListener("visibilitychange", resume); window.addEventListener("online", resume); window.addEventListener("offline", resume); return () => { document.removeEventListener("visibilitychange", resume); window.removeEventListener("online", resume); window.removeEventListener("offline", resume); readController.current?.abort(); }; }, [sync]);
+  useEffect(() => { const resume = () => { if ((!document.hidden || audienceOnly) && navigator.onLine) { nextSyncAt.current = 0; void sync(); } else readController.current?.abort(); }; document.addEventListener("visibilitychange", resume); window.addEventListener("online", resume); window.addEventListener("offline", resume); return () => { document.removeEventListener("visibilitychange", resume); window.removeEventListener("online", resume); window.removeEventListener("offline", resume); readController.current?.abort(); }; }, [sync]);
 
   const player = world?.player ?? null;
   const stock = world?.stocks.find(s => s.symbol === selected) ?? world?.stocks[0];
