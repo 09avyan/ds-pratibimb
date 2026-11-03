@@ -126,7 +126,7 @@ function shiftAutonomousClock(world: World, milliseconds: number) {
 
 function keepAutonomousHistory(world: World, entry: NonNullable<World["autonomousNews"]>["history"][number]) {
   const auto = world.autonomousNews ?? (world.autonomousNews = newAutonomousNewsState());
-  auto.history = [entry, ...auto.history].slice(0, 200);
+  auto.history = [entry, ...auto.history].slice(0, 80);
   recordGameLog(world, { at: entry.at, kind: entry.kind === "settings-adjusted" ? "settings" : "brain", message: `${entry.kind}: ${entry.reason}`, data: { indices: entry.indices.join(","), intervalSeconds: entry.intervalSeconds } });
 }
 
@@ -745,6 +745,15 @@ export function hostAction(world: World, action: string, payload: Record<string,
     // Keep the saved game small: forget devices from two or more batches ago, and logs older than the last batch.
     for (const [id, player] of Object.entries(world.sessions)) if (player.batch < world.batch - 1) delete world.sessions[id];
     if (world.logs) world.logs = world.logs.filter(log => log.batch >= world.batch - 1);
+    // Deep clean every third batch: keep only what the game needs (settings, host notes, passwords live
+    // elsewhere, the story memory, devices connected now) and drop old logs and brain history.
+    if (world.batch % 3 === 0) {
+      for (const [id, player] of Object.entries(world.sessions)) if (player.batch !== world.batch) delete world.sessions[id];
+      world.logs = [];
+      if (world.autonomousNews) world.autonomousNews.history = world.autonomousNews.history.slice(0, 20);
+      world.scheduledNews = []; world.scheduledInterventions = [];
+      recordGameLog(world, { at, kind: "batch", message: `Housekeeping: the saved game was cleaned before batch ${world.batch}.` });
+    }
     if (world.autonomousNews) clearSetControls(world.autonomousNews);
     if (world.autonomousNews?.enabled) {
       world.controls.newsEnabled = false;
