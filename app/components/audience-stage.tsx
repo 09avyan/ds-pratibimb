@@ -179,15 +179,15 @@ const DEMO_UP = "M4 52 C 30 50, 44 46, 60 44 S 90 40, 104 30 S 136 10, 156 8";
 const DEMO_DOWN = "M4 14 C 30 16, 44 20, 60 22 S 90 30, 104 38 S 136 54, 156 56";
 
 /** Counts a figure up from zero once, easing out (or shows it at once when motion is off). */
-function useCountUp(target: number, still: boolean, ms = 1600) {
-  const [value, setValue] = useState(still ? target : 0);
+function useCountUp(target: number, still: boolean, ms = 1600, from = 0, delay = 500) {
+  const [value, setValue] = useState(still ? target : from);
   useEffect(() => {
     if (still) { setValue(target); return; }
-    let raf = 0; const start = performance.now() + 500;
-    const step = (now: number) => { const p = Math.min(1, Math.max(0, (now - start) / ms)); setValue(target * (1 - (1 - p) ** 3)); if (p < 1) raf = requestAnimationFrame(step); };
+    let raf = 0; const start = performance.now() + delay;
+    const step = (now: number) => { const p = Math.min(1, Math.max(0, (now - start) / ms)); setValue(from + (target - from) * (1 - (1 - p) ** 3)); if (p < 1) raf = requestAnimationFrame(step); };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [target, still, ms]);
+  }, [target, still, ms, from, delay]);
   return value;
 }
 
@@ -271,30 +271,95 @@ function InviteScene({ world, still }: { world: PublicWorld | null; still: boole
 
 /* ---------- After the bell: the batch report beside the final standings ---------- */
 
-function BatchReport({ world }: { world: PublicWorld | null }) {
+type IndexPoint = { t: number; v: number };
+
+/**
+ * The Dalaal-10 through the batch, as this screen saw it (kept per batch in session storage, so a
+ * reload mid-batch keeps what it had). Audience answers carry no full price history, so this is the
+ * only record of the index's path.
+ */
+function useIndexPath(world: PublicWorld | null) {
+  const path = useRef<{ batch: number; points: IndexPoint[] }>({ batch: 0, points: [] });
+  const batch = world?.batch ?? 0;
+  if (path.current.batch !== batch) {
+    let points: IndexPoint[] = [];
+    try { if (typeof window !== "undefined") points = JSON.parse(window.sessionStorage.getItem(`ds-index-path-${batch}`) ?? "[]"); } catch {}
+    path.current = { batch, points: Array.isArray(points) ? points : [] };
+  }
+  const live = world?.status === "live" || world?.status === "closed";
+  useEffect(() => {
+    if (!world || !live) return;
+    const points = path.current.points;
+    const t = Math.max(0, world.duration - (world.status === "closed" ? 0 : world.remaining));
+    if (points.at(-1)?.v === world.index && points.at(-1)?.t === t) return;
+    if (!points.length && t > 0) points.push({ t: 0, v: 10_000 });
+    if (points.length && t < points.at(-1)!.t) return;
+    points.push({ t, v: world.index });
+    if (points.length > 400) points.splice(1, 1);
+    try { window.sessionStorage.setItem(`ds-index-path-${batch}`, JSON.stringify(points)); } catch {}
+  }, [world?.index, world?.status, world?.remaining]); // eslint-disable-line react-hooks/exhaustive-deps
+  return path.current.points;
+}
+
+function BatchReport({ world, path, still }: { world: PublicWorld | null; path: IndexPoint[]; still: boolean }) {
+  const close = useCountUp(world?.index ?? 10_000, still, 1600, 10_000, 1500);
   if (!world) return null;
+  const up = world.indexChange >= 0;
   const sorted = [...world.stocks].sort((a, b) => changePct(b) - changePct(a));
-  const best = sorted[0], worst = sorted[sorted.length - 1];
+  const movers = [...sorted.slice(0, 3), ...sorted.slice(-3)];
+  const widest = Math.max(.5, ...movers.map(stock => Math.abs(changePct(stock))));
   const entries = world.leaderboard;
-  const beat = entries.filter(entry => entry.returnPct > world.indexChange).length;
+  const beat = entries.filter(entry => entry.returnPct > world.indexChange);
   const average = entries.length ? entries.reduce((sum, entry) => sum + entry.returnPct, 0) / entries.length : 0;
-  const stories = world.headlines.filter(item => item.createdAt >= world.startedAt).length;
+  const stories = world.headlines.filter(item => item.createdAt >= world.startedAt);
+  const majors = stories.filter(item => item.type === "major").length;
   const leader = entries[0];
-  const index = world.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const stockRow = (stock: Stock | undefined, label: string) => stock && <div className={`report-stock ${changePct(stock) >= 0 ? "up" : "down"}`}>
-    <small>{label}</small><Logo stock={stock} compact/><strong>{shortName(stock.symbol)}</strong><b>{signedPct(changePct(stock))}</b>
-  </div>;
-  return <section className="stage-report" aria-label={`Batch ${pad2(world.batch)} report`}>
-    <header><h2>Batch report</h2><span>Batch {pad2(world.batch)}</span></header>
-    <div className="report-index"><small>Dalaal-10 closed at</small><strong>{index}</strong><b className={world.indexChange >= 0 ? "up" : "down"}>{world.indexChange >= 0 ? "▲" : "▼"} {Math.abs(world.indexChange).toFixed(2)}%</b></div>
-    {stockRow(best, "Best stock")}
-    {stockRow(worst, "Worst stock")}
+  // The chart: the index from the open to the close, the 10,000 start as a dashed line, news as dots.
+  const duration = Math.max(1, world.duration);
+  const points = path.length >= 2 ? path : [{ t: 0, v: 10_000 }, { t: duration, v: world.index }];
+  const values = [10_000, ...points.map(point => point.v)];
+  const lo = Math.min(...values), hi = Math.max(...values), pad = Math.max(4, (hi - lo) * .15);
+  const y = (v: number) => 112 - (v - (lo - pad)) / (hi - lo + pad * 2) * 104;
+  const xy = points.map(point => ({ x: 4 + Math.min(1, point.t / duration) * 392, y: y(point.v) }));
+  const line = smoothPath(xy);
+  const last = xy[xy.length - 1];
+  const news = [...new Set(stories.map(item => item.createdAt))].map(at => {
+    const t = (at - world.startedAt) / 1000;
+    const near = points.reduce((best, point) => Math.abs(point.t - t) < Math.abs(best.t - t) ? point : best, points[0]);
+    return { x: 4 + Math.min(1, t / duration) * 392, y: y(near.v), major: stories.some(item => item.createdAt === at && item.type === "major") };
+  });
+  const index = (value: number) => value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return <section className={`stage-report ${up ? "is-up" : "is-down"}`} aria-label={`Batch ${pad2(world.batch)} report`}>
+    <header><h2>Batch {pad2(world.batch)} report</h2><span className="report-stamp">Closed</span></header>
+    <article className="report-market">
+      <div className="report-market-head"><small>Dalaal-10</small><strong>{index(close)}</strong><b>{up ? "▲" : "▼"} {Math.abs(world.indexChange).toFixed(2)}%</b></div>
+      <svg className="report-chart" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
+        <defs><linearGradient id="report-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="currentColor" stopOpacity=".32"/><stop offset="1" stopColor="currentColor" stopOpacity="0"/></linearGradient></defs>
+        <line className="report-open" x1="4" x2="396" y1={y(10_000)} y2={y(10_000)}/>
+        <path className="report-area" d={`${line} L ${last.x} 120 L ${xy[0].x} 120 Z`}/>
+        <path className="report-line" d={line} pathLength={1}/>
+        {news.map((dot, i) => <circle key={i} className={`report-news${dot.major ? " is-major" : ""}`} cx={dot.x} cy={dot.y} r={dot.major ? 5 : 3.5} style={{ "--i": i } as React.CSSProperties}/>)}
+        <circle className="report-end" cx={last.x} cy={last.y} r="5"/>
+      </svg>
+      <p className="report-chart-foot"><span>Open 10,000.00</span><span><i className="is-major"/>Major news <i/>Minor news</span><span>Close</span></p>
+    </article>
+    <article className="report-movers">
+      <h3>Biggest movers</h3>
+      {movers.map((stock, i) => { const move = changePct(stock); return <div key={stock.symbol} className={move >= 0 ? "up" : "down"} style={{ "--i": i, "--w": `${Math.abs(move) / widest * 100}%` } as React.CSSProperties}>
+        <span className="report-mover-name"><Logo stock={stock} compact/><strong>{shortName(stock.symbol)}</strong></span>
+        <span className="report-mover-bar"><i/></span>
+        <b>{signedPct(move)}</b>
+      </div>; })}
+    </article>
     <div className="report-stats">
-      {leader && <p><b className={leader.returnPct >= 0 ? "up" : "down"}>{signedPct(leader.returnPct)}</b><small>winner's return</small></p>}
-      <p><b className={average >= 0 ? "up" : "down"}>{signedPct(average)}</b><small>room average</small></p>
-      <p><b>{beat}<i>/{entries.length}</i></b><small>beat the Dalaal-10</small></p>
-      <p><b>{stories}</b><small>stories broke</small></p>
+      {leader && <p><small>Winner</small><b className={leader.returnPct >= 0 ? "up" : "down"}>{signedPct(leader.returnPct)}</b><span>Terminal {pad2(leader.terminalNumber)}</span></p>}
+      <p><small>Room average</small><b className={average >= 0 ? "up" : "down"}>{signedPct(average)}</b><span>{entries.length} {entries.length === 1 ? "terminal" : "terminals"}</span></p>
+      <p><small>Stories</small><b>{stories.length}</b><span>{majors} major · {stories.length - majors} minor</span></p>
     </div>
+    {entries.length > 0 && <article className="report-beat">
+      <h3>Beat the Dalaal-10 <span>{beat.length} of {entries.length}</span></h3>
+      <ol>{entries.map((entry, i) => <li key={entry.terminalNumber} className={entry.returnPct > world.indexChange ? "is-beat" : ""} style={{ "--i": i } as React.CSSProperties}>{pad2(entry.terminalNumber)}</li>)}</ol>
+    </article>}
   </section>;
 }
 
@@ -707,6 +772,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const [dismissedSet, setDismissedSet] = useState("");
   const [marketAfterClose, setMarketAfterClose] = useState(-1);
   const [clock, setClock] = useState(() => serverNow());
+  const indexPath = useIndexPath(world);
   const bells = useMarketSound(world, sound, world?.controls.animations?.countdownSound !== false);
   useEffect(() => { try { const saved = window.localStorage.getItem("ds-audience-sound"); if (saved === "off") setSound(false); } catch {} }, []);
   useEffect(() => { try { window.localStorage.setItem("ds-audience-sound", sound ? "on" : "off"); } catch {} }, [sound]);
@@ -847,7 +913,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
         </article>)}</div> : <p className="stage-news-wait">{status === "live" ? "The next headlines are on their way." : "Headlines appear here once trading starts."}</p>}
       </section>}
       <Leaderboard world={world} final={final} still={!on("finalReveal")} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
-      {final && <BatchReport world={world}/>}
+      {final && <BatchReport world={world} path={indexPath} still={!on("finalReveal")}/>}
     </div>}
 
     {finale && <div className="stage-finale" role="status" aria-live="polite">
