@@ -139,7 +139,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const [selected, setSelected] = useState("RELIANCE");
   const [side, setSide] = useState<TradeSide>("Buy");
   const [chartType, setChartType] = useState<"Line" | "Candles">("Line");
-  const [quantity, setQuantity] = useState("10");
+  const [quantity, setQuantity] = useState("50");
   const [amount, setAmount] = useState("");
   const [sector, setSector] = useState("All sectors");
   const [query, setQuery] = useState("");
@@ -377,7 +377,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
               const longQty = player?.holdings[s.symbol]?.qty ?? 0;
               const shortQty = player?.shorts[s.symbol]?.qty ?? 0;
               const position = longQty > 0 ? `${longQty} shares` : shortQty > 0 ? `${shortQty} short` : "No position";
-              const onSelect = () => { setSelected(s.symbol); setQuantity("10"); setAmount(""); };
+              const onSelect = () => { setSelected(s.symbol); setQuantity("50"); setAmount(""); };
               return <button key={s.symbol} type="button" className={`stock-card ${selected === s.symbol ? "selected" : ""}`} onClick={onSelect} aria-pressed={selected === s.symbol} aria-label={`Select ${s.name} to view its chart and trade controls`}>
                   <div className="stock-card-top"><Logo stock={s}/><div className="stock-id"><strong>{s.symbol}</strong><span>{s.name}</span></div></div>
                   <div className="stock-card-bottom"><TickPrice value={s.price}>{money(s.price)}</TickPrice><span className={`stock-change ${changePct(s) >= 0 ? "positive" : "negative"}`}>{changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</span></div>
