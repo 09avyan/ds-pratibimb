@@ -263,6 +263,18 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     if (world.batch !== reportBatch.current || world.status === "ready" || world.status === "countdown") returnToReady();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, mode, world?.batch, world?.status]);
+  // On the report, Space does what the button below it does.
+  useEffect(() => {
+    if (view !== "report") return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.code !== "Space" || event.repeat || target?.closest("input, textarea, select, button, [contenteditable]")) return;
+      event.preventDefault();
+      document.querySelector<HTMLButtonElement>(".report-ready")?.click();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [view]);
   // After a hosted batch ends, the report stays up for 30 seconds, then the terminal returns to the ready state by itself.
   const [autoReady, setAutoReady] = useState<number | null>(null);
   const autoReadyOn = view === "report" && mode !== "test" && world?.status === "closed";
