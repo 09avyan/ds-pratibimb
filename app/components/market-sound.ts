@@ -240,6 +240,42 @@ export function countdownTick(ctx: AudioContext, secondsLeft: number) {
   osc.start(at); osc.stop(at + .35);
 }
 
+/**
+ * The winner reveal: a snare roll that swells for `roll` seconds starting `delay` seconds from now,
+ * then a cymbal crash, a bass hit and a bright major chord, "ta-da".
+ */
+export function fanfare(ctx: AudioContext, delay: number, roll = 1.6) {
+  const { out } = rig(ctx);
+  const start = ctx.currentTime + delay;
+  for (let t = 0; t < roll; t += 1 / 22) {
+    const swell = .25 + .75 * (t / roll) ** 1.6;
+    knock(ctx, out, start + t + (Math.sin(t * 91) * .004), 2400, .7, .9 * swell, .05);
+  }
+  const hit = start + roll;
+  // Cymbal: bright noise with a long tail.
+  const crash = ctx.createBufferSource(); crash.buffer = noise(ctx); crash.loop = true;
+  const high = ctx.createBiquadFilter(); high.type = "highpass"; high.frequency.value = 5200;
+  const crashGain = ctx.createGain();
+  crashGain.gain.setValueAtTime(0, hit); crashGain.gain.linearRampToValueAtTime(.55, hit + .01); crashGain.gain.exponentialRampToValueAtTime(.0001, hit + 2.4);
+  crash.connect(high).connect(crashGain).connect(out); crash.start(hit); crash.stop(hit + 2.5);
+  // Bass drum.
+  const kick = ctx.createOscillator(); const kickGain = ctx.createGain();
+  kick.type = "sine"; kick.frequency.setValueAtTime(120, hit); kick.frequency.exponentialRampToValueAtTime(45, hit + .3);
+  kickGain.gain.setValueAtTime(1, hit); kickGain.gain.exponentialRampToValueAtTime(.0001, hit + .45);
+  kick.connect(kickGain).connect(out); kick.start(hit); kick.stop(hit + .5);
+  // Brass chord: C major, a short pickup then the held chord.
+  const brass = ctx.createBiquadFilter(); brass.type = "lowpass"; brass.frequency.setValueAtTime(900, hit); brass.frequency.linearRampToValueAtTime(2600, hit + .15);
+  brass.connect(out);
+  [[523.25, 0], [659.25, 0], [783.99, 0], [1046.5, 0]].forEach(([frequency], i) => {
+    for (const detune of [-6, 6]) {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.type = "sawtooth"; osc.frequency.value = frequency; osc.detune.value = detune;
+      gain.gain.setValueAtTime(0, hit); gain.gain.linearRampToValueAtTime(.05 - i * .006, hit + .04); gain.gain.setValueAtTime(.05 - i * .006, hit + .9); gain.gain.exponentialRampToValueAtTime(.0001, hit + 1.9);
+      osc.connect(gain).connect(brass); osc.start(hit); osc.stop(hit + 2);
+    }
+  });
+}
+
 /** A soft confirmation chime when sound is unlocked. */
 function chime(ctx: AudioContext) {
   const { out } = rig(ctx);
@@ -316,7 +352,7 @@ export function useMarketSound(world: SoundWorld, enabled: boolean, countdown = 
     const timer = window.setInterval(check, 100);
     return () => window.clearInterval(timer);
   }, [world?.status, world?.startedAt, world?.batch, enabled, countdown]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { needsTap, test: (kind: BellKind) => play(ctx => ringBell(ctx, kind)) };
+  return { needsTap, test: (kind: BellKind) => play(ctx => ringBell(ctx, kind)), fanfare: (delay: number) => { if (enabled) play(ctx => fanfare(ctx, delay)); } };
 }
 
 /**
