@@ -198,12 +198,11 @@ Trading and audience dashboards show the latest published set only, with the ful
   - A candle chart drawing itself behind, and a running price tape.
 
   Host → Animations → *Between-round invitation* turns it off.
-- **Batch report:** after every batch, beside the final standings. It shows:
-  - where the Dalaal-10 closed and its change
-  - the best and worst stock of the batch
-  - the winner's return and the room's average return
-  - how many terminals beat the Dalaal-10
-  - how many stories broke
+- **Batch report:** after every batch, beside the final standings. It fills in while the podium builds:
+  - **The market story:** the Dalaal-10 drawing itself from the 10,000 open (a dashed line) to the close, with a dot where each news set broke (filled for major) and the close counting up. The wall records the index as the batch runs, kept per batch in session storage; a wall that joined late draws open to close.
+  - **Biggest movers:** the top three gainers and losers as a diverging bar chart from a centre line.
+  - **The room:** the winner's return, the room average, and the stories that broke (major and minor).
+  - **Beat the Dalaal-10:** one dot per terminal, lit for each one that beat the index.
 - **Company panels:** one colour signal each. The price stays in the ink colour (it flashes green or red only as it ticks), and the day's change sits in a filled green or red badge beside the name; the name gets all the width the badge leaves. Heat-map versions (V4, V7) tint panels gently by the size of the move.
 - **Standings as a podium and a race.** The top three stand on gold, silver and bronze steps, the leader in the middle under a crown; ranks 4–10 run as a race, each row with a track that shows its portfolio against the field and how far it is behind first place. With three or fewer terminals the podium fills the panel; before the first trade the steps wait with question marks. Each version dresses it its own way: LED dots and an LED track (V1), orbit rings and brass-edged glass steps (V2), clay blocks that bob (V3), a spectrum pinwheel and heat-filled rows (V4), square desk steps (V5), records for medals and a turning record behind the winner (V6), a paper pinwheel and cut-corner steps (V7). Moving between the podium and the race breaks the terminal into pixels that fly to its new place. After the closing bell the same podium is shown large, revealed like a game show (about 7 seconds):
   1. Ranks 10 to 4 slide in from the bottom of the table, each portfolio counting up from ₹10,00,000.
