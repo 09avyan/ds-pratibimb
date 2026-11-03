@@ -15,6 +15,7 @@ import "./ui-brand.css";
 import "./ui-audience-stage.css";
 import "./ui-trading-motion.css";
 import "./ui-v4-readable.css";
+import "./ui-wrap.css";
 
 export const metadata: Metadata = {
   title: "Dalaal Street — The Fintech Floor",

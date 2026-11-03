@@ -66,8 +66,8 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793721764.2977552,
-    "seen": 1793721994.4482157,
+    "mtime": 1793721995.8937013,
+    "seen": 1793722786.6419861,
     "ast_hash": "2ff012564c2fdbad9d774f4076e80942",
     "semantic_hash": ""
   },
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/components/trader.tsx": {
-    "mtime": 1793721365.923524,
-    "seen": 1793721610.9808292,
-    "ast_hash": "b4d0358530332ea83aaa312e1f36b33a",
+    "mtime": 1793722169.0406792,
+    "seen": 1793722786.6421182,
+    "ast_hash": "9a257ab6e4aa8a005c2d779f2c6e0b3f",
     "semantic_hash": ""
   },
   "app/host/page.tsx": {
@@ -114,9 +114,9 @@
     "semantic_hash": ""
   },
   "app/layout.tsx": {
-    "mtime": 1793718591.8439744,
-    "seen": 1793718859.6271062,
-    "ast_hash": "8ce4b20f53e5aeaf706bd6e7f1ad5701",
+    "mtime": 1793722248.0237863,
+    "seen": 1793722786.642163,
+    "ast_hash": "39811dd9ba498263cc5f8a774ba4ce51",
     "semantic_hash": ""
   },
   "app/page.tsx": {
@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "src/game/engine.ts": {
-    "mtime": 1793721343.110264,
-    "seen": 1793721610.9816134,
-    "ast_hash": "749536c607ee97afb50070f5d293f1ff",
+    "mtime": 1793722169.0106742,
+    "seen": 1793722786.642807,
+    "ast_hash": "254796b8319fc542d9c111e6271b8992",
     "semantic_hash": ""
   },
   "src/game/host-auth.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793721990.7553196,
-    "seen": 1793721994.4496334,
-    "ast_hash": "b0156c033b28f83993dd88cde8f1f043",
+    "mtime": 1793722783.4660366,
+    "seen": 1793722786.643057,
+    "ast_hash": "d4e62286ab2910ed5b7f81c53de96273",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -432,8 +432,8 @@
     "semantic_hash": ""
   },
   "app/components/market-sound.ts": {
-    "mtime": 1793721735.176568,
-    "seen": 1793721994.4483235,
+    "mtime": 1793721995.8943825,
+    "seen": 1793722786.6420777,
     "ast_hash": "c5a177736a28f51c1d1fbc7cacfd1024",
     "semantic_hash": ""
   },
@@ -447,6 +447,12 @@
     "mtime": 1793721393.094303,
     "seen": 1793721610.9814692,
     "ast_hash": "159fe1f0a813f5b436ee205d6ba9d088",
+    "semantic_hash": ""
+  },
+  "app/components/wrap-screen.tsx": {
+    "mtime": 1793722297.4699616,
+    "seen": 1793722786.6421397,
+    "ast_hash": "bcf56977002ff01e31a5c1978cf3cc05",
     "semantic_hash": ""
   },
   "pnpm-lock.yaml": {

@@ -1035,5 +1035,5 @@ export function performance(world: World, player: Player) {
       ? `Your account recorded ${trades.length} trades, including session-close sales. A quick pause between moves can help you check the latest price and your available cash.`
       : "News can affect the whole market, one sector, or a single company. Check a story’s target before reacting.",
   ];
-  return { value, cash: player.cash, pnl, returnPct: pnl / player.initialCash * 100, holdings: player.holdings, shorts: player.shorts, trades: player.history, tradeCount: trades.length, winners, losers, bestTrade: sortedClosedTrades[0] ?? null, worstTrade: (sortedClosedTrades.at(-1)?.realized ?? 0) < 0 ? sortedClosedTrades.at(-1)! : null, badges, sectors: sectorsTraded.size, symbols: symbolsTraded.size, lessons };
+  return { value, cash: player.cash, pnl, returnPct: pnl / player.initialCash * 100, holdings: player.holdings, shorts: player.shorts, trades: player.history, tradeCount: trades.length, winners, losers, bestTrade: sortedClosedTrades[0] ?? null, worstTrade: (sortedClosedTrades.at(-1)?.realized ?? 0) < 0 ? sortedClosedTrades.at(-1)! : null, badges, allBadges: badgeChoices.map(([name, detail, earned]) => ({ name, detail, earned })), largestOrder, openedShort, sectors: sectorsTraded.size, symbols: symbolsTraded.size, lessons };
 }
