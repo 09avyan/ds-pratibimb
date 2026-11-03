@@ -167,7 +167,7 @@ export function HostConsole() {
     requestPending.current = true;
     const requestGeneration = generation.current;
     try {
-      const res = await fetch(activeTab.current === "logs" ? `/api/host?logs=1&logsAfter=${encodeURIComponent(logCursor.current)}` : "/api/host", { cache: "no-store" });
+      const res = await fetch(activeTab.current === "logs" ? `/api/host?logs=1&logsAfter=${encodeURIComponent(logCursor.current)}` : "/api/host", { cache: "no-store", signal: AbortSignal.timeout(4000) });
       if (requestGeneration !== generation.current) return;
       if (res.status === 401) { setAuthenticated(false); setWorld(null); logCursor.current = ""; initialized.current = false; setError("Host access expired. Sign in again."); return; }
       const data = await res.json();
@@ -199,7 +199,7 @@ export function HostConsole() {
     generation.current += 1;
     setWorking(true); setError("");
     try {
-      const r = await fetch("/api/host", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, payload }) });
+      const r = await fetch("/api/host", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, payload }), signal: AbortSignal.timeout(8000) });
       const data = await r.json();
       if (r.status === 401) { setAuthenticated(false); initialized.current = false; }
       if (!r.ok) throw new Error(data.error);

@@ -78,9 +78,9 @@
     "semantic_hash": ""
   },
   "app/components/host-console.tsx": {
-    "mtime": 1793669959.00142,
-    "seen": 1793672242.6828196,
-    "ast_hash": "ef05b4b1b7b163e875ab3f57f443c130",
+    "mtime": 1793689537.404285,
+    "seen": 1793689656.2875617,
+    "ast_hash": "bb0b8a85bafe375df80cbf236fb8441d",
     "semantic_hash": ""
   },
   "app/components/host-logs.tsx": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/components/trader.tsx": {
-    "mtime": 1793688380.1000328,
-    "seen": 1793688661.4231455,
-    "ast_hash": "9a1e3cc82c24fc7f1bf2428542a15ca4",
+    "mtime": 1793689649.4025276,
+    "seen": 1793689656.2877095,
+    "ast_hash": "b73ba375a901d2b2648ae7aee1c64efe",
     "semantic_hash": ""
   },
   "app/host/page.tsx": {
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/game/store.ts": {
-    "mtime": 1793687972.3897374,
-    "seen": 1793687975.8712325,
-    "ast_hash": "7b77cd5186fc2bc8f5629b862ebd5acc",
+    "mtime": 1793689537.4048524,
+    "seen": 1793689656.288503,
+    "ast_hash": "edca5d7ce24028004a36d25f6653a3d9",
     "semantic_hash": ""
   },
   "src/game/terminals.ts": {

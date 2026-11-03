@@ -1,7 +1,7 @@
 # Graph Report - ds-pratibimb  (2026-11-03)
 
 ## Corpus Check
-- 74 files · ~57,849 words
+- 74 files · ~57,925 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 20 file(s) not represented in the graph (top: .css 16, (none) 2, .example 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `04c709c7`
+- Built from commit: `adf5b33d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
