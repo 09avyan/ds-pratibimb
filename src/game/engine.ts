@@ -46,7 +46,7 @@ const id = () => crypto.randomUUID();
 const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">): NonNullable<News["scope"]> => news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
 const NEWS_IMPACT_SCALE: Record<News["type"], number> = { major: 3.8, minor: 3.5 };
 const NEWS_IMPACT_VARIATION = .1;
-const NEWS_SETTINGS_VERSION = 2;
+const NEWS_SETTINGS_VERSION = 3;
 export function newsImpactRange(news: Pick<News, "type" | "severity">) {
   const expected = news.severity * NEWS_IMPACT_SCALE[news.type];
   return { low: expected * (1 - NEWS_IMPACT_VARIATION), high: expected * (1 + NEWS_IMPACT_VARIATION) };
@@ -109,8 +109,8 @@ export function freshWorld(mode: Mode, now = Date.now(), batch = 1): World {
   return {
     mode, batch: test ? batch : 0, status: test ? "countdown" : "ready", duration: test ? 6 * 60 : 5 * 60, remaining: test ? 6 * 60 : 5 * 60,
     startedAt, lastTickAt: now, tick: 0, testRulesVersion: test ? 2 : undefined,
-    controls: { scenario: "Sideways", volatility: 48 * .85, bots: 58, tickRate: 1, marketBias: 50, paused: false, majorAuto: 1, minorAuto: 2, newsSpacing: 62, newsEnabled: test, activeNews: 0 },
-    stocks, news: makeNews(test ? batch : 1), newsCatalogVersion: NEWS_CATALOG_VERSION, marketRulesVersion: MARKET_RULES_VERSION, newsSettingsVersion: NEWS_SETTINGS_VERSION, autonomousNews: newAutonomousNewsState(), headlines: [], sessions: {}, hostNotes: [], latestNewsId: null, latestNewsIds: [], newsNextAt: test ? startedAt + 62_000 : now + 62_000, error: null, version: 1, scheduledInterventions: [], scheduledNews: [],
+    controls: { scenario: "Sideways", volatility: 48 * .85, bots: 58, tickRate: 1, marketBias: 50, paused: false, majorAuto: 1, minorAuto: 2, newsSpacing: 42, newsEnabled: test, activeNews: 0 },
+    stocks, news: makeNews(test ? batch : 1), newsCatalogVersion: NEWS_CATALOG_VERSION, marketRulesVersion: MARKET_RULES_VERSION, newsSettingsVersion: NEWS_SETTINGS_VERSION, autonomousNews: newAutonomousNewsState(), headlines: [], sessions: {}, hostNotes: [], latestNewsId: null, latestNewsIds: [], newsNextAt: test ? startedAt + 42_000 : now + 42_000, error: null, version: 1, scheduledInterventions: [], scheduledNews: [],
   };
 }
 
@@ -171,12 +171,12 @@ function adaptBrainSettings(world: World, at: number) {
 }
 
 /*
-  The brain's release window, in game seconds (pauses do not count): every set lands 50–75 s after the
+  The brain's release window, in game seconds (pauses do not count): every set lands 35–50 s after the
   last publish (brain or host), or after the start for the first set. When fewer than three sets have
   gone out, the latest allowed time comes forward so at least three fit before the closing seconds,
   where publication stops.
 */
-const BRAIN_MIN_SETS = 3;
+const BRAIN_MIN_SETS = 4;
 function brainReleaseAt(world: World, at: number, proposedAt: number) {
   const auto = world.autonomousNews;
   if (!auto) return proposedAt;
@@ -206,7 +206,7 @@ function keepReleaseWindow(world: World, at: number) {
   if (!moved) return;
   auto.nextAt = bounded;
   auto.nextIntervalSeconds += moved;
-  auto.pacing = [...(auto.pacing ?? []), { kind: "limit", label: `Kept ${NEWS_BASE_INTERVAL_MIN_SECONDS}–${NEWS_AUTO_MAX_INTERVAL_SECONDS}s after the last publish${moved < 0 ? ", with room for at least three sets" : ""}`, seconds: moved }];
+  auto.pacing = [...(auto.pacing ?? []), { kind: "limit", label: `Kept ${NEWS_BASE_INTERVAL_MIN_SECONDS}–${NEWS_AUTO_MAX_INTERVAL_SECONDS}s after the last publish${moved < 0 ? ", with room for at least four sets" : ""}`, seconds: moved }];
   world.newsNextAt = bounded;
 }
 
@@ -432,9 +432,9 @@ export function advance(world: World, now = Date.now()): World {
     world.version++;
   }
   if (world.newsSettingsVersion !== NEWS_SETTINGS_VERSION) {
-    if (world.controls.newsSpacing === 65 || !Number.isFinite(world.controls.newsSpacing)) {
-      world.controls.newsSpacing = 75;
-      world.newsNextAt = world.status === "countdown" ? world.startedAt + 75_000 : now + 75_000;
+    if ((world.newsSettingsVersion ?? 0) < 3 || !Number.isFinite(world.controls.newsSpacing)) {
+      world.controls.newsSpacing = 42;
+      world.newsNextAt = world.status === "countdown" ? world.startedAt + 45_000 : now + 45_000;
     }
     world.controls.newsSpacing = clamp(world.controls.newsSpacing, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS);
     world.newsSettingsVersion = NEWS_SETTINGS_VERSION;
@@ -768,7 +768,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     clearSetControls(auto);
     auto.nextIndices = indices; auto.nextSetSize = indices.length as 2 | 3;
     auto.nextReason = "The host replaced the brain’s proposed mix with selected stories.";
-    if (!auto.nextAt) { auto.nextIntervalSeconds = clamp(world.controls.newsSpacing, 50, 75); auto.nextAt = at + auto.nextIntervalSeconds * 1000; }
+    if (!auto.nextAt) { auto.nextIntervalSeconds = clamp(world.controls.newsSpacing, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_AUTO_MAX_INTERVAL_SECONDS); auto.nextAt = at + auto.nextIntervalSeconds * 1000; }
     keepReleaseWindow(world, at);
     auto.reading = readAutonomousNewsSignals(world, at);
     keepAutonomousHistory(world, { at, kind: "host-edited", indices, intervalSeconds: auto.nextIntervalSeconds, reason: auto.nextReason });

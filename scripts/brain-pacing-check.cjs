@@ -33,7 +33,7 @@ const trade = (w, p, symbol, at) => { p.lastSeenAt = at; return E.executeTrade(w
   const release = Math.max(...base.headlines.map(n => n.createdAt));
   const symbol = affectedSymbols(base)[0];
   const absorbed = structuredClone(base), busy = structuredClone(base);
-  const reviewAt = release + 50_000;
+  const reviewAt = release + 32_000;
   // 50s later the 35s direct reaction is over (the fixture is not ticked forward).
   for (const copy of [absorbed, busy]) for (const stock of copy.stocks) stock.newsMoves = (stock.newsMoves ?? []).map(move => ({ ...move, elapsed: move.duration }));
   for (const p of Object.values(absorbed.sessions)) trade(absorbed, p, symbol, release + 8_000);
@@ -43,13 +43,13 @@ const trade = (w, p, symbol, at) => { p.lastSeenAt = at; return E.executeTrade(w
   assert.equal(response.respondedTerminals, 4);
   assert.equal(response.responseShare, 1);
   assert.equal(Math.round(response.medianFirstReaction), 8);
-  assert(response.quietSeconds >= 40);
+  assert(response.quietSeconds >= 20);
   const quick = chooseAutonomousNewsPlan(absorbed, reviewAt);
   const slow = chooseAutonomousNewsPlan(busy, reviewAt);
   assert(quick.pacing.some(f => /acted on the last set/.test(f.label) && f.seconds < 0), 'absorbed set shortens the gap');
   assert(slow.pacing.some(f => /still trading/.test(f.label) && f.seconds > 0), 'ongoing trading lengthens the gap');
   assert(quick.intervalSeconds < slow.intervalSeconds, `absorbed ${quick.intervalSeconds}s should be sooner than busy ${slow.intervalSeconds}s`);
-  assert(quick.intervalSeconds >= 50 && slow.intervalSeconds <= 75);
+  assert(quick.intervalSeconds >= 35 && slow.intervalSeconds <= 50);
   // The factors add up to the chosen gap.
   for (const plan of [quick, slow]) assert.equal(Math.round(plan.pacing.reduce((sum, f) => sum + f.seconds, 0)), plan.intervalSeconds);
 }

@@ -15,7 +15,7 @@ export function newAutonomousNewsState(enabled = false): AutonomousNews {
     nextAt: 0,
     nextIndices: [] as number[],
     nextSetSize: 3 as 2 | 3,
-    nextIntervalSeconds: 75,
+    nextIntervalSeconds: 42,
     nextReason: enabled ? "Waiting for the first live market reading." : "Stopped. The host can start autonomous news from the host console.",
     reading: { indexChange: 0, recentVolatility: 0, activeTerminals: 0, recentTrades: 0, unresolvedNewsSeconds: 0 },
     history: [] as AutonomousNewsLogEntry[],
@@ -117,7 +117,7 @@ export function readNewsResponse(world: World, at: number): AutonomousNewsRespon
  * keep: stories already shown as the next set. They stay unless they have become invalid
  * (published, excluded, contradicted or blocked by a price limit), so the host's preview is stable.
  */
-export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalSeconds = 75, opening = false, keep: number[] = []) {
+export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalSeconds = 42, opening = false, keep: number[] = []) {
   const reading = readAutonomousNewsSignals(world, at);
   const recentIndexChange = reading.recentIndexChange ?? 0;
   const latestAt = Math.max(0, ...world.headlines.map(news => news.createdAt));
@@ -126,7 +126,7 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   const publishedSetCount = new Set(world.headlines.map(news => news.createdAt)).size;
   const introductoryStage: 0 | 1 | 2 = publishedSetCount === 0 ? 1 : publishedSetCount === 1 ? 2 : 0;
   const roundProgress = world.duration > 0 ? 1 - world.remaining / world.duration : 0;
-  const closingPhase = world.remaining <= Math.max(55, world.duration * .18);
+  const closingPhase = world.remaining <= Math.max(45, world.duration * .15);
   const parentsStillExploring = reading.activeTerminals > 0 && (reading.idleCashShare ?? 0) >= .6 && roundProgress < .55;
   const broadPortfolioStress = reading.activeTerminals >= 3 && (reading.stressedShare ?? 0) >= .5;
   const participation = reading.activeTerminals ? (reading.engagedTerminals ?? 0) / reading.activeTerminals : 0;
@@ -150,9 +150,9 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   const elapsedSincePlan = Math.max(0, (at - planningAnchor) / 1000);
   const limitedOverlap = strategy === "lively" && reading.activeTerminals > 0 && reacting <= 8 && reading.unresolvedNewsSeconds <= 18;
   const startGap = opening && !world.headlines.length ? base
-    : strategy === "calm" || reading.unresolvedNewsSeconds > 20 ? Math.max(base, 70)
-      : strategy === "lively" ? Math.min(base, 54)
-        : activeCrowd ? Math.max(56, base - 5) : base;
+    : strategy === "calm" || reading.unresolvedNewsSeconds > 30 ? Math.max(base, 47)
+      : strategy === "lively" ? Math.min(base, 37)
+        : activeCrowd ? Math.max(39, base - 3) : base;
   let intervalSeconds = startGap;
   const pacing: AutonomousPacingFactor[] = [{ kind: "base", label: opening && !world.headlines.length ? `Host baseline for the opening set` : `Starting gap for a ${strategy} set${hostIntensity ? " (host intensity)" : ""}`, seconds: startGap }];
   const adjust = (label: string, seconds: number, kind: AutonomousPacingFactor["kind"] = "adjust") => {
@@ -171,7 +171,7 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
     if (ignored) adjust("Nobody traded the last set yet; a clearer set comes a little sooner", -6);
   }
   if ((reading.rejectedOrders ?? 0) >= 3) adjust(`${reading.rejectedOrders} rejected orders in the last minute`, 12);
-  // With a set every 50–75 seconds, earlier follow-through always overlaps a little. The brain only
+  // With a set every 35–50 seconds, earlier follow-through always overlaps a little. The brain only
   // waits for the previous set's direct reaction (about 35s) to finish, so players see each story's
   // move before the next set; the slower tail continues underneath.
   if (world.headlines.length && reacting > 0) {
@@ -192,8 +192,8 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   if (nudge) adjust(nudge > 0 ? `Host asked for ${nudge}s more time` : `Host asked for the set ${-nudge}s sooner`, Math.max(elapsedSincePlan + 5, Math.min(150, intervalSeconds + nudge)) - intervalSeconds, "host");
   intervalSeconds = Math.round(intervalSeconds);
   // No time for another set after this one: make it a deliberate closing set.
-  const finalSet = world.status === "live" && world.remaining - Math.max(0, intervalSeconds - elapsedSincePlan) < finalTail + Math.max(55, base);
-  const setSize: 2 | 3 = introductoryStage > 0 || closingPhase || parentsStillExploring || strategy === "calm" || activeCrowd || reading.unresolvedNewsSeconds > 20 ? 2 : strategy === "lively" ? 3 : reading.activeTerminals >= 6 ? 2 : 3;
+  const finalSet = world.status === "live" && world.remaining - Math.max(0, intervalSeconds - elapsedSincePlan) < NEWS_REACTION_SECONDS + 5 + NEWS_BASE_INTERVAL_MIN_SECONDS;
+  const setSize: 2 | 3 = introductoryStage > 0 || closingPhase || parentsStillExploring || strategy === "calm" || activeCrowd ? 2 : strategy === "lively" ? 3 : reading.activeTerminals >= 6 ? 2 : 3;
 
   const excluded = new Set(world.autonomousNews?.excludedIndices ?? []);
   const publishedKeys = new Set(world.headlines.map(storyKey));
