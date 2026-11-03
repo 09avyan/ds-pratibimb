@@ -175,8 +175,6 @@ const DEMO = [
   { sector: "Technology", headline: (name: string) => `${name} profits fall short of forecasts`, move: -2.6 },
   { sector: "Banking", headline: (name: string) => `${name} sees loan demand jump`, move: 2.9 },
 ];
-const DEMO_UP = "M4 52 C 30 50, 44 46, 60 44 S 90 40, 104 30 S 136 10, 156 8";
-const DEMO_DOWN = "M4 14 C 30 16, 44 20, 60 22 S 90 30, 104 38 S 136 54, 156 56";
 
 /** Counts a figure up from zero once, easing out (or shows it at once when motion is off). */
 function useCountUp(target: number, still: boolean, ms = 1600, from = 0, delay = 500) {
@@ -191,126 +189,100 @@ function useCountUp(target: number, still: boolean, ms = 1600, from = 0, delay =
   return value;
 }
 
-/** A story breaks, a company's price answers it, and a trade made on the news pays: the whole game in
-    eight seconds, on a loop. The trade uses the terminals' default order of 50 shares. */
-function InviteDemo({ stocks, still }: { stocks: Stock[]; still: boolean }) {
-  const [turn, setTurn] = useState(0);
-  useEffect(() => {
-    if (still) return;
-    const timer = window.setInterval(() => setTurn(n => n + 1), 8000);
-    return () => window.clearInterval(timer);
-  }, [still]);
-  const example = DEMO[turn % DEMO.length];
-  const stock = stocks.find(item => item.sector === example.sector) ?? stocks[turn % Math.max(1, stocks.length)];
-  const [shown, setShown] = useState(still ? 1 : 0);
-  useEffect(() => {
-    if (still) { setShown(1); return; }
-    setShown(0);
-    let raf = 0; const start = performance.now() + 1700;
-    const step = (now: number) => { const p = Math.min(1, Math.max(0, (now - start) / 1400)); setShown(1 - (1 - p) ** 3); if (p < 1) raf = requestAnimationFrame(step); };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [turn, still]);
+type SceneId = "cover" | "how" | "record" | "last" | "seat";
+const SCENE_MS: Record<SceneId, number> = { cover: 8000, how: 9000, record: 8500, last: 7500, seat: 6500 };
+
+/** How a round works, told with one example: the story, the price's answer, the money a trade made. */
+function HowItWorks({ stocks, visit, still }: { stocks: Stock[]; visit: number; still: boolean }) {
+  const example = DEMO[visit % DEMO.length];
+  const stock = stocks.find(item => item.sector === example.sector) ?? stocks[0];
+  const shown = useCountUp(1, still, 1400, 0, 1500);
   if (!stock) return null;
   const name = shortName(stock.symbol);
   const up = example.move >= 0;
   const move = example.move * shown;
-  return <div className={`invite-demo ${up ? "up" : "down"}`} key={turn}>
-    <small className="invite-demo-label">How it works <em>· example</em></small>
-    <article className="invite-demo-news"><span className="stage-tag major">Breaking</span><p>{example.headline(name)}</p></article>
-    <span className="invite-demo-arrow" aria-hidden="true"><i/></span>
-    <article className="invite-demo-tile">
-      <div className="invite-demo-name"><Logo stock={stock} compact/><strong>{name}</strong></div>
-      <b>{money(stock.price * (1 + move / 100), 2)}</b>
-      <em>{up ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</em>
-      <svg viewBox="0 0 160 64" aria-hidden="true"><path d={up ? DEMO_UP : DEMO_DOWN} pathLength={1}/></svg>
-    </article>
-    <p className="invite-demo-payoff"><small>{up ? "Bought" : "Shorted"} 50 shares when the news broke</small><b>+{money(50 * stock.price * Math.abs(move) / 100, 0)}</b></p>
-    <i className="invite-demo-progress" aria-hidden="true"/>
+  return <div className="ed-how">
+    <div className="ed-how-col" style={{ "--n": 0 } as React.CSSProperties}>
+      <h3>A story breaks.</h3>
+      <p className="ed-how-story">{example.headline(name)}</p>
+      <p className="ed-how-note">An example story, not one from today.</p>
+    </div>
+    <div className="ed-how-col" style={{ "--n": 1 } as React.CSSProperties}>
+      <h3>The price answers.</h3>
+      <p className="ed-how-figure"><span>{name}</span><b>{money(stock.price * (1 + move / 100), 2)}</b><em className={up ? "up" : "down"}>{up ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</em></p>
+    </div>
+    <div className="ed-how-col" style={{ "--n": 2 } as React.CSSProperties}>
+      <h3>You keep the difference.</h3>
+      <p className="ed-how-figure"><b className="up">+{money(50 * stock.price * Math.abs(move) / 100, 0)}</b><span>on 50 shares, {up ? "bought" : "sold short"} when the story broke.</span></p>
+    </div>
   </div>;
 }
 
-/** A marquee sign: a ring of stage bulbs round a panel, as on a game-show set. */
-function ShowSign({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`show-sign ${className}`}><div className="show-sign-face">{children}</div></div>;
-}
-
-type SceneId = "title" | "how" | "hall" | "last" | "seat";
-const SCENE_MS: Record<SceneId, number> = { title: 7000, how: 9000, hall: 8500, last: 7500, seat: 6500 };
-
 /*
-  The invitation, staged like a game show and run like an arcade attract loop. Scenes take turns: the
-  title card, how to play (a story moving a price), today's hall of fame (the record to beat), last
-  round's highlights (between rounds), and your seat is waiting. A host's caption narrates each one.
+  The invitation, before and between rounds: a slow loop of editorial spreads, each one idea set large
+  on the version's own ground. The cover states the game, then how a round works, today's record,
+  last round's result (between rounds) and the call to sit down. No boxes, no glows: type, space and
+  one full field of the accent colour.
 */
 function InviteScene({ world, still }: { world: PublicWorld | null; still: boolean }) {
   const stocks = world?.stocks ?? [];
   const minutes = Math.max(1, Math.round((world?.duration ?? 300) / 60));
+  const minuteWords = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"][minutes - 1] ?? String(minutes);
   const hall = world?.hallOfFame ?? [];
   const record = hall[0];
   const closed = world?.status === "closed" && (world?.leaderboard.length ?? 0) > 0;
   const leader = closed ? world!.leaderboard[0] : undefined;
-  const scenes: SceneId[] = ["title", "how", "hall", ...(closed ? ["last" as const] : []), "seat"];
+  const scenes: SceneId[] = ["cover", "how", "record", ...(closed ? ["last" as const] : []), "seat"];
   const [turn, setTurn] = useState(0);
   const scene = scenes[turn % scenes.length];
   useEffect(() => {
     const timer = window.setTimeout(() => setTurn(n => n + 1), SCENE_MS[scene]);
     return () => window.clearTimeout(timer);
   }, [turn, scene]);
-  const purse = useCountUp(1_000_000, still || scene !== "title", 1400, 0, 900);
+  const movers = [...stocks].sort((a, b) => Math.abs(changePct(b)) - Math.abs(changePct(a))).slice(0, 5);
   const best = [...stocks].sort((a, b) => changePct(b) - changePct(a))[0];
   const beat = closed ? world!.leaderboard.filter(entry => entry.returnPct > world!.indexChange).length : 0;
-  const caption: Record<SceneId, string> = {
-    title: "Welcome to Dalaal Street, the trading game show. Free to play, no experience needed.",
-    how: "Read the news, trade before the price moves, and watch your money grow.",
-    hall: record ? `Today's record is ${signedMoney(record.pnl)}, set by Terminal ${pad2(record.terminalNumber)}. Can anyone beat it?` : "No record yet today. The first winner sets it.",
-    last: leader ? `Last round, Terminal ${pad2(leader.terminalNumber)} won with ${signedMoney(leader.pnl)}.` : "",
-    seat: world?.status === "closed" ? "Take any free terminal. The next round starts soon." : "Take any free terminal. Trading opens at the bell.",
-  };
   const tape = [...stocks, ...stocks];
-  return <section className={`invite show scene-${scene}`} aria-label="Play Dalaal Street">
-    <div className="show-stage" aria-hidden="true"><i className="show-spot is-left" key={`l${turn}`}/><i className="show-spot is-right" key={`r${turn}`}/><i className="show-floor"/></div>
-    <div className="show-scene" key={turn}>
-      {scene === "title" && <div className="show-title">
-        <p className="invite-kicker"><i aria-hidden="true"/>Live at Pratibimb · free to play</p>
-        <ShowSign><small>Tonight's challenge</small><h2>{"Can you beat".split(" ").map((word, i) => <span key={i} className="w" style={{ "--w": i } as React.CSSProperties}>{word}</span>)}<br/>{"the market?".split(" ").map((word, i) => <span key={i} className="w is-accent" style={{ "--w": i + 3 } as React.CSSProperties}>{word}</span>)}</h2></ShowSign>
-        <div className="show-stakes"><p><b>{money(purse, 0)}</b><small>to invest</small></p><p><b>25</b><small>companies</small></p><p><b>{minutes} min</b><small>one winner</small></p></div>
-      </div>}
-      {scene === "how" && <div className="show-how">
-        <div className="show-how-steps">
-          <h2 className="show-heading">How to play</h2>
-          <ol className="invite-steps"><li><b>1</b><span>Sit at any terminal</span></li><li><b>2</b><span>Watch the news</span></li><li><b>3</b><span>Buy, sell or short</span></li></ol>
-          <p className="invite-glory"><svg viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>Finish top three and your terminal goes up on this screen</p>
+  return <section className={`invite ed scene-${scene}`} aria-label="Play Dalaal Street">
+    <div className="ed-scene" key={turn}>
+      {scene === "cover" && <>
+        <h2 className="ed-head">Grow ₹10,00,000 in {minuteWords} minutes.</h2>
+        <p className="ed-lede">Dalaal Street is the trading game at Pratibimb. Read the news as it breaks, trade 25 companies, and finish with the most money. Free to play, no experience needed.</p>
+        <div className="ed-movers" aria-label="Biggest moves right now">
+          <h3>Moving right now</h3>
+          {movers.map(stock => { const move = changePct(stock); return <p key={stock.symbol}><span>{shortName(stock.symbol)}</span><b>{money(stock.price, 2)}</b><em className={move >= 0 ? "up" : "down"}>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</em></p>; })}
         </div>
-        <InviteDemo stocks={stocks} still={still}/>
-      </div>}
-      {scene === "hall" && <div className="show-hall">
-        <h2 className="show-heading"><span>Today's</span> hall of fame</h2>
-        {record ? <>
-          <ShowSign className="show-record"><small>The record to beat</small><strong>{signedMoney(record.pnl)}</strong><span>Terminal {pad2(record.terminalNumber)} · Batch {pad2(record.batch)} · {signedPct(record.returnPct)}</span></ShowSign>
-          <ol className="show-hall-list">{hall.slice(1, 6).map((entry, i) => <li key={`${entry.batch}-${entry.terminalNumber}`} style={{ "--i": 4 - i } as React.CSSProperties}><b>{i + 2}</b><strong>Terminal {pad2(entry.terminalNumber)}</strong><small>Batch {pad2(entry.batch)}</small><em className={entry.pnl >= 0 ? "up" : "down"}>{signedMoney(entry.pnl)}</em></li>)}</ol>
-        </> : <ShowSign className="show-record is-empty"><small>The board is empty</small><strong>Be the first</strong><span>Today's first winner sets the record everyone else has to beat.</span></ShowSign>}
-      </div>}
-      {scene === "last" && leader && <div className="show-last">
-        <h2 className="show-heading"><span>Last round's</span> highlights</h2>
-        <div className="show-last-grid">
-          <ShowSign className="show-winner"><svg className="invite-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg><small>Winner</small><strong>Terminal {pad2(leader.terminalNumber)}</strong><span className={leader.pnl >= 0 ? "up" : "down"}>{signedMoney(leader.pnl)} in {minutes} minutes</span></ShowSign>
-          <div className="show-facts">
-            {best && <p><small>Stock of the round</small><span><Logo stock={best} compact/><strong>{shortName(best.symbol)}</strong><b className="up">{signedPct(changePct(best))}</b></span></p>}
-            <p><small>Beat the Dalaal-10</small><span><strong>{beat} of {world!.leaderboard.length}</strong><b>terminals</b></span></p>
-          </div>
+      </>}
+      {scene === "how" && <>
+        <h2 className="ed-head is-short">How a round works</h2>
+        <HowItWorks stocks={stocks} visit={Math.floor(turn / scenes.length)} still={still}/>
+      </>}
+      {scene === "record" && <div className="ed-record">
+        <div className="ed-record-main">
+          <h2 className="ed-head is-short">{record ? "Today's record" : "No record yet today"}</h2>
+          {record ? <>
+            <p className="ed-figure up">{signedMoney(record.pnl)}</p>
+            <p className="ed-lede">Set by Terminal {pad2(record.terminalNumber)} in batch {record.batch}, a return of {signedPct(record.returnPct)} on ₹10,00,000.</p>
+          </> : <p className="ed-lede">The first winner of the day sets the number everyone else has to beat.</p>}
         </div>
+        {hall.length > 1 && <ol className="ed-ranks" start={2} aria-label="Today's next best results">
+          {hall.slice(1, 6).map((entry, i) => <li key={`${entry.batch}-${entry.terminalNumber}`} style={{ "--n": i } as React.CSSProperties}><span>Terminal {pad2(entry.terminalNumber)}</span><small>Batch {entry.batch}</small><b className={entry.pnl >= 0 ? "up" : "down"}>{signedMoney(entry.pnl)}</b></li>)}
+        </ol>}
       </div>}
-      {scene === "seat" && <div className="show-seat">
-        <svg className="show-bell" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6a4 4 0 0 1 4 4v2.4c8.6 2 14 9.4 14 18.6v9.5l5 6.5v3H9v-3l5-6.5V31c0-9.2 5.4-16.6 14-18.6V10a4 4 0 0 1 4-4Zm-7 46h14a7 7 0 0 1-14 0Z"/></svg>
-        <h2>{"Your seat is waiting".split(" ").map((word, i) => <span key={i} className="w" style={{ "--w": i } as React.CSSProperties}>{word}</span>)}</h2>
-        <p className="invite-cta"><i aria-hidden="true"/>Take any free terminal · ₹10,00,000 is on the table</p>
-      </div>}
+      {scene === "last" && leader && <>
+        <h2 className="ed-head">Terminal {pad2(leader.terminalNumber)} won the last round.</h2>
+        <div className="ed-facts">
+          <p style={{ "--n": 0 } as React.CSSProperties}><b className={leader.pnl >= 0 ? "up" : "down"}>{signedMoney(leader.pnl)}</b><span>made in {minuteWords} minutes</span></p>
+          {best && <p style={{ "--n": 1 } as React.CSSProperties}><b>{shortName(best.symbol)}</b><span>stock of the round, {signedPct(changePct(best))}</span></p>}
+          <p style={{ "--n": 2 } as React.CSSProperties}><b>{beat} of {world!.leaderboard.length}</b><span>terminals beat the Dalaal-10</span></p>
+        </div>
+      </>}
+      {scene === "seat" && <>
+        <h2 className="ed-head">Take a seat.</h2>
+        <p className="ed-lede">Ten terminals, ₹10,00,000 each. {world?.status === "closed" ? "The next round starts soon." : "Trading opens at the bell."}</p>
+      </>}
     </div>
-    <div className="show-foot">
-      <p className="show-caption" key={`c${turn}`}><b>Host</b><span>{caption[scene]}</span></p>
-      <ol className="show-dots" aria-hidden="true">{scenes.map((id, i) => <li key={id} className={i === turn % scenes.length ? "is-on" : i < turn % scenes.length ? "is-done" : ""} style={{ "--ms": `${SCENE_MS[id]}ms` } as React.CSSProperties}><i key={i === turn % scenes.length ? turn : -1}/></li>)}</ol>
-    </div>
+    <ol className="ed-progress" aria-hidden="true">{scenes.map((id, i) => <li key={id} className={i === turn % scenes.length ? "is-on" : i < turn % scenes.length ? "is-done" : ""} style={{ "--ms": `${SCENE_MS[id]}ms` } as React.CSSProperties}><i key={i === turn % scenes.length ? turn : -1}/></li>)}</ol>
     <div className="invite-tape" aria-hidden="true"><div>{tape.map((stock, i) => { const move = changePct(stock); return <span key={i} className={move >= 0 ? "up" : "down"}><b>{shortName(stock.symbol)}</b>{money(stock.price, 2)}<i>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</i></span>; })}</div></div>
   </section>;
 }
@@ -385,7 +357,7 @@ function BatchReport({ world, path, still }: { world: PublicWorld | null; path: 
   });
   const index = (value: number) => value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return <section className={`stage-report ${up ? "is-up" : "is-down"}`} aria-label={`Batch ${pad2(world.batch)} report`}>
-    <header><h2><span>Batch {pad2(world.batch)}</span> awards</h2><span className="report-stamp">Closed</span></header>
+    <header><h2>Batch {pad2(world.batch)} awards</h2></header>
     <article className="report-market">
       <div className="report-market-head"><small>Dalaal-10</small><strong>{index(close)}</strong><b>{up ? "▲" : "▼"} {Math.abs(world.indexChange).toFixed(2)}%</b></div>
       <svg className="report-chart" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
@@ -400,10 +372,9 @@ function BatchReport({ world, path, still }: { world: PublicWorld | null; path: 
     </article>
     <p className="report-strip"><span>Room average <b className={average >= 0 ? "up" : "down"}>{signedPct(average)}</b></span><span>{stories.length} {stories.length === 1 ? "story" : "stories"} <b>{majors} major</b></span></p>
     <ol className="report-awards">{awards.map((award, i) => <li key={award.label} className={`award tone-${award.tone}`} style={{ "--i": i } as React.CSSProperties}>
-      <div className="award-inner">
-        <div className="award-back"><small>{award.label}</small><b>?</b><span>The envelope, please</span></div>
-        <div className="award-front"><small>{award.label}</small><span className="award-who">{award.stock ? <Logo stock={award.stock} compact/> : <svg viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>}<strong>{award.who}</strong></span><span className="award-detail">{award.detail}{award.amount && <b> · {award.amount}</b>}</span></div>
-      </div>
+      <small>{award.label}</small>
+      <strong>{award.stock && <Logo stock={award.stock} compact/>}{award.who}</strong>
+      <span>{award.detail}{award.amount && <b> · {award.amount}</b>}</span>
     </li>)}</ol>
     {entries.length > 0 && <article className="report-beat">
       <h3>Beat the Dalaal-10 <span>{beat.length} of {entries.length}</span></h3>
@@ -470,7 +441,7 @@ function Leaderboard({ world, final, onShowMarket, still = false }: { world: Pub
   const tone = (entry: PublicLeaderboardEntry) => entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat";
   const podium = [entries[1], entries[0], entries[2]]; // second, first, third: the winner stands in the middle
   return <section ref={board} className={`stage-board lb${final ? " is-final" : ""}${leadBanner ? " has-new-leader" : ""}`} aria-label={final ? "Final standings" : "Standings"} style={{ "--count": entries.length } as React.CSSProperties}>
-    {leadBanner && <div className="stage-lead" key={leadBanner.key} role="status"><b>Host</b><strong>Terminal {pad2(leadBanner.terminal)} takes the lead!</strong></div>}
+    {leadBanner && <div className="stage-lead" key={leadBanner.key} role="status"><strong>Terminal {pad2(leadBanner.terminal)} takes the lead.</strong></div>}
     <header className="stage-board-head">
       <h2>{final ? "Final standings" : "Standings"}</h2>
       <span className="stage-board-meta">{final ? `Batch ${pad2(world?.batch ?? 1)} · closed` : entries.length ? `${entries.length} ${entries.length === 1 ? "terminal" : "terminals"} trading` : "No trades yet"}</span>
@@ -480,20 +451,17 @@ function Leaderboard({ world, final, onShowMarket, still = false }: { world: Pub
         const place = slot === 1 ? 1 : slot === 0 ? 2 : 3;
         if (!entry) return <div className={`lb-step place-${place} is-empty`} key={`empty-${place}`} aria-hidden="true"><b className="lb-medal">{place}</b><strong className="lb-terminal">?</strong><i className="lb-plinth"><span>{PLACE[place - 1]}</span></i></div>;
         return <div className={`lb-step place-${place} status-${entry.status}`} key={entry.terminalNumber} ref={keep(entry.terminalNumber)} aria-label={`${PLACE[place - 1]}: terminal ${pad2(entry.terminalNumber)}, ${money(entry.totalValue, 0)}, ${signedPct(entry.returnPct)}`}>
-          {final && <i className="lb-spotlight" aria-hidden="true"/>}
-          {place === 1 && <i className="lb-rays" aria-hidden="true"/>}
           {place === 1 && <svg className="stage-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>}
-          {place === 1 && final && <b className="lb-champion" aria-hidden="true">Champion</b>}
           <b className="lb-medal">{entry.rank}</b>
           <small className="lb-label">Terminal</small>
           <strong className="lb-terminal">{pad2(entry.terminalNumber)}<MoveBadge delta={moves[entry.terminalNumber]?.delta}/></strong>
           <span className="lb-value">{final ? <CountMoney to={entry.totalValue} delay={REVEAL_AT[place - 1] + .3} still={still}/> : money(entry.totalValue, 0)}</span>
           <span className={`lb-return ${tone(entry)}`}>{signedPct(entry.returnPct)}</span>
-          <i className="lb-plinth">{place === 1 && <b className="lb-bulbs" aria-hidden="true"/>}<span>{PLACE[place - 1]}</span></i>
+          <i className="lb-plinth"><span>{PLACE[place - 1]}</span></i>
         </div>;
       })}
     </div>
-    {final && leader && <p className="lb-drumroll" aria-hidden="true"><span>And the winner is<i/><i/><i/></span></p>}
+    {final && leader && <p className="lb-drumroll" aria-hidden="true">And the winner is…</p>}
     {entries.length === 0 && <p className="lb-wait"><strong>Waiting for the first trade</strong><span>A terminal joins the board with its first buy or short.</span></p>}
     {entries.length > 3 && <ol className="lb-race" start={4}>
       {entries.slice(3).map((entry, i) => <li key={entry.terminalNumber} ref={keep(entry.terminalNumber)} className={`lb-row ${tone(entry)} status-${entry.status}`} style={{ "--fill": `${fill(entry.totalValue)}%`, "--r": entries.length - 4 - i } as React.CSSProperties}>
@@ -555,9 +523,6 @@ const CANDLES = Array.from({ length: 28 }, (_, i) => {
   return { open, close, high: Math.max(open, close) + 3 + (i % 3), low: Math.min(open, close) - 3 - (i % 2) * 2 };
 });
 const CANDLE_LINE = smoothPath(CANDLES.map((candle, i) => ({ x: 18 + i * 35, y: 300 - candle.close * 3.4 })));
-// The winner's moment: gold coins rain down, and confetti fires from both bottom corners.
-const COINS = Array.from({ length: 34 }, (_, i) => ({ x: (i * 29.3 + 7) % 96, delay: (i % 11) * .09 + Math.floor(i / 11) * .22, size: 34 + (i * 17) % 22, spin: 540 + (i * 97) % 720 }));
-const CANNON = Array.from({ length: 56 }, (_, i) => ({ side: i % 2 ? "right" : "left", dx: (i % 2 ? -1 : 1) * (14 + (i * 13) % 34), dy: 48 + (i * 31) % 42, delay: (i % 7) * .035, spin: 300 + (i * 83) % 900, size: 14 + (i * 11) % 14, tone: i % 3 }));
 const CONFETTI = Array.from({ length: 140 }, (_, i) => ({ x: (i * 37.7) % 100, delay: (i % 14) * .13, drift: ((i * 53) % 40) - 20, spin: 280 + (i * 71) % 720, size: 14 + (i * 13) % 16, tone: i % 3 }));
 
 /** The rising candle chart drawn behind the countdown and the invitation. */
@@ -973,7 +938,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
       {!final && <section className="stage-grid" aria-label="All 25 companies">{ordered.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} news={newsGlow.has(stock.symbol)} variant={variant}/>)}</section>}
       {!final && <section className={`stage-news${showNews ? "" : " is-empty"}${breaking === newsSetKey ? " is-breaking" : ""}`} aria-label="Latest news">
         {breaking === newsSetKey && <div className="stage-breaking" aria-hidden="true"><b>Breaking news</b><span>{visibleNews.length} {visibleNews.length === 1 ? "story" : "stories"} just in</span></div>}
-        <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>{showNews ? "Latest news" : "News"}</span>{showNews && <button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button>}</header>
+        <header><h2 className="stage-news-title"><i className="stage-live-dot" aria-hidden="true"/>{showNews ? "Latest news" : "News"}</h2>{showNews && <button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button>}</header>
         {showNews ? <div className={`stage-news-cards count-${visibleNews.length}`}>{visibleNews.map((item, index) => <article key={item.id} className={`type-${item.type}`} style={{ "--i": index } as React.CSSProperties}>
           <div className="stage-news-meta"><span className={`stage-tag ${item.type}`}>{item.type === "major" ? "Major" : "Minor"}</span><span className="stage-news-scope">{scopeText(item)}</span><time>T+{fmtTime(Math.max(0, (item.createdAt - (world?.startedAt ?? item.createdAt)) / 1000))}</time></div>
           <p>{item.headline.split(" ").map((word, w) => <span className="stage-word" key={w} style={{ "--w": w } as React.CSSProperties}>{word} </span>)}</p>
@@ -984,20 +949,18 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     </div>}
 
     {curtains && <div className={`stage-curtains${curtainOpen ? " is-open" : ""}`} role="status" aria-live="polite">
-      <i className="curtain is-left" aria-hidden="true"/><i className="curtain is-right" aria-hidden="true"/><i className="curtain-valance" aria-hidden="true"/>
-      <ShowSign className="curtain-sign">
-        <small>Closing bell · {batchLabel}</small>
-        <strong>Market closed</strong>
-        <p className="stage-finale-index"><span>Dalaal-10 closes at</span><b>{indexText}</b><em className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</em></p>
-        <p className="stage-finale-next">{(world?.leaderboard.length ?? 0) > 0 ? "And now, the final standings" : "Thanks for trading"}</p>
-      </ShowSign>
+      <i className="curtain is-left" aria-hidden="true"/><i className="curtain is-right" aria-hidden="true"/>
+      <div className="ed-closed">
+        <p>{batchLabel}, at the closing bell</p>
+        <strong>Market closed.</strong>
+        <p className="ed-closed-index">Dalaal-10 <b>{indexText}</b> <em>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</em></p>
+        <p>{(world?.leaderboard.length ?? 0) > 0 ? "The final standings are next." : "Thanks for trading."}</p>
+      </div>
     </div>}
-    {final && on("confetti") && <div className="stage-coins" aria-hidden="true">{COINS.map((coin, i) => <i key={i} style={{ "--x": `${coin.x}%`, "--delay": `${coin.delay}s`, "--size": coin.size, "--spin": `${coin.spin}deg` } as React.CSSProperties}/>)}</div>}
-    {final && on("confetti") && <div className="stage-cannons" aria-hidden="true">{CANNON.map((piece, i) => <i key={i} className={`side-${piece.side} tone-${piece.tone}`} style={{ "--dx": `${piece.dx}vw`, "--dy": `${piece.dy}vh`, "--delay": `${piece.delay}s`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
     {final && on("confetti") && <div className="stage-confetti" aria-hidden="true">{CONFETTI.map((piece, i) => <i key={i} className={`tone-${piece.tone}`} style={{ "--x": `${piece.x}%`, "--delay": `${piece.delay}s`, "--drift": `${piece.drift}vw`, "--spin": `${piece.spin}deg`, "--size": piece.size } as React.CSSProperties}/>)}</div>}
     {counting && (on("countdown") ? <CountdownScene seconds={countdownSeconds} variant={variant} light={theme === "light"}/> : <div className="stage-countdown is-plain" role="status" aria-live="assertive"><div className="cd-dial">{countdownSeconds > 0 && <strong>{countdownSeconds}</strong>}</div></div>)}
     {lastTen && on("lastTen") && <div className="stage-last-ten" aria-hidden="true" key={Math.ceil(remaining)}><PixelText text={String(Math.ceil(remaining))} color="--down"/></div>}
-    {opening && on("marketOpen") && <div className="stage-open" aria-hidden="true"><i className="show-spot is-left"/><i className="show-spot is-right"/><i className="stage-open-burst"/><ShowSign className="open-sign"><small>{batchLabel} · the bell has rung</small><strong>Market open</strong><span>Let the trading begin!</span></ShowSign></div>}
+    {opening && on("marketOpen") && <div className="stage-open" aria-hidden="true"><div className="ed-open"><p>{batchLabel}</p><strong>Market open.</strong><span>{Math.round((world?.duration ?? 300) / 60)} minutes on the clock. Trade well.</span></div></div>}
     {bells.needsTap && sound && <button type="button" className="stage-sound-prompt" onClick={() => undefined}><Icon name="sound"/><span><b>Tap to turn on the bells</b><small>Browsers keep sound off until the screen is touched once</small></span></button>}
     {preview && <a className="stage-preview-link" href="/ui-preview">Preview: compare all versions</a>}
   </main>;
