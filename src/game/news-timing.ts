@@ -12,3 +12,14 @@ export const NEWS_IMPACT_FADE_THRESHOLD = .00008;
 export const NEWS_IMPACT_DECAY = Math.pow(PREVIOUS_NEWS_IMPACT_DECAY, 1 / NEWS_IMPACT_DURATION_MULTIPLIER);
 // Changing the decay rate spreads the same integrated drift over more time.
 export const NEWS_IMPACT_DRIFT_NORMALIZER = (1 - NEWS_IMPACT_DECAY) / (1 - PREVIOUS_NEWS_IMPACT_DECAY);
+
+/**
+ * The brain's clock for one batch. Batches of four minutes or more use the times above unchanged;
+ * shorter ones compress the gaps, the reaction and the closing cut-off so that even a 1-minute
+ * batch gets news (gaps of at least 15 s).
+ */
+export function newsPace(duration: number) {
+  const k = Math.min(1, Math.max(.25, duration / 240));
+  const minGap = Math.max(15, NEWS_BASE_INTERVAL_MIN_SECONDS * k);
+  return { minGap, maxGap: Math.max(minGap, NEWS_AUTO_MAX_INTERVAL_SECONDS * k), reaction: Math.max(15, NEWS_REACTION_SECONDS * k), minSets: Math.min(4, Math.max(1, Math.round(duration / 45))) };
+}
