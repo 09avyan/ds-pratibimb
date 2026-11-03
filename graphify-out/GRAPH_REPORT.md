@@ -1,17 +1,17 @@
 # Graph Report - ds-pratibimb  (2026-11-03)
 
 ## Corpus Check
-- 77 files · ~58,943 words
+- 77 files · ~59,024 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 20 file(s) not represented in the graph (top: .css 16, (none) 2, .example 1)
 
 ## Summary
-- 673 nodes · 1408 edges · 37 communities (32 shown, 5 thin omitted)
+- 673 nodes · 1410 edges · 37 communities (32 shown, 5 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e8270d58`
+- Built from commit: `ffdf6a43`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -58,8 +58,8 @@
 2. `advance()` - 34 edges
 3. `hostAction()` - 31 edges
 4. `HostConsole()` - 27 edges
-5. `next` - 23 edges
-6. `AudienceStage()` - 22 edges
+5. `AudienceStage()` - 23 edges
+6. `next` - 23 edges
 7. `mutate()` - 19 edges
 8. `typescript` - 17 edges
 9. `chooseAutonomousNewsPlan()` - 17 edges

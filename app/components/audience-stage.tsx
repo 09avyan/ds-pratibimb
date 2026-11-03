@@ -275,7 +275,7 @@ function StockTile({ stock, index, news }: { stock: Stock; index: number; news?:
   const [rupees, paise] = money(stock.price, 2).replace("₹", "").split(".");
   return <article className={`stage-tile ${move >= 0 ? "is-up" : "is-down"}${news ? " is-news" : ""}`} data-tick={tick ?? undefined} data-sector={stock.sector} style={{ "--i": index, "--ring": ring, "--heat": heat.toFixed(3) } as React.CSSProperties} title={stock.name} aria-label={`${stock.name} ${money(stock.price, 2)}, ${move >= 0 ? "up" : "down"} ${Math.abs(move).toFixed(2)}%`}>
     <div className="stage-tile-top"><Logo stock={stock} compact/><b>{shortName(stock.symbol)}</b><small className="stage-tile-sector">{stock.sector}</small></div>
-    <div className="stage-tile-price"><strong><i>₹</i>{rupees}<em>.{paise}</em></strong><span>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</span></div>
+    <div className="stage-tile-price"><strong><i>₹</i><Odometer text={rupees}/><em>.<Odometer text={paise}/></em></strong><span>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</span></div>
     <Spark stock={stock}/>
     {delta && <span className={`stage-delta ${delta.value > 0 ? "up" : "down"}`} key={delta.key} aria-hidden="true">{delta.value > 0 ? "+" : "−"}{Math.abs(delta.value).toFixed(2)}</span>}
   </article>;
@@ -622,7 +622,9 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const lastTen = status === "live" && !world?.controls.paused && remaining <= 10 && remaining > 0;
   // The clock always shows a time, and its label always says what that time is.
   const batchLabel = `Batch ${pad2(world?.batch || 1)}`;
-  const clockLabel = status === "live" ? world?.controls.paused ? "Paused" : "Time left" : status === "countdown" ? "Starting" : status === "closed" ? `${batchLabel} · closed` : `${batchLabel} · ready`;
+    // Market breadth: how many of the 25 companies are above or below their previous close.
+  const breadth = (world?.stocks ?? []).reduce((acc, stock) => { const d = stock.price - stock.previousClose; if (d > 0.001) acc.up++; else if (d < -0.001) acc.down++; acc.total++; return acc; }, { up: 0, down: 0, total: 0 });
+const clockLabel = status === "live" ? world?.controls.paused ? "Paused" : "Time left" : status === "countdown" ? "Starting" : status === "closed" ? `${batchLabel} · closed` : `${batchLabel} · ready`;
   const clockText = status === "live" ? fmtTime(remaining) : status === "closed" ? "00:00" : fmtTime(world?.duration ?? 300);
   const clockFill = status === "live" ? timeLeft : status === "closed" ? 0 : 1;
   return <main className={`stage stage-${theme} v-${variant}${final ? " is-final" : ""}${showNews ? " has-news" : ""}${motion ? animationOffClasses(flags) : " no-motion"}${lastTen ? " is-last-ten" : ""}`} data-status={status}>
@@ -637,7 +639,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
         <span>{clockText}</span>
         <i className="stage-clock-bar" aria-hidden="true" style={{ transform: `scaleX(${clockFill})` }}/>
       </div>
-      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10 index</span><strong data-tick={indexTick ?? undefined}>{indexText}</strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b><IndexSpark value={world?.index ?? 0} batch={world?.batch ?? 0} up={returnPct >= 0}/></div>
+      <div className="stage-index" aria-label={`Dalaal-10 index ${indexText}, ${signedPct(returnPct)}`}><span className="stage-index-label">Dalaal-10 index</span><strong data-tick={indexTick ?? undefined}><Odometer text={indexText}/></strong><b className={returnPct >= 0 ? "up" : "down"}>{returnPct >= 0 ? "▲" : "▼"} {Math.abs(returnPct).toFixed(2)}%</b><IndexSpark value={world?.index ?? 0} batch={world?.batch ?? 0} up={returnPct >= 0}/>{breadth.total > 0 && <span className="stage-breadth" style={{ "--rise": `${breadth.up / breadth.total * 100}%` } as React.CSSProperties} aria-label={`${breadth.up} companies rising, ${breadth.down} falling`}><i/><small><b className="up">{breadth.up} rising</b><b className="down">{breadth.down} falling</b></small></span>}</div>
       <div className="stage-tools">
         <button type="button" className={`stage-icon${bells.needsTap ? " needs-tap" : ""}`} onClick={() => setSound(value => !value)} aria-pressed={sound} title={sound ? "Bells on" : "Bells off"} aria-label={sound ? "Turn bells off" : "Turn bells on"}><Icon name={sound ? "sound" : "mute"}/></button>
         <button type="button" className="stage-icon" onClick={onTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}><Icon name={theme === "light" ? "moon" : "sun"}/></button>
