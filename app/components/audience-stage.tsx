@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PublicLeaderboardEntry, PublicNews, PublicWorld, Stock } from "@/game/types";
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
 import { animationOffClasses, animationOn } from "@/game/animations";
+import { useMarketSound } from "./market-sound";
 import { changePct, fmtTime, latestNewsSet, money, smoothPath, useSmoothRemaining } from "./market-parts";
 
 /*
@@ -18,89 +19,6 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 const signedPct = (value: number) => Math.abs(value) < .005 ? "0.00%" : `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}%`;
 const signedMoney = (value: number) => `${value >= 0 ? "+" : "−"}${money(Math.abs(value), 0)}`;
 const STATUS_LABEL: Record<PublicLeaderboardEntry["status"], string> = { live: "Trading", paused: "Paused", ready: "Ready", finished: "Finished", offline: "Offline" };
-
-/* ---------- Market bells (synthesised, no audio files) ---------- */
-
-type BellKind = "open" | "close";
-function strike(ctx: AudioContext, out: AudioNode, at: number, base: number, level: number, decay: number) {
-  // Inharmonic partials give a bell rather than a beep.
-  const partials: [number, number][] = [[1, 1], [2.01, .55], [2.76, .5], [4.07, .28], [5.4, .18], [6.8, .1]];
-  for (const [ratio, amp] of partials) {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = base * ratio;
-    gain.gain.setValueAtTime(0, at);
-    gain.gain.linearRampToValueAtTime(level * amp, at + .004);
-    gain.gain.exponentialRampToValueAtTime(.0001, at + decay / Math.sqrt(ratio));
-    osc.connect(gain).connect(out);
-    osc.start(at);
-    osc.stop(at + decay + .1);
-  }
-}
-function ringBell(ctx: AudioContext, kind: BellKind) {
-  const master = ctx.createGain();
-  master.gain.value = .9;
-  const limiter = ctx.createDynamicsCompressor();
-  master.connect(limiter).connect(ctx.destination);
-  const now = ctx.currentTime + .05;
-  if (kind === "open") {
-    // Opening bell: a bright, rapid ring for about three seconds.
-    for (let i = 0; i < 26; i++) strike(ctx, master, now + i * .11, 1180, i === 0 ? .3 : .17, 1.4);
-  } else {
-    // Closing bell: three slow, deep strikes.
-    for (let i = 0; i < 3; i++) strike(ctx, master, now + i * 1.15, 440, .34, 3.2);
-  }
-}
-function useMarketBells(world: PublicWorld | null, enabled: boolean) {
-  const ctxRef = useRef<AudioContext | null>(null);
-  const previous = useRef<{ batch: number; status: PublicWorld["status"] } | null>(null);
-  const [needsTap, setNeedsTap] = useState(false);
-  const context = () => {
-    if (!ctxRef.current) {
-      const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctor) return null;
-      ctxRef.current = new Ctor();
-    }
-    return ctxRef.current;
-  };
-  // Browsers only allow sound after a tap or key press on the page.
-  useEffect(() => {
-    // The first tap or key press unlocks sound; a short chime confirms the bells will be heard.
-    const unlock = () => {
-      const ctx = context();
-      if (!ctx) return;
-      const wasLocked = ctx.state !== "running";
-      void ctx.resume().then(() => {
-        if (ctx.state !== "running") return;
-        setNeedsTap(false);
-        if (wasLocked) strike(ctx, ctx.destination, ctx.currentTime + .05, 1180, .12, .9);
-      });
-    };
-    const events = ["pointerdown", "touchstart", "click", "keydown"] as const;
-    events.forEach(name => window.addEventListener(name, unlock));
-    return () => events.forEach(name => window.removeEventListener(name, unlock));
-  }, []);
-  useEffect(() => {
-    if (!enabled) { setNeedsTap(false); return; }
-    const ctx = context();
-    if (ctx && ctx.state !== "running") setNeedsTap(true);
-  }, [enabled]);
-  useEffect(() => {
-    if (!world) return;
-    const before = previous.current;
-    previous.current = { batch: world.batch, status: world.status };
-    if (!before || !enabled) return;
-    const opened = world.status === "live" && (before.status === "countdown" || before.status === "ready" || before.status === "closed" || before.batch !== world.batch);
-    const closed = world.status === "closed" && before.status === "live" && before.batch === world.batch;
-    if (!opened && !closed) return;
-    const ctx = context();
-    if (!ctx) return;
-    const play = () => ringBell(ctx, opened ? "open" : "close");
-    if (ctx.state === "running") play(); else void ctx.resume().then(() => { if (ctx.state === "running") play(); else setNeedsTap(true); });
-  }, [world?.status, world?.batch, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { needsTap, test: (kind: BellKind) => { const ctx = context(); if (ctx) void ctx.resume().then(() => ringBell(ctx, kind)); } };
-}
 
 /* ---------- Leaderboard ---------- */
 
@@ -199,7 +117,7 @@ function IndexSpark({ value, batch, up }: { value: number; batch: number; up: bo
   fly to the row's new place and reassemble there while the row fades back in. Canvas over the board;
   about 1,200 pixels per row at 1080p, gone in 1.3 seconds.
 */
-function disperse(board: HTMLElement, moved: { row: HTMLElement; from: number }[]) {
+function disperse(board: HTMLElement, moved: { row: HTMLElement; from: number; fromLeft?: number }[]) {
   const box = board.getBoundingClientRect();
   const canvas = document.createElement("canvas");
   const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -215,14 +133,14 @@ function disperse(board: HTMLElement, moved: { row: HTMLElement; from: number }[
   type Pixel = { sx: number; sy: number; mx: number; my: number; ex: number; ey: number; color: string; size: number; delay: number };
   const pixels: Pixel[] = [];
   const step = Math.max(5, Math.round(box.width / 95));
-  for (const { row, from } of moved) {
+  for (const { row, from, fromLeft } of moved) {
     const style = getComputedStyle(row);
     const tones = [style.backgroundColor, style.color, accent, style.color, gold];
     const rect = { width: row.offsetWidth, height: row.offsetHeight };
-    const oldTop = from, newTop = row.offsetTop, left = row.offsetLeft;
+    const oldTop = from, newTop = row.offsetTop, left = row.offsetLeft, oldLeft = fromLeft ?? left;
     for (let y = 0; y < rect.height; y += step) for (let x = 0; x < rect.width; x += step) {
       const angle = Math.random() * Math.PI * 2, spread = 30 + Math.random() * 90;
-      pixels.push({ sx: left + x, sy: oldTop + y, mx: left + x + Math.cos(angle) * spread, my: (oldTop + newTop) / 2 + y + Math.sin(angle) * spread * .7, ex: left + x, ey: newTop + y, color: tones[Math.floor(Math.random() * tones.length)], size: step * (.7 + Math.random() * .5), delay: (x / rect.width) * .18 });
+      pixels.push({ sx: oldLeft + x, sy: oldTop + y, mx: (oldLeft + left) / 2 + x + Math.cos(angle) * spread, my: (oldTop + newTop) / 2 + y + Math.sin(angle) * spread * .7, ex: left + x, ey: newTop + y, color: tones[Math.floor(Math.random() * tones.length)], size: step * (.7 + Math.random() * .5), delay: (x / rect.width) * .18 });
     }
     row.animate([{ opacity: 0, filter: "blur(6px)" }, { opacity: 0, offset: .72 }, { opacity: 1, filter: "brightness(1.6)", offset: .86 }, { opacity: 1, filter: "none" }], { duration: 1300, easing: "ease-out" });
   }
@@ -245,28 +163,29 @@ function disperse(board: HTMLElement, moved: { row: HTMLElement; from: number }[
   requestAnimationFrame(frame);
 }
 
+const PLACE = ["1st", "2nd", "3rd"];
+
 function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null; final: boolean; onShowMarket?: () => void }) {
   const entries = world?.leaderboard ?? [];
   const moves = useRankMoves(entries);
   const rows = useRef(new Map<number, HTMLElement>());
-  const tops = useRef(new Map<number, number>());
+  const places = useRef(new Map<number, { top: number; left: number }>());
   const board = useRef<HTMLElement>(null);
   const orderKey = entries.map(entry => entry.terminalNumber).join(",");
-  // Rows glide from where they were to their new place, so the room can follow who moved.
+  // When ranks change, the moving entries break into pixels and reassemble at their new place.
   useLayoutEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const next = new Map<number, number>();
-    const moved: { row: HTMLElement; from: number }[] = [];
+    const next = new Map<number, { top: number; left: number }>();
+    const moved: { row: HTMLElement; from: number; fromLeft: number }[] = [];
     rows.current.forEach((row, terminal) => {
-      // Layout position, which ignores the rows' own entrance transforms.
-      const top = row.offsetTop;
-      next.set(terminal, top);
-      const before = tops.current.get(terminal);
-      if (reduce || !tops.current.size || row.closest(".no-motion, .off-rankChange")) return;
-      if (before === undefined) { row.animate([{ opacity: 0, transform: "translateX(28px)" }, { opacity: 1, transform: "none" }], { duration: 500, easing: "cubic-bezier(.2,.8,.2,1)" }); return; }
-      if (Math.abs(before - top) > 1) moved.push({ row, from: before });
+      const place = { top: row.offsetTop, left: row.offsetLeft };
+      next.set(terminal, place);
+      const before = places.current.get(terminal);
+      if (reduce || !places.current.size || row.closest(".no-motion, .off-rankChange")) return;
+      if (!before) { row.animate([{ opacity: 0, transform: "translateY(18px) scale(.96)" }, { opacity: 1, transform: "none" }], { duration: 600, easing: "cubic-bezier(.2,.8,.2,1)" }); return; }
+      if (Math.abs(before.top - place.top) > 1 || Math.abs(before.left - place.left) > 1) moved.push({ row, from: before.top, fromLeft: before.left });
     });
-    tops.current = next;
+    places.current = next;
     if (moved.length && board.current) disperse(board.current, moved);
   }, [orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const leader = entries[0];
@@ -282,26 +201,45 @@ function Leaderboard({ world, final, onShowMarket }: { world: PublicWorld | null
     const timer = window.setTimeout(() => setLeadBanner(null), 3600);
     return () => window.clearTimeout(timer);
   }, [leader?.terminalNumber, final]);
-  return <section ref={board} className={`stage-board${final ? " is-final" : ""}`} aria-label={final ? "Final standings" : "Standings"} style={{ "--count": entries.length } as React.CSSProperties}>
+  const keep = (terminal: number) => (element: HTMLElement | null) => { if (element) rows.current.set(terminal, element); else rows.current.delete(terminal); };
+  const values = entries.map(entry => entry.totalValue);
+  const lo = Math.min(...values), hi = Math.max(...values);
+  const fill = (value: number) => hi > lo ? 18 + 82 * (value - lo) / (hi - lo) : 100;
+  const tone = (entry: PublicLeaderboardEntry) => entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat";
+  const podium = [entries[1], entries[0], entries[2]]; // second, first, third: the winner stands in the middle
+  return <section ref={board} className={`stage-board lb${final ? " is-final" : ""}`} aria-label={final ? "Final standings" : "Standings"} style={{ "--count": entries.length } as React.CSSProperties}>
     {leadBanner && <div className="stage-lead" key={leadBanner.key} role="status"><span>New leader</span><strong>Terminal {pad2(leadBanner.terminal)} takes the lead</strong></div>}
     <header className="stage-board-head">
       <h2>{final ? "Final standings" : "Standings"}</h2>
       <span className="stage-board-meta">{final ? `Batch ${pad2(world?.batch ?? 1)} · closed` : entries.length ? `${entries.length} ${entries.length === 1 ? "terminal" : "terminals"} trading` : "No trades yet"}</span>
     </header>
-    {entries.length === 0 ? <div className="stage-board-empty"><strong>Waiting for the first trade</strong><span>A terminal joins the board with its first buy or short.</span></div> : <>
-      <div className="stage-board-cols" aria-hidden="true"><span>Rank</span><span>Terminal</span><span>Portfolio</span><span>Return</span></div>
-      <ol className="stage-board-rows" style={{ "--rows": entries.length } as React.CSSProperties}>
-        {entries.map((entry, index) => <li key={entry.terminalNumber} ref={element => { if (element) rows.current.set(entry.terminalNumber, element); else rows.current.delete(entry.terminalNumber); }} className={`stage-standing${index === 0 ? " is-leader" : ""} medal-${Math.min(entry.rank, 4)} status-${entry.status}`} style={{ "--i": index, "--reveal": entries.length - 1 - index } as React.CSSProperties}>
-          {index === 0 && <svg className="stage-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>}
-          <b className="stage-standing-rank"><span>{entry.rank}</span></b>
-          <span className="stage-standing-name"><strong>{pad2(entry.terminalNumber)}</strong><MoveBadge delta={moves[entry.terminalNumber]?.delta}/>{!final && entry.status !== "live" && <small>{STATUS_LABEL[entry.status]}</small>}</span>
-          <span className="stage-standing-value">{money(entry.totalValue, 0)}</span>
-          <span className={`stage-standing-return ${entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat"}`}>{signedPct(entry.returnPct)}</span>
-        </li>)}
-      </ol>
-      {final && leader && <p className="stage-winner-line">Terminal {pad2(leader.terminalNumber)} finishes first with {money(leader.totalValue, 0)}, {signedMoney(leader.pnl)} on the starting ₹10,00,000.</p>}
-    </>}
-    {!final && <p className="stage-board-foot">Every terminal starts with ₹10,00,000 and is ranked by portfolio value.</p>}
+    <div className={`lb-podium${entries.length ? "" : " is-waiting"}`}>
+      {podium.map((entry, slot) => {
+        const place = slot === 1 ? 1 : slot === 0 ? 2 : 3;
+        if (!entry) return <div className={`lb-step place-${place} is-empty`} key={`empty-${place}`} aria-hidden="true"><b className="lb-medal">{place}</b><strong className="lb-terminal">?</strong><i className="lb-plinth"><span>{PLACE[place - 1]}</span></i></div>;
+        return <div className={`lb-step place-${place} status-${entry.status}`} key={entry.terminalNumber} ref={keep(entry.terminalNumber)} aria-label={`${PLACE[place - 1]}: terminal ${pad2(entry.terminalNumber)}, ${money(entry.totalValue, 0)}, ${signedPct(entry.returnPct)}`}>
+          {place === 1 && <i className="lb-rays" aria-hidden="true"/>}
+          {place === 1 && <svg className="stage-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>}
+          <b className="lb-medal">{entry.rank}</b>
+          <small className="lb-label">Terminal</small>
+          <strong className="lb-terminal">{pad2(entry.terminalNumber)}<MoveBadge delta={moves[entry.terminalNumber]?.delta}/></strong>
+          <span className="lb-value">{money(entry.totalValue, 0)}</span>
+          <span className={`lb-return ${tone(entry)}`}>{signedPct(entry.returnPct)}</span>
+          <i className="lb-plinth"><span>{PLACE[place - 1]}</span></i>
+        </div>;
+      })}
+    </div>
+    {entries.length === 0 && <p className="lb-wait"><strong>Waiting for the first trade</strong><span>A terminal joins the board with its first buy or short.</span></p>}
+    {entries.length > 3 && <ol className="lb-race" start={4}>
+      {entries.slice(3).map(entry => <li key={entry.terminalNumber} ref={keep(entry.terminalNumber)} className={`lb-row ${tone(entry)} status-${entry.status}`} style={{ "--fill": `${fill(entry.totalValue)}%` } as React.CSSProperties}>
+        <i className="lb-bar" aria-hidden="true"/>
+        <b className="lb-rank">{entry.rank}</b>
+        <span className="lb-who"><strong>{pad2(entry.terminalNumber)}<MoveBadge delta={moves[entry.terminalNumber]?.delta}/></strong><small>{leader ? `${money(leader.totalValue - entry.totalValue, 0)} behind 1st` : ""}{!final && entry.status !== "live" ? ` · ${STATUS_LABEL[entry.status]}` : ""}</small></span>
+        <span className="lb-money"><span className="lb-value">{money(entry.totalValue, 0)}</span><span className={`lb-return ${tone(entry)}`}>{signedPct(entry.returnPct)}</span></span>
+      </li>)}
+    </ol>}
+    {final && leader && <p className="stage-winner-line">Terminal {pad2(leader.terminalNumber)} finishes first with {money(leader.totalValue, 0)}, {signedMoney(leader.pnl)} on the starting ₹10,00,000.</p>}
+    {!final && <p className="stage-board-foot">All start with ₹10,00,000 · ranked by total value</p>}
     {final && onShowMarket && <button type="button" className="stage-text-button" onClick={onShowMarket}>Show the market</button>}
   </section>;
 }
@@ -609,7 +547,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const [dismissedSet, setDismissedSet] = useState("");
   const [marketAfterClose, setMarketAfterClose] = useState(-1);
   const [clock, setClock] = useState(() => Date.now());
-  const bells = useMarketBells(world, sound);
+  const bells = useMarketSound(world, sound, world?.controls.animations?.countdownSound !== false);
   useEffect(() => { try { const saved = window.localStorage.getItem("ds-audience-sound"); if (saved === "off") setSound(false); } catch {} }, []);
   useEffect(() => { try { window.localStorage.setItem("ds-audience-sound", sound ? "on" : "off"); } catch {} }, [sound]);
   useEffect(() => { const done = () => setFullscreen(Boolean(document.fullscreenElement)); document.addEventListener("fullscreenchange", done); return () => document.removeEventListener("fullscreenchange", done); }, []);

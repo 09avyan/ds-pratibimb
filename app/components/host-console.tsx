@@ -1,6 +1,7 @@
 "use client";
 
 import { ANIMATIONS } from "@/game/animations";
+import { useMarketSound, useSteadyBeat } from "./market-sound";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { HostNote, World } from "@/game/types";
 import { equity, NEWS_EFFECT_MAX_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_REACTION_SECONDS, newsImpactRange, newsImpactRemainingSeconds, previewNewsImpact, TERMINAL_ACTIVE_WINDOW_MS, VIRTUAL_BOT_COUNT } from "@/game/engine";
@@ -176,7 +177,13 @@ export function HostConsole() {
     finally { requestPending.current = false; }
   }, [authenticated, acceptSnapshot]);
   useEffect(() => { let active = true; fetch("/api/host", { cache: "no-store" }).then(async r => { if (r.ok && active) { const data = await r.json(); if (active) { acceptSnapshot(data); setAuthenticated(true); } } }).catch(() => {}); return () => { active = false; }; }, [acceptSnapshot]);
-  useEffect(() => { if (!authenticated) return; const t = window.setInterval(refresh, 2500); return () => clearInterval(t); }, [authenticated, refresh]);
+  // Poll on a worker's beat: browsers do not slow it in a background tab, so the bells stay on time.
+  useSteadyBeat(() => { void refresh(); }, 2000, authenticated);
+  // The host's device can ring the bells too (on by default), so they sound even with no audience screen open.
+  const [hostBells, setHostBells] = useState(true);
+  useEffect(() => { try { if (window.localStorage.getItem("ds-host-bells") === "off") setHostBells(false); } catch {} }, []);
+  useEffect(() => { try { window.localStorage.setItem("ds-host-bells", hostBells ? "on" : "off"); } catch {} }, [hostBells]);
+  const bellSound = useMarketSound(authenticated && world ? { batch: world.batch, status: world.status, startedAt: world.startedAt } : null, hostBells && authenticated, world?.controls.animations?.countdownSound !== false);
 
   useEffect(() => { if (authenticated && tab === "logs") void refresh(); }, [authenticated, tab, refresh]);
 
@@ -455,7 +462,7 @@ export function HostConsole() {
 
   if (!authenticated) return <main className="host-login"><a href="/play" className="login-wordmark"><DalaalMark/><DalaalWordmark/></a><section className="login-card"><span className="eyebrow">PRATIBIMB / EVENT OPERATIONS</span><h1>Host access<span>.</span></h1><p>Sign in to manage the shared market, batch sessions and live audience display.</p><form onSubmit={login}><label htmlFor="hostPass">HOST PASSWORD</label><input id="hostPass" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter host password" required/><button className="host-primary" disabled={working}>{working ? "Checking…" : "Open Host Console →"}</button></form>{error && <div className="host-error">{error}</div>}<small className="login-note">Private host tools · This URL is not linked from participant screens.</small></section><div className="login-foot">DALAA<span>L</span> STREET · MARKET SIMULATION</div></main>;
 
-  return <main className="host-app"><header className="host-top"><a className="login-wordmark" href="/host"><DalaalMark/><DalaalWordmark/></a><div className="host-top-center"><i/> HOST CONSOLE <span>·</span> BATCH {String(world?.batch ?? 0).padStart(2, "0")}</div><div className="host-top-actions"><a className="host-quiet" href="/audience" target="_blank">Open audience wall ↗</a><button className="theme-button host-theme" onClick={() => setTheme(current => current === "light" ? "dark" : "light")} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "◐" : "☀"}</button><button className="host-quiet" disabled={working} onClick={() => void logout()}>Sign out</button></div></header>
+  return <main className="host-app"><header className="host-top"><a className="login-wordmark" href="/host"><DalaalMark/><DalaalWordmark/></a><div className="host-top-center"><i/> HOST CONSOLE <span>·</span> BATCH {String(world?.batch ?? 0).padStart(2, "0")}</div><div className="host-top-actions"><a className="host-quiet" href="/audience" target="_blank">Open audience wall ↗</a><button type="button" className={`host-bells${hostBells ? " is-on" : ""}${bellSound.needsTap && hostBells ? " needs-tap" : ""}`} aria-pressed={hostBells} onClick={() => setHostBells(on => !on)} title="Ring the opening and closing bells and the countdown on this device too, even when no audience screen is open or this tab is in the background.">{hostBells ? "🔔 Bells on" : "🔕 Bells off"}</button><button className="theme-button host-theme" onClick={() => setTheme(current => current === "light" ? "dark" : "light")} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>{theme === "light" ? "◐" : "☀"}</button><button className="host-quiet" disabled={working} onClick={() => void logout()}>Sign out</button></div></header>
     <div className={`host-layout${navCollapsed ? " nav-collapsed" : ""}`}>
       <aside className={`host-nav${navCollapsed ? " is-collapsed" : ""}`}>
         <div className="host-nav-heading">
