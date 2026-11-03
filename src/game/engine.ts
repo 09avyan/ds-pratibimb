@@ -1,6 +1,6 @@
 import { INDEX_WEIGHTS, makeNews, makeStocks, NEWS_CATALOG_VERSION, STOCK_SYMBOLS } from "./catalog";
 import { chooseAutonomousNewsPlan, newAutonomousNewsState, readAutonomousNewsSignals } from "./autonomous-news";
-import { NEWS_REACTION_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS, NEWS_AUTO_MAX_INTERVAL_SECONDS, NEWS_IMPACT_DECAY, NEWS_IMPACT_FADE_THRESHOLD, NEWS_IMPACT_DRIFT_NORMALIZER } from "./news-timing";
+import { NEWS_REACTION_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS, NEWS_AUTO_MAX_INTERVAL_SECONDS, NEWS_IMPACT_DECAY, NEWS_IMPACT_FADE_THRESHOLD, NEWS_IMPACT_DRIFT_NORMALIZER, newsPace } from "./news-timing";
 export { NEWS_REACTION_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS } from "./news-timing";
 import { recordGameLog, recentOrderDifficulty } from "./logs";
 import { ANIMATION_KEYS } from "./animations";
@@ -186,11 +186,12 @@ function brainReleaseAt(world: World, at: number, proposedAt: number) {
   // The stored game time of the last publish; a state without it (older save) falls back to the headline's clock time.
   const last = auto.lastPublishedElapsed || (latestAt ? clamp((latestAt - world.startedAt) / 1000, 0, elapsed) : 0);
   const sets = new Set(world.headlines.map(news => news.createdAt)).size;
-  const deadline = world.duration - (NEWS_REACTION_SECONDS + 5);
-  const needed = Math.max(0, BRAIN_MIN_SETS - sets);
-  const earliest = last + NEWS_BASE_INTERVAL_MIN_SECONDS;
-  let latest = last + NEWS_AUTO_MAX_INTERVAL_SECONDS;
-  if (needed > 1) latest = Math.min(latest, deadline - (needed - 1) * NEWS_BASE_INTERVAL_MIN_SECONDS);
+  const pace = newsPace(world.duration);
+  const deadline = world.duration - (pace.reaction + 5);
+  const needed = Math.max(0, Math.min(BRAIN_MIN_SETS, pace.minSets) - sets);
+  const earliest = last + pace.minGap;
+  let latest = last + pace.maxGap;
+  if (needed > 1) latest = Math.min(latest, deadline - (needed - 1) * pace.minGap);
   latest = Math.max(earliest, latest);
   const proposed = elapsed - lead + (proposedAt - at) / 1000;
   const chosen = clamp(proposed, earliest, latest);
@@ -268,7 +269,7 @@ function clearSetControls(auto: NonNullable<World["autonomousNews"]>) {
 function publishAutonomousNews(world: World, at: number, hostOverride = false) {
   const auto = world.autonomousNews;
   if (!auto || !auto.enabled || world.status !== "live") return [];
-  if (!hostOverride && world.remaining < NEWS_REACTION_SECONDS + 5) {
+  if (!hostOverride && world.remaining < newsPace(world.duration).reaction + 5) {
     restoreBrainSettings(world, at);
     auto.enabled = false; auto.nextAt = 0; auto.nextIndices = [];
     auto.nextReason = "Leaving the closing seconds for final trades rather than starting an unfinished news reaction.";
@@ -390,7 +391,7 @@ function pushHeadlines(world: World, presetIndices: number[], at = Date.now()) {
     stock.newsBiasClock = stock.newsBias ? { elapsed: 0, duration: Math.max(1, Math.ceil(Math.log(NEWS_IMPACT_FADE_THRESHOLD / Math.abs(stock.newsBias)) / Math.log(NEWS_IMPACT_DECAY))) } : undefined;
     if (impact) {
       const target = clamp(stock.price * (1 + impact), stock.previousClose * .68, stock.previousClose * 1.32);
-      stock.newsMoves = [{ logReturn: Math.log(target / stock.price), elapsed: 0, duration: NEWS_REACTION_SECONDS }];
+      stock.newsMoves = [{ logReturn: Math.log(target / stock.price), elapsed: 0, duration: Math.round(newsPace(world.duration).reaction) }];
     }
   }
   world.controls.activeNews = Math.max(world.controls.activeNews ?? 0, ...published.map(item => item.range.high));

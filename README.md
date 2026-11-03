@@ -7,7 +7,7 @@ Dalaal Street is a browser-based market game for synchronized events and classro
 - Each participant gets a device session and starts with ₹10,00,000 of simulated cash.
 - There are exactly 10 live terminals. Enter the assigned two-digit terminal code at `/play`, or open its direct URL from `/play/01` to `/play/10`; each code maps to that terminal's player session.
 - Players can buy shares, sell shares they own, or open short positions. A **Sell all** button beside the order button sells the selected company’s entire owned quantity. It is disabled until shares are owned and leaves other companies and short positions untouched. Prices move as the market simulation, news events, and participant trades update the shared market.
-- A host can start, pause, and end a timed batch; set the next batch to 4–15 minutes; adjust market behavior; publish or schedule bulletins; and review participant sessions.
+- A host can start, pause, and end a timed batch; set the next batch to 1–15 minutes; adjust market behavior; publish or schedule bulletins; and review participant sessions.
 - The market lists 25 companies. The curated news library has 61 fictional bulletins: 12 economy stories, 3 for each of the 8 sectors, and one company story for each of the 25 companies. Hosts can select any mix of categories in Quick Access or News Studio, review the combined stock-by-stock estimate, and expand a headline for its individual effect before publishing.
 - A new batch reset restores the market's starting stock prices as well as clearing its terminal sessions and published headlines.
 - Host presence uses each device's last-seen heartbeat. A new batch resets participant portfolios without marking previously offline terminals as connected.
@@ -191,8 +191,10 @@ Trading and audience dashboards show the latest published set only, with the ful
   - "Can you beat the market?", word by word.
   - The stakes: ₹10,00,000 counting up, 25 companies and the round length.
   - Three steps that take turns lighting up: sit at any terminal, watch the news, buy, sell or short.
-  - A looping "how it works" example (labelled as an example; these stories never enter the game): a breaking story lands, an arrow drops and a real company's price counts up or down in answer.
-  - Last round's winner as a dare ("Can you beat it?").
+  - A looping "how it works" example (labelled as an example; these stories never enter the game): a breaking story lands, an arrow drops, a real company's price counts up or down in answer, and the payoff of a 50-share trade made on the news counts up. A bar shows the example's progress.
+  - "Finish top three and your terminal goes up on this screen."
+  - Ambient motion: an underline that draws itself under "the market?" every ten seconds, company logos filing past inside the "25 companies" card, and faint live price chips drifting up behind the example.
+  - Last round's winner as a dare: "turned ₹10,00,000 into …", the gain in minutes, and "Can you beat it?".
   - A candle chart drawing itself behind, and a running price tape.
 
   Host → Animations → *Between-round invitation* turns it off.
@@ -218,7 +220,7 @@ Trading and audience dashboards show the latest published set only, with the ful
 - **News brain timing:** every set lands 35–50 game seconds after the last publish (brain or host; the start for the first set; pauses do not count), and at least four sets go out in a 4-minute round. Sets carry two or three stories. Regression: `node scripts/brain-window-check.cjs`.
 - **Prices** move in ₹0.05 steps, the tick size of the Indian exchanges; an exact price moves underneath so small moves on cheaper stocks still add up. Regression: `node scripts/price-tick-check.cjs`.
 - **Slow connections:** price history is stored packed (about 45% smaller), a poll that changes nothing is answered from a 0.7-second server cache instead of a full database read, and the clocks count down locally between updates. Regression: `node scripts/store-format-check.cjs`.
-- Live batches default to **5 minutes** (changeable in host Settings, 4–15 minutes) and open with a **5-second countdown** on the audience stage; practice rounds keep 6 minutes and a 3-second countdown.
+- Live batches default to **5 minutes** (changeable in host Settings, 1–15 minutes; batches under 4 minutes compress the news brain's clock, with sets at least 15 s apart, so even a 1-minute batch gets two sets and a 2-minute batch three; the terminals' close-out warning starts in the last quarter of a short batch) and open with a **5-second countdown** on the audience stage; practice rounds keep 6 minutes and a 3-second countdown.
 - Bots were retuned so news explains most of a stock's move: trend-following, random noise and the bots' amplification of news are all smaller. Without news, a stock now drifts at most about 6% in 5 minutes (previously about 10%).
 - When a hosted batch ends, each terminal shows its report for **30 seconds** (with a countdown under the button), then returns to the ready state by itself — at once if the host resets the market or starts the next batch sooner; **Return to ready state** (or the Space bar) still works at once. The chart switches back to **Line** at every new batch and every return to the ready state. Practice rounds are unchanged.
 - When the clock shows one minute left, players who still hold shares or shorts see a warning that these will be sold or covered automatically at the closing price; the Portfolio tab says so too. Automatic close-outs still count as trades in the report, and **Toughest closed trade** only ever shows a losing trade.

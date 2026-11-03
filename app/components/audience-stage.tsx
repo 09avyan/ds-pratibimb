@@ -191,12 +191,13 @@ function useCountUp(target: number, still: boolean, ms = 1600) {
   return value;
 }
 
-/** A story breaks, then a company's price answers it: the whole game in six seconds, on a loop. */
+/** A story breaks, a company's price answers it, and a trade made on the news pays: the whole game in
+    eight seconds, on a loop. The trade uses the terminals' default order of 50 shares. */
 function InviteDemo({ stocks, still }: { stocks: Stock[]; still: boolean }) {
   const [turn, setTurn] = useState(0);
   useEffect(() => {
     if (still) return;
-    const timer = window.setInterval(() => setTurn(n => n + 1), 6500);
+    const timer = window.setInterval(() => setTurn(n => n + 1), 8000);
     return () => window.clearInterval(timer);
   }, [still]);
   const example = DEMO[turn % DEMO.length];
@@ -224,7 +225,8 @@ function InviteDemo({ stocks, still }: { stocks: Stock[]; still: boolean }) {
       <em>{up ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</em>
       <svg viewBox="0 0 160 64" aria-hidden="true"><path d={up ? DEMO_UP : DEMO_DOWN} pathLength={1}/></svg>
     </article>
-    <p className="invite-demo-moral">{up ? "Good news? Buy before the price climbs." : "Bad news? Sell, or short it and gain as it falls."}</p>
+    <p className="invite-demo-payoff"><small>{up ? "Bought" : "Shorted"} 50 shares when the news broke</small><b>+{money(50 * stock.price * Math.abs(move) / 100, 0)}</b></p>
+    <i className="invite-demo-progress" aria-hidden="true"/>
   </div>;
 }
 
@@ -236,12 +238,13 @@ function InviteScene({ world, still }: { world: PublicWorld | null; still: boole
   const tape = [...stocks, ...stocks];
   return <section className="invite" aria-label="Play Dalaal Street">
     <CandleChart className="invite-chart"/>
+    <div className="invite-float" aria-hidden="true">{stocks.slice(0, 10).map((stock, i) => { const move = changePct(stock); return <span key={stock.symbol} className={move >= 0 ? "up" : "down"} style={{ "--x": `${50 + (i * 37) % 46}%`, "--d": `${-i * 1.7}s`, "--t": `${15 + (i % 4) * 2}s` } as React.CSSProperties}>{shortName(stock.symbol)} {move >= 0 ? "▲" : "▼"}{Math.abs(move).toFixed(1)}%</span>; })}</div>
     <div className="invite-pitch">
       <p className="invite-kicker"><i aria-hidden="true"/>Live at Pratibimb · free to play · no experience needed</p>
-      <h2>{"Can you beat".split(" ").map((word, i) => <span key={i} style={{ "--w": i } as React.CSSProperties}>{word}</span>)}<br/>{"the market?".split(" ").map((word, i) => <span key={i} className="is-accent" style={{ "--w": i + 3 } as React.CSSProperties}>{word}</span>)}</h2>
+      <h2>{"Can you beat".split(" ").map((word, i) => <span key={i} className="w" style={{ "--w": i } as React.CSSProperties}>{word}</span>)}<br/><span className="invite-accent-line">{"the market?".split(" ").map((word, i) => <span key={i} className="w is-accent" style={{ "--w": i + 3 } as React.CSSProperties}>{word}</span>)}<svg viewBox="0 0 400 24" preserveAspectRatio="none" aria-hidden="true"><path d="M4 16 C 90 6, 200 4, 300 9 S 380 18, 396 12" pathLength={1}/></svg></span></h2>
       <div className="invite-stakes">
         <p><b>{money(purse, 0)}</b><small>to invest</small></p>
-        <p><b>25</b><small>companies</small></p>
+        <p className="has-logos"><b>25</b><small>companies</small><span className="invite-logos" aria-hidden="true"><span>{[...stocks, ...stocks].map((stock, i) => <Logo key={i} stock={stock} compact/>)}</span></span></p>
         <p><b>{minutes} min</b><small>of breaking news</small></p>
       </div>
       <ol className="invite-steps">
@@ -249,12 +252,15 @@ function InviteScene({ world, still }: { world: PublicWorld | null; still: boole
         <li><b>2</b><span>Watch the news</span></li>
         <li><b>3</b><span>Buy, sell or short</span></li>
       </ol>
-      <p className="invite-cta"><i aria-hidden="true"/>{world?.status === "closed" ? "Next round starts soon: take any free terminal" : "Take any free terminal: trading opens at the bell"}</p>
+      <div className="invite-call">
+        <p className="invite-cta"><i aria-hidden="true"/>{world?.status === "closed" ? "Next round starts soon: take any free terminal" : "Take any free terminal: trading opens at the bell"}</p>
+        <p className="invite-glory"><svg viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>Finish top three and your terminal goes up on this screen</p>
+      </div>
     </div>
     <aside className="invite-proof">
       {leader && <div className="invite-winner">
         <svg className="invite-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>
-        <span><small>Last round · Terminal {pad2(leader.terminalNumber)}</small><b className={leader.pnl >= 0 ? "up" : "down"}>{signedMoney(leader.pnl)}</b></span>
+        <span><small>Last round · Terminal {pad2(leader.terminalNumber)} turned ₹10,00,000 into {money(leader.totalValue, 0)}</small><b className={leader.pnl >= 0 ? "up" : "down"}>{signedMoney(leader.pnl)} <i>in {minutes} minutes</i></b></span>
         <em>Can you beat it?</em>
       </div>}
       <InviteDemo stocks={stocks} still={still}/>
