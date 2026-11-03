@@ -3,6 +3,7 @@ import { chooseAutonomousNewsPlan, newAutonomousNewsState, readAutonomousNewsSig
 import { NEWS_REACTION_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS, NEWS_AUTO_MAX_INTERVAL_SECONDS, NEWS_IMPACT_DECAY, NEWS_IMPACT_FADE_THRESHOLD, NEWS_IMPACT_DRIFT_NORMALIZER } from "./news-timing";
 export { NEWS_REACTION_SECONDS, NEWS_EFFECT_MIN_SECONDS, NEWS_EFFECT_MAX_SECONDS } from "./news-timing";
 import { recordGameLog, recentOrderDifficulty } from "./logs";
+import { ANIMATION_KEYS } from "./animations";
 import { validateNewsSelection } from "./news-rules";
 import type { Mode, News, Player, PublicLeaderboardEntry, PublicWorld, Trade, World } from "./types";
 import { TERMINAL_ACTIVE_WINDOW_MS, TERMINAL_COUNT } from "./terminals";
@@ -842,6 +843,11 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (typeof payload.newsEnabled === "boolean") c.newsEnabled = payload.newsEnabled;
     if (typeof payload.animateTrading === "boolean") c.animateTrading = payload.animateTrading;
     if (typeof payload.animateAudience === "boolean") c.animateAudience = payload.animateAudience;
+    if (payload.animations && typeof payload.animations === "object") {
+      const next = { ...(c.animations ?? {}) };
+      for (const [key, value] of Object.entries(payload.animations as Record<string, unknown>)) if (ANIMATION_KEYS.has(key) && typeof value === "boolean") next[key] = value;
+      c.animations = next;
+    }
     if (typeof payload.majorAuto === "number") c.majorAuto = clamp(payload.majorAuto, 0, 20);
     if (typeof payload.minorAuto === "number") c.minorAuto = clamp(payload.minorAuto, 0, 20);
     if (typeof payload.newsSpacing === "number") c.newsSpacing = clamp(payload.newsSpacing, NEWS_BASE_INTERVAL_MIN_SECONDS, NEWS_BASE_INTERVAL_MAX_SECONDS);

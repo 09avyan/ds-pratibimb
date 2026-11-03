@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Mode, Player, PublicWorld, Stock, Trade } from "@/game/types";
 import { AudienceStage, Odometer } from "./audience-stage";
+import { animationOffClasses, animationOn } from "@/game/animations";
 import { announceTrade, TerminalMoments, TickPrice, TradeCelebration } from "./trading-motion";
 import { equity, performance, shortValue } from "@/game/engine";
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
@@ -294,9 +295,10 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   </div>;
   // The host can switch the terminal's animations off for every device.
   const motion = world?.controls.animateTrading !== false;
-  return <div className={`terminal${uiVariant ? ` ui-${uiVariant}` : ""}${motion ? " has-motion" : " no-motion"}`}>
+  const flags = world?.controls.animations;
+  return <div className={`terminal${uiVariant ? ` ui-${uiVariant}` : ""}${motion ? ` has-motion${animationOffClasses(flags)}` : " no-motion"}`}>
     {motion && <TerminalMoments world={world} theme={theme} variant={uiVariant ?? "default"}/>}
-    <TradeCelebration enabled={motion}/>
+    <TradeCelebration enabled={motion && animationOn(flags, "tradeBurst")}/>
     {preview && previewOption && <div className="ui-preview-strip"><a className="preview-back" href="/ui-preview">← Compare all</a><div className="preview-option-title"><b>VERSION {previewOption.number} · {previewOption.name}</b><small>{previewOption.tagline}</small></div><span className="preview-sandbox">ISOLATED PREVIEW MARKET · NO LIVE TRADES</span><nav className="preview-switcher" aria-label="Switch design preview">{UI_OPTIONS.map(option => <a key={option.slug} aria-current={option.slug === uiVariant ? "page" : undefined} href={`/ui-preview/${option.slug}/play/${String(terminal ?? 1).padStart(2, "0")}`}>V{option.number}</a>)}<a href={`/ui-preview/${uiVariant}/audience`}>Audience</a></nav></div>}
     <Header world={world} player={player} clockNow={clockNow} theme={theme} onTheme={() => setTheme(current => current === "light" ? "dark" : "light")} />
     <nav className="terminal-tabs" aria-label="Primary navigation">
