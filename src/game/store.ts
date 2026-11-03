@@ -82,7 +82,9 @@ async function mutateLocalTest<T>(update: (world: World) => T | Promise<T>, scop
   }
 }
 
-export async function mutate<T>(mode: Mode, update: (world: World) => T | Promise<T>, localOnly = false, readCacheMs = 0): Promise<{ world: World; result: T }> {
+/** `bestEffort` (polls): when another request is saving, skip this save instead of queueing and retrying;
+ *  the other request's state wins and this poll still answers with an up-to-date world. */
+export async function mutate<T>(mode: Mode, update: (world: World) => T | Promise<T>, localOnly = false, readCacheMs = 0, bestEffort = false): Promise<{ world: World; result: T }> {
   // Keep the isolated test market previewable with no Supabase setup during local development.
   // UI previews request this explicitly so they never touch the configured shared store.
   if (localOnly) {
@@ -99,12 +101,17 @@ export async function mutate<T>(mode: Mode, update: (world: World) => T | Promis
     const world = stored?.state ?? freshWorld(mode);
     const version = stored?.version ?? 0;
     const initialRevision = world.version;
+    // A poll that cannot save answers with the last saved state, never with prices that were not kept.
+    const before = bestEffort && stored ? structuredClone(stored.state) : null;
     const result = await update(world);
     // Unchanged reads need one database round trip at most, and none when the cache is fresh.
     if (stored && world.version === initialRevision) return { world, result };
-    const saved = await rpc<boolean>("save_game_state", { p_secret: secret(), p_mode: mode, p_expected_version: version, p_state: packWorld(world) });
+    let saved = false;
+    try { saved = await rpc<boolean>("save_game_state", { p_secret: secret(), p_mode: mode, p_expected_version: version, p_state: packWorld(world) }); }
+    catch (error) { if (!before) throw error; }
     if (saved) { remember(mode, version + 1, world); return { world, result }; }
-    await new Promise(resolve => setTimeout(resolve, Math.min(75, 10 + attempt * 5 + Math.random() * 15)));
+    if (before) return { world: before, result };
+    await new Promise(resolve => setTimeout(resolve, Math.min(400, 25 * 2 ** Math.min(attempt, 4) + Math.random() * 40)));
   }
   throw new Error("Market updates are busy. Please try once more.");
 }

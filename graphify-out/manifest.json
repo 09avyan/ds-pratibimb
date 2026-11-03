@@ -24,15 +24,15 @@
     "semantic_hash": ""
   },
   "app/api/auto/route.ts": {
-    "mtime": 1793602579.427854,
-    "seen": 1793635341.3269997,
-    "ast_hash": "ddf98d2a9007fa595d2e538cd67487b6",
+    "mtime": 1793686518.8843513,
+    "seen": 1793686674.830379,
+    "ast_hash": "5758e3540852a1b02a63ad46fd337136",
     "semantic_hash": ""
   },
   "app/api/game/route.ts": {
-    "mtime": 1793649742.3813195,
-    "seen": 1793650933.0440028,
-    "ast_hash": "7cd2b5f5c8fabaa209cb8ccbe953f5ca",
+    "mtime": 1793686509.2999933,
+    "seen": 1793686674.8303812,
+    "ast_hash": "f84fac68ee98286fd3e9b338f277e1db",
     "semantic_hash": ""
   },
   "app/api/host/login/route.ts": {
@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "app/api/host/route.ts": {
-    "mtime": 1793602579.4282532,
-    "seen": 1793635341.3270519,
-    "ast_hash": "974ae4f794dada58d0098ef7cf3ad8c8",
+    "mtime": 1793686518.883947,
+    "seen": 1793686674.830437,
+    "ast_hash": "d10e0f29b303bcf7005ea133af7546c8",
     "semantic_hash": ""
   },
   "app/audience/page.tsx": {
@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "src/game/engine.ts": {
-    "mtime": 1793684623.1474884,
-    "seen": 1793684633.7361565,
-    "ast_hash": "d13dbe96253fafb1b7e2e2fee0f4caf7",
+    "mtime": 1793686509.299321,
+    "seen": 1793686674.8313904,
+    "ast_hash": "5fc5ca27ee56424a711c469a1f3250ad",
     "semantic_hash": ""
   },
   "src/game/host-auth.ts": {
@@ -288,9 +288,9 @@
     "semantic_hash": ""
   },
   "src/game/logs.ts": {
-    "mtime": 1793602579.4430084,
-    "seen": 1793635341.3272018,
-    "ast_hash": "f4781d0ed23a994fa4533ab7484bf5d2",
+    "mtime": 1793686509.2978675,
+    "seen": 1793686674.8314319,
+    "ast_hash": "e95318e69c8fc0077233c1265f48afb7",
     "semantic_hash": ""
   },
   "src/game/news-rules.ts": {
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/game/store.ts": {
-    "mtime": 1793649760.0987983,
-    "seen": 1793650933.0455062,
-    "ast_hash": "4ec5c57abc409a22ca2aa2e52a18b88f",
+    "mtime": 1793686534.530147,
+    "seen": 1793686674.8314714,
+    "ast_hash": "0c1d3f6d120d591e887f4bb9a3d9b722",
     "semantic_hash": ""
   },
   "src/game/terminals.ts": {

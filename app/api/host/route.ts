@@ -53,7 +53,7 @@ function updateHostNotes(world: World, action: string, payload: Record<string, u
 }
 export async function GET(request: NextRequest) {
   if (!await isHost()) return NextResponse.json({ error: "Sign in to the Host Console." }, { status: 401 });
-  try { const { world } = await mutate("live", advance); return NextResponse.json(snapshot(world, request.nextUrl.searchParams.get("logs") === "1", request.nextUrl.searchParams.get("logsAfter")), { headers: { "Cache-Control": "no-store" } }); }
+  try { const { world } = await mutate("live", advance, false, 700, true); return NextResponse.json(snapshot(world, request.nextUrl.searchParams.get("logs") === "1", request.nextUrl.searchParams.get("logsAfter")), { headers: { "Cache-Control": "no-store" } }); }
   catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : "Market unavailable." }, { status: 503 }); }
 }
 export async function POST(request: NextRequest) {

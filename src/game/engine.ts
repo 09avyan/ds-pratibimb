@@ -733,6 +733,9 @@ export function hostAction(world: World, action: string, payload: Record<string,
         player.ended = true;
       }
     }
+    // Keep the saved game small: forget devices from two or more batches ago, and logs older than the last batch.
+    for (const [id, player] of Object.entries(world.sessions)) if (player.batch < world.batch - 1) delete world.sessions[id];
+    if (world.logs) world.logs = world.logs.filter(log => log.batch >= world.batch - 1);
     if (world.autonomousNews) clearSetControls(world.autonomousNews);
     if (world.autonomousNews?.enabled) {
       world.controls.newsEnabled = false;
