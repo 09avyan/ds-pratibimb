@@ -3,7 +3,7 @@ require.extensions['.ts']=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f
 const resolve=Module._resolveFilename;Module._resolveFilename=function(id,parent,...args){return resolve.call(this,id.startsWith('@/')?path.join(process.cwd(),'src',id.slice(2)):id,parent,...args);};
 const E=require('../src/game/engine.ts'),{recordGameLog,MAX_GAME_LOGS}=require('../src/game/logs.ts'),{chooseAutonomousNewsPlan}=require('../src/game/autonomous-news.ts');
 const now=Date.now(),world=E.freshWorld('live',now);E.hostAction(world,'start',{},now-10000);E.advance(world,now);
-const storePath=require.resolve('../src/game/store.ts');require.cache[storePath]={id:storePath,filename:storePath,loaded:true,exports:{mutate:async(mode,fn)=>({result:await fn(world),world})}};
+const storePath=require.resolve('../src/game/store.ts');require.cache[storePath]={id:storePath,filename:storePath,loaded:true,exports:{mutate:async(mode,fn)=>({result:await fn(world),world}),pollTickMs:()=>2000}};
 const authPath=require.resolve('../src/game/host-auth.ts');require.cache[authPath]={id:authPath,filename:authPath,loaded:true,exports:{isHost:async()=>true}};const hostRoute=require('../app/api/host/route.ts');
 const route=require('../app/api/game/route.ts'),{NextRequest}=require('next/server');
 const post=body=>route.POST(new NextRequest('http://localhost/api/game',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({mode:'test',terminal:1,sessionId:'logs-player-01',...body})}));
