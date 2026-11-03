@@ -15,19 +15,26 @@ import { animationOn } from "@/game/animations";
 export function TerminalMoments({ world, theme, variant }: { world: PublicWorld | null; theme: "light" | "dark"; variant: string }) {
   const [clock, setClock] = useState(() => Date.now());
   const [moment, setMoment] = useState<"open" | "close" | null>(null);
-  const last = useRef(world?.status);
   const status = world?.status;
   const counting = status === "countdown";
   useEffect(() => { if (!counting) return; const timer = window.setInterval(() => setClock(Date.now()), 200); return () => window.clearInterval(timer); }, [counting]);
+  // Each batch's opening and closing moment plays once, even if this screen missed the countdown or
+  // briefly saw an older answer.
+  const seen = useRef<{ opened: number; closed: number } | null>(null);
+  const [cue, setCue] = useState<{ kind: "open" | "close"; batch: number } | null>(null);
   useEffect(() => {
-    const before = last.current;
-    last.current = status;
-    const next = before === "countdown" && status === "live" ? "open" : before === "live" && status === "closed" ? "close" : null;
-    if (!next) return;
-    setMoment(next);
-    const timer = window.setTimeout(() => setMoment(null), next === "open" ? 2800 : 2600);
+    if (!world) return;
+    if (!seen.current) { seen.current = { opened: status === "live" || status === "closed" ? world.batch : 0, closed: status === "closed" ? world.batch : 0 }; return; }
+    const m = seen.current;
+    if (status === "live" && m.opened !== world.batch && Date.now() - world.startedAt < 8000) { m.opened = world.batch; setCue({ kind: "open", batch: world.batch }); }
+    if (status === "closed" && m.closed !== world.batch) { m.opened = world.batch; m.closed = world.batch; setCue({ kind: "close", batch: world.batch }); }
+  }, [status, world?.batch, world?.startedAt]);
+  useEffect(() => {
+    if (!cue) return;
+    setMoment(cue.kind);
+    const timer = window.setTimeout(() => setMoment(null), cue.kind === "open" ? 2800 : 2600);
     return () => window.clearTimeout(timer);
-  }, [status]);
+  }, [cue]);
   const remaining = useSmoothRemaining(world);
   if (!world) return null;
   const seconds = counting ? Math.max(0, Math.ceil((world.startedAt - clock) / 1000)) : 0;

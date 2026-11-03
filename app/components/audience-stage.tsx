@@ -561,21 +561,30 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const motion = world?.controls.animateAudience !== false;
   const flags = world?.controls.animations;
   const on = (key: string) => motion && animationOn(flags, key);
-  const lastStatus = useRef(world?.status);
+  // Opening and closing moments, keyed by batch so each plays once, even if the screen missed the
+  // countdown (a slow poll) or briefly saw an older answer.
+  const moments = useRef<{ opened: number; closed: number } | null>(null);
+  const [openKey, setOpenKey] = useState(0);
+  const [closeKey, setCloseKey] = useState(0);
   useEffect(() => {
-    const before = lastStatus.current;
-    lastStatus.current = world?.status;
-    if (before === "live" && world?.status === "closed") {
-      // The closing bell: shutters slam shut on the market, then part on the final standings.
-      setClosing(true);
-      const timer = window.setTimeout(() => setClosing(false), 2600);
-      return () => window.clearTimeout(timer);
-    }
-    if (before !== "countdown" || world?.status !== "live") return;
+    if (!world) return;
+    if (!moments.current) { moments.current = { opened: world.status === "live" || world.status === "closed" ? world.batch : 0, closed: world.status === "closed" ? world.batch : 0 }; return; }
+    const m = moments.current;
+    if (world.status === "live" && m.opened !== world.batch && Date.now() - world.startedAt < 8000) { m.opened = world.batch; setOpenKey(world.batch); }
+    if (world.status === "closed" && m.closed !== world.batch) { m.opened = world.batch; m.closed = world.batch; setCloseKey(world.batch); }
+  }, [world?.status, world?.batch, world?.startedAt]);
+  useEffect(() => {
+    if (!openKey) return;
     setOpening(true);
     const timer = window.setTimeout(() => setOpening(false), 2800);
     return () => window.clearTimeout(timer);
-  }, [world?.status]);
+  }, [openKey]);
+  useEffect(() => {
+    if (!closeKey) return;
+    setClosing(true);
+    const timer = window.setTimeout(() => setClosing(false), 2600);
+    return () => window.clearTimeout(timer);
+  }, [closeKey]);
 
   const visibleNews = latestNewsSet(world);
   const newsSetKey = `${world?.batch ?? 0}:${visibleNews.map(item => item.id).join(",")}`;

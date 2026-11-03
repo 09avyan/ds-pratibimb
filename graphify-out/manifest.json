@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793670393.9243686,
-    "seen": 1793672242.6827936,
-    "ast_hash": "95a6e597fdce26acb718d5a2ed36c177",
+    "mtime": 1793688523.9575713,
+    "seen": 1793688661.423003,
+    "ast_hash": "3c5d494b026502660e710490d8751d0d",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/components/trader.tsx": {
-    "mtime": 1793680372.9188626,
-    "seen": 1793680386.293049,
-    "ast_hash": "b206134ef98da56aefcbb7bd221f02c1",
+    "mtime": 1793688380.1000328,
+    "seen": 1793688661.4231455,
+    "ast_hash": "9a1e3cc82c24fc7f1bf2428542a15ca4",
     "semantic_hash": ""
   },
   "app/host/page.tsx": {
@@ -168,9 +168,9 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793679492.6338098,
-    "seen": 1793679680.309696,
-    "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
+    "mtime": 1793688496.969657,
+    "seen": 1793688661.4234233,
+    "ast_hash": "aa94238a90e7d04b7a47ecc3145ba6a0",
     "semantic_hash": ""
   },
   "next.config.ts": {
@@ -396,9 +396,9 @@
     "semantic_hash": ""
   },
   "app/components/trading-motion.tsx": {
-    "mtime": 1793664346.6979012,
-    "seen": 1793665217.7068903,
-    "ast_hash": "c3132bb1f8f5fbcf806e86f1fe385386",
+    "mtime": 1793688390.6149256,
+    "seen": 1793688661.4231472,
+    "ast_hash": "aae38552856213ccf71c79a5848cde2c",
     "semantic_hash": ""
   },
   "scripts/brain-window-check.cjs": {
