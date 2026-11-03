@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/components/trader.tsx": {
-    "mtime": 1793669937.0801594,
-    "seen": 1793672242.682892,
-    "ast_hash": "31b9ff29e03c21299cf74097ee1e300a",
+    "mtime": 1793679486.7929232,
+    "seen": 1793679492.553902,
+    "ast_hash": "905d595f9776e861c88c42786174709f",
     "semantic_hash": ""
   },
   "app/host/page.tsx": {
@@ -168,9 +168,9 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793672249.2080622,
-    "seen": 1793672505.463477,
-    "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
+    "mtime": 1793679403.9178047,
+    "seen": 1793679492.5541975,
+    "ast_hash": "aa94238a90e7d04b7a47ecc3145ba6a0",
     "semantic_hash": ""
   },
   "next.config.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793672239.2089112,
-    "seen": 1793672242.6839042,
-    "ast_hash": "3256019e804c36d96e4fce18fe6a0dee",
+    "mtime": 1793679486.8076422,
+    "seen": 1793679492.5548859,
+    "ast_hash": "d95f15675a37fa73f04b216a88a74369",
     "semantic_hash": ""
   },
   "app/icon.png": {
