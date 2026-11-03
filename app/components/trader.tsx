@@ -255,6 +255,14 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   }
   // Every new batch and every return to the ready state starts on the line chart.
   useEffect(() => { setChartType("Line"); }, [world?.batch, world?.status === "ready"]);
+  // If the host resets to ready or starts the next batch while a report is open, go back to the market at once.
+  const reportBatch = useRef<number | null>(null);
+  useEffect(() => {
+    if (view !== "report" || mode === "test" || !world) { reportBatch.current = null; return; }
+    if (reportBatch.current === null) reportBatch.current = world.batch;
+    if (world.batch !== reportBatch.current || world.status === "ready" || world.status === "countdown") returnToReady();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, mode, world?.batch, world?.status]);
   // After a hosted batch ends, the report stays up for 30 seconds, then the terminal returns to the ready state by itself.
   const [autoReady, setAutoReady] = useState<number | null>(null);
   const autoReadyOn = view === "report" && mode !== "test" && world?.status === "closed";
