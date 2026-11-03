@@ -713,7 +713,9 @@ export function executeTrade(world: World, player: Player, action: "Buy" | "Sell
 
 /** Polls move the market at most every 2 seconds (the candle length), so the shared row is written
  *  half as often; trades and host actions still advance immediately. */
-export function advanceForPoll(world: World, now = Date.now(), minMs = 2000) {
+export function advanceForPoll(world: World, now = Date.now(), slow = false) {
+  const chosen = Math.min(3, Math.max(1, Math.round(world.controls.priceSeconds ?? 2))) * 1000;
+  const minMs = slow ? Math.max(4000, chosen) : chosen;
   if (world.status === "live" && !world.controls.paused && now - world.lastTickAt < minMs) return;
   advance(world, now);
 }
@@ -860,6 +862,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     if (typeof payload.volatility === "number") c.volatility = clamp(payload.volatility, MIN_VOLATILITY, MAX_VOLATILITY);
     if (typeof payload.bots === "number") c.bots = clamp(payload.bots, 0, 100);
     if (payload.tickRate === .5 || payload.tickRate === 1) c.tickRate = payload.tickRate;
+    if (payload.priceSeconds === 1 || payload.priceSeconds === 2 || payload.priceSeconds === 3) c.priceSeconds = payload.priceSeconds;
     if (typeof payload.marketBias === "number") c.marketBias = clamp(payload.marketBias, 0, 100);
     if (typeof payload.newsEnabled === "boolean") c.newsEnabled = payload.newsEnabled;
     if (typeof payload.animateTrading === "boolean") c.animateTrading = payload.animateTrading;
@@ -911,7 +914,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     else if (payload.command === "end") participants.forEach(p => settle(world, p, at));
     else if (payload.command === "reset") participants.forEach(p => { world.sessions[p.id] = newPlayer(p.id, world.batch, at, p.included, p.terminalNumber); });
   }
-  const safePayload = Object.fromEntries(Object.entries(payload).filter(([key, value]) => ["volatility", "bots", "tickRate", "marketBias", "duration", "newsSpacing", "animateTrading", "animateAudience", "value", "command", "sector", "magnitude", "direction", "delay"].includes(key) && ["string", "number", "boolean"].includes(typeof value))) as Record<string, string | number | boolean>;
+  const safePayload = Object.fromEntries(Object.entries(payload).filter(([key, value]) => ["volatility", "bots", "tickRate", "priceSeconds", "marketBias", "duration", "newsSpacing", "animateTrading", "animateAudience", "value", "command", "sector", "magnitude", "direction", "delay"].includes(key) && ["string", "number", "boolean"].includes(typeof value))) as Record<string, string | number | boolean>;
   recordGameLog(world, { at, kind: ["start", "pause", "resume", "reset", "end"].includes(action) ? "batch" : action === "controls" ? "settings" : "host", message: `Host action: ${action}${Object.keys(safePayload).length ? ` · ${JSON.stringify(safePayload)}` : ""}`, data: { action, ...safePayload,
     ...(action === "start" ? { duration: world.duration, volatility: world.controls.volatility, bots: world.controls.bots } : {}),
     ...(Array.isArray(payload.indices) ? { newsIndices: payload.indices.map(Number).filter(Number.isInteger).join(",") } : {}),

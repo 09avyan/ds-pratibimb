@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { serverNow } from "./server-clock";
 import type { PublicLeaderboardEntry, PublicNews, PublicWorld, Stock } from "@/game/types";
 import { DalaalMark, DalaalWordmark, Logo } from "@/components/trader-parts";
 import { animationOffClasses, animationOn } from "@/game/animations";
@@ -546,13 +547,13 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const [sound, setSound] = useState(true);
   const [dismissedSet, setDismissedSet] = useState("");
   const [marketAfterClose, setMarketAfterClose] = useState(-1);
-  const [clock, setClock] = useState(() => Date.now());
+  const [clock, setClock] = useState(() => serverNow());
   const bells = useMarketSound(world, sound, world?.controls.animations?.countdownSound !== false);
   useEffect(() => { try { const saved = window.localStorage.getItem("ds-audience-sound"); if (saved === "off") setSound(false); } catch {} }, []);
   useEffect(() => { try { window.localStorage.setItem("ds-audience-sound", sound ? "on" : "off"); } catch {} }, [sound]);
   useEffect(() => { const done = () => setFullscreen(Boolean(document.fullscreenElement)); document.addEventListener("fullscreenchange", done); return () => document.removeEventListener("fullscreenchange", done); }, []);
   const counting = world?.status === "countdown";
-  useEffect(() => { if (!counting) return; const timer = window.setInterval(() => setClock(Date.now()), 200); return () => window.clearInterval(timer); }, [counting]);
+  useEffect(() => { if (!counting) return; const timer = window.setInterval(() => setClock(serverNow()), 200); return () => window.clearInterval(timer); }, [counting]);
   const indexTick = useTick(world?.index ?? 0);
   // The moment trading opens: a burst of light and "Market open".
   const [opening, setOpening] = useState(false);
@@ -570,7 +571,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     if (!world) return;
     if (!moments.current) { moments.current = { opened: world.status === "live" || world.status === "closed" ? world.batch : 0, closed: world.status === "closed" ? world.batch : 0 }; return; }
     const m = moments.current;
-    if (world.status === "live" && m.opened !== world.batch && Date.now() - world.startedAt < 8000) { m.opened = world.batch; setOpenKey(world.batch); }
+    if (world.status === "live" && m.opened !== world.batch && world.duration - world.remaining < 8) { m.opened = world.batch; setOpenKey(world.batch); }
     if (world.status === "closed" && m.closed !== world.batch) { m.opened = world.batch; m.closed = world.batch; setCloseKey(world.batch); }
   }, [world?.status, world?.batch, world?.startedAt]);
   useEffect(() => {

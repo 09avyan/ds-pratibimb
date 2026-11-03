@@ -118,8 +118,8 @@ async function mutateLocalTest<T>(update: (world: World) => T | Promise<T>, scop
    for a while, so the database recovers instead of falling further behind. */
 let slowUntil = 0;
 function noteSaveTime(ms: number) { if (ms > 600) slowUntil = Date.now() + 90_000; }
-/** Milliseconds between market ticks that a poll may write: 3 s normally, 6 s while the database is slow. */
-export const pollTickMs = () => Date.now() < slowUntil ? 6000 : 3000;
+/** True for 90 s after a slow save: polls then move prices at most every 4 s so the database recovers. */
+export const databaseSlow = () => Date.now() < slowUntil;
 export async function mutate<T>(mode: Mode, update: (world: World) => T | Promise<T>, localOnly = false, readCacheMs = 0, bestEffort = false): Promise<{ world: World; result: T }> {
   // Keep the isolated test market previewable with no Supabase setup during local development.
   // UI previews request this explicitly so they never touch the configured shared store.
