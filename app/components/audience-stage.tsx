@@ -167,32 +167,128 @@ function disperse(board: HTMLElement, moved: { row: HTMLElement; from: number; f
 const PLACE = ["1st", "2nd", "3rd"];
 
 /** Before and between rounds: the wall sells the game to everyone walking past. */
-function InviteScene({ world }: { world: PublicWorld | null }) {
+/* ---------- Before and between rounds: the invitation ---------- */
+
+// Example stories for the "how it works" demo. They are labelled as examples and never enter the game.
+const DEMO = [
+  { sector: "Auto", headline: (name: string) => `${name} wins a big export order`, move: 3.8 },
+  { sector: "Technology", headline: (name: string) => `${name} profits fall short of forecasts`, move: -2.6 },
+  { sector: "Banking", headline: (name: string) => `${name} sees loan demand jump`, move: 2.9 },
+];
+const DEMO_UP = "M4 52 C 30 50, 44 46, 60 44 S 90 40, 104 30 S 136 10, 156 8";
+const DEMO_DOWN = "M4 14 C 30 16, 44 20, 60 22 S 90 30, 104 38 S 136 54, 156 56";
+
+/** Counts a figure up from zero once, easing out (or shows it at once when motion is off). */
+function useCountUp(target: number, still: boolean, ms = 1600) {
+  const [value, setValue] = useState(still ? target : 0);
+  useEffect(() => {
+    if (still) { setValue(target); return; }
+    let raf = 0; const start = performance.now() + 500;
+    const step = (now: number) => { const p = Math.min(1, Math.max(0, (now - start) / ms)); setValue(target * (1 - (1 - p) ** 3)); if (p < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, still, ms]);
+  return value;
+}
+
+/** A story breaks, then a company's price answers it: the whole game in six seconds, on a loop. */
+function InviteDemo({ stocks, still }: { stocks: Stock[]; still: boolean }) {
+  const [turn, setTurn] = useState(0);
+  useEffect(() => {
+    if (still) return;
+    const timer = window.setInterval(() => setTurn(n => n + 1), 6500);
+    return () => window.clearInterval(timer);
+  }, [still]);
+  const example = DEMO[turn % DEMO.length];
+  const stock = stocks.find(item => item.sector === example.sector) ?? stocks[turn % Math.max(1, stocks.length)];
+  const [shown, setShown] = useState(still ? 1 : 0);
+  useEffect(() => {
+    if (still) { setShown(1); return; }
+    setShown(0);
+    let raf = 0; const start = performance.now() + 1700;
+    const step = (now: number) => { const p = Math.min(1, Math.max(0, (now - start) / 1400)); setShown(1 - (1 - p) ** 3); if (p < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [turn, still]);
+  if (!stock) return null;
+  const name = shortName(stock.symbol);
+  const up = example.move >= 0;
+  const move = example.move * shown;
+  return <div className={`invite-demo ${up ? "up" : "down"}`} key={turn}>
+    <small className="invite-demo-label">How it works <em>· example</em></small>
+    <article className="invite-demo-news"><span className="stage-tag major">Breaking</span><p>{example.headline(name)}</p></article>
+    <span className="invite-demo-arrow" aria-hidden="true"><i/></span>
+    <article className="invite-demo-tile">
+      <div className="invite-demo-name"><Logo stock={stock} compact/><strong>{name}</strong></div>
+      <b>{money(stock.price * (1 + move / 100), 2)}</b>
+      <em>{up ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</em>
+      <svg viewBox="0 0 160 64" aria-hidden="true"><path d={up ? DEMO_UP : DEMO_DOWN} pathLength={1}/></svg>
+    </article>
+    <p className="invite-demo-moral">{up ? "Good news? Buy before the price climbs." : "Bad news? Sell, or short it and gain as it falls."}</p>
+  </div>;
+}
+
+function InviteScene({ world, still }: { world: PublicWorld | null; still: boolean }) {
   const stocks = world?.stocks ?? [];
   const minutes = Math.max(1, Math.round((world?.duration ?? 300) / 60));
   const leader = world?.status === "closed" ? world.leaderboard[0] : undefined;
-  const movers = [...stocks].sort((a, b) => Math.abs(changePct(b)) - Math.abs(changePct(a))).slice(0, 4);
+  const purse = useCountUp(1_000_000, still);
   const tape = [...stocks, ...stocks];
   return <section className="invite" aria-label="Play Dalaal Street">
+    <CandleChart className="invite-chart"/>
     <div className="invite-pitch">
-      <h2><span>Can you beat</span><span>the market?</span></h2>
-      <p className="invite-lede">Start with ₹10,00,000. Trade 25 companies for {minutes} minutes while the news breaks. The biggest portfolio wins.</p>
-      <p className="invite-steps"><b>Pick a terminal.</b><b>Read the news.</b><b>Beat the room.</b></p>
-      <p className="invite-cta"><i aria-hidden="true"/>{world?.status === "closed" ? "Next round starts soon: take any free terminal" : "Take any terminal: trading opens at the bell"}</p>
+      <p className="invite-kicker"><i aria-hidden="true"/>Live at Pratibimb · free to play · no experience needed</p>
+      <h2>{"Can you beat".split(" ").map((word, i) => <span key={i} style={{ "--w": i } as React.CSSProperties}>{word}</span>)}<br/>{"the market?".split(" ").map((word, i) => <span key={i} className="is-accent" style={{ "--w": i + 3 } as React.CSSProperties}>{word}</span>)}</h2>
+      <div className="invite-stakes">
+        <p><b>{money(purse, 0)}</b><small>to invest</small></p>
+        <p><b>25</b><small>companies</small></p>
+        <p><b>{minutes} min</b><small>of breaking news</small></p>
+      </div>
+      <ol className="invite-steps">
+        <li><b>1</b><span>Sit at any terminal</span></li>
+        <li><b>2</b><span>Watch the news</span></li>
+        <li><b>3</b><span>Buy, sell or short</span></li>
+      </ol>
+      <p className="invite-cta"><i aria-hidden="true"/>{world?.status === "closed" ? "Next round starts soon: take any free terminal" : "Take any free terminal: trading opens at the bell"}</p>
     </div>
     <aside className="invite-proof">
-      {leader ? <div className="invite-winner">
+      {leader && <div className="invite-winner">
         <svg className="invite-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>
-        <small>Last round's winner</small>
-        <strong>Terminal {pad2(leader.terminalNumber)}</strong>
-        <b className={leader.pnl >= 0 ? "up" : "down"}>{signedMoney(leader.pnl)}</b>
-        <span>in {minutes} minutes · {signedPct(leader.returnPct)}</span>
-      </div> : <div className="invite-movers">
-        <small>Moving right now</small>
-        {movers.map(stock => { const move = changePct(stock); return <div key={stock.symbol} className={move >= 0 ? "up" : "down"}><Logo stock={stock} compact/><strong>{shortName(stock.symbol)}</strong><span>{money(stock.price, 2)}</span><b>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</b></div>; })}
+        <span><small>Last round · Terminal {pad2(leader.terminalNumber)}</small><b className={leader.pnl >= 0 ? "up" : "down"}>{signedMoney(leader.pnl)}</b></span>
+        <em>Can you beat it?</em>
       </div>}
+      <InviteDemo stocks={stocks} still={still}/>
     </aside>
     <div className="invite-tape" aria-hidden="true"><div>{tape.map((stock, i) => { const move = changePct(stock); return <span key={i} className={move >= 0 ? "up" : "down"}><b>{shortName(stock.symbol)}</b>{money(stock.price, 2)}<i>{move >= 0 ? "▲" : "▼"} {Math.abs(move).toFixed(2)}%</i></span>; })}</div></div>
+  </section>;
+}
+
+/* ---------- After the bell: the batch report beside the final standings ---------- */
+
+function BatchReport({ world }: { world: PublicWorld | null }) {
+  if (!world) return null;
+  const sorted = [...world.stocks].sort((a, b) => changePct(b) - changePct(a));
+  const best = sorted[0], worst = sorted[sorted.length - 1];
+  const entries = world.leaderboard;
+  const beat = entries.filter(entry => entry.returnPct > world.indexChange).length;
+  const average = entries.length ? entries.reduce((sum, entry) => sum + entry.returnPct, 0) / entries.length : 0;
+  const stories = world.headlines.filter(item => item.createdAt >= world.startedAt).length;
+  const leader = entries[0];
+  const index = world.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const stockRow = (stock: Stock | undefined, label: string) => stock && <div className={`report-stock ${changePct(stock) >= 0 ? "up" : "down"}`}>
+    <small>{label}</small><Logo stock={stock} compact/><strong>{shortName(stock.symbol)}</strong><b>{signedPct(changePct(stock))}</b>
+  </div>;
+  return <section className="stage-report" aria-label={`Batch ${pad2(world.batch)} report`}>
+    <header><h2>Batch report</h2><span>Batch {pad2(world.batch)}</span></header>
+    <div className="report-index"><small>Dalaal-10 closed at</small><strong>{index}</strong><b className={world.indexChange >= 0 ? "up" : "down"}>{world.indexChange >= 0 ? "▲" : "▼"} {Math.abs(world.indexChange).toFixed(2)}%</b></div>
+    {stockRow(best, "Best stock")}
+    {stockRow(worst, "Worst stock")}
+    <div className="report-stats">
+      {leader && <p><b className={leader.returnPct >= 0 ? "up" : "down"}>{signedPct(leader.returnPct)}</b><small>winner's return</small></p>}
+      <p><b className={average >= 0 ? "up" : "down"}>{signedPct(average)}</b><small>room average</small></p>
+      <p><b>{beat}<i>/{entries.length}</i></b><small>beat the Dalaal-10</small></p>
+      <p><b>{stories}</b><small>stories broke</small></p>
+    </div>
   </section>;
 }
 
@@ -322,6 +418,20 @@ const CANDLES = Array.from({ length: 28 }, (_, i) => {
 });
 const CANDLE_LINE = smoothPath(CANDLES.map((candle, i) => ({ x: 18 + i * 35, y: 300 - candle.close * 3.4 })));
 const CONFETTI = Array.from({ length: 140 }, (_, i) => ({ x: (i * 37.7) % 100, delay: (i % 14) * .13, drift: ((i * 53) % 40) - 20, spin: 280 + (i * 71) % 720, size: 14 + (i * 13) % 16, tone: i % 3 }));
+
+/** The rising candle chart drawn behind the countdown and the invitation. */
+function CandleChart({ className }: { className: string }) {
+  return <svg className={className} aria-hidden="true" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMax slice">
+        {CANDLES.map((candle, i) => {
+          const x = 18 + i * 35, top = 300 - Math.max(candle.open, candle.close) * 3.4, bottom = 300 - Math.min(candle.open, candle.close) * 3.4;
+          return <g key={i} className={candle.close >= candle.open ? "cd-candle up" : "cd-candle down"} style={{ "--d": `${i * 120}ms` } as React.CSSProperties}>
+            <line x1={x} x2={x} y1={300 - candle.high * 3.4} y2={300 - candle.low * 3.4}/>
+            <rect x={x - 9} y={top} width="18" height={Math.max(4, bottom - top)} rx="2"/>
+          </g>;
+        })}
+        <path className="cd-line" d={CANDLE_LINE} pathLength={1}/>
+      </svg>;
+}
 
 /*
   The particle field behind the countdown. Glowing points swirl round the dial and gather into each
@@ -531,16 +641,7 @@ export function CountdownScene({ seconds, variant, light }: { seconds: number; v
   }, [seconds]);
   return <div className={`stage-countdown${seconds === 0 ? " is-go" : ""}`} role="status" aria-live="assertive">
     <div className="cd-scene" aria-hidden="true" ref={scene}>
-      <svg className="cd-chart" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMax slice">
-        {CANDLES.map((candle, i) => {
-          const x = 18 + i * 35, top = 300 - Math.max(candle.open, candle.close) * 3.4, bottom = 300 - Math.min(candle.open, candle.close) * 3.4;
-          return <g key={i} className={candle.close >= candle.open ? "cd-candle up" : "cd-candle down"} style={{ "--d": `${i * 120}ms` } as React.CSSProperties}>
-            <line x1={x} x2={x} y1={300 - candle.high * 3.4} y2={300 - candle.low * 3.4}/>
-            <rect x={x - 9} y={top} width="18" height={Math.max(4, bottom - top)} rx="2"/>
-          </g>;
-        })}
-        <path className="cd-line" d={CANDLE_LINE} pathLength={1}/>
-      </svg>
+      <CandleChart className="cd-chart"/>
       {variant === "orbit" && <div className="cd-motif cd-orbit"><i/><i/><i/></div>}
       {variant === "gallery" && <div className="cd-motif cd-waves"><i/><i/><i/></div>}
       {variant === "broadcast" && <div className="cd-motif cd-scan"><i/></div>}
@@ -703,7 +804,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
       </div>
     </header>
 
-    {invite ? <div className="stage-body is-invite"><InviteScene world={world}/></div> : <div className="stage-body">
+    {invite ? <div className="stage-body is-invite"><InviteScene world={world} still={!motion}/></div> : <div className="stage-body">
       {!final && <section className="stage-grid" aria-label="All 25 companies">{ordered.map((stock, index) => <StockTile key={stock.symbol} stock={stock} index={index} news={newsGlow.has(stock.symbol)} variant={variant}/>)}</section>}
       {!final && <section className={`stage-news${showNews ? "" : " is-empty"}`} aria-label="Latest news">
         <header><span className="stage-kicker"><i className="stage-live-dot" aria-hidden="true"/>{showNews ? "Latest news" : "News"}</span>{showNews && <button type="button" className="stage-close" aria-label="Hide latest news" onClick={() => setDismissedSet(newsSetKey)}>×</button>}</header>
@@ -713,6 +814,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
         </article>)}</div> : <p className="stage-news-wait">{status === "live" ? "The next headlines are on their way." : "Headlines appear here once trading starts."}</p>}
       </section>}
       <Leaderboard world={world} final={final} onShowMarket={() => setMarketAfterClose(world?.batch ?? 0)}/>
+      {final && <BatchReport world={world}/>}
     </div>}
 
     {finale && <div className="stage-finale" role="status" aria-live="polite">
