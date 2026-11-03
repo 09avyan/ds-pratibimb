@@ -862,6 +862,9 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .v-conservatory .lb-medal { margin: calc(12 * var(--u)) 0 calc(16 * var(--u)); box-shadow: 0 0 0 calc(5 * var(--u)) #141414, 0 0 0 calc(6 * var(--u)) #2b2b2b, 0 0 0 calc(9 * var(--u)) #141414, 0 0 0 calc(10 * var(--u)) #2b2b2b, 0 0 0 calc(13 * var(--u)) #141414; }
 .v-conservatory .lb-step .stage-crown { margin-bottom: calc(2 * var(--u)); }
 .stage.is-final.v-conservatory .lb-medal { margin: calc(6 * var(--u)) 0 calc(12 * var(--u)); }
+.stage.is-final.v-conservatory .place-1 .lb-plinth { height: calc(64 * var(--u)); }
+.stage.is-final.v-conservatory .place-2 .lb-plinth { height: calc(44 * var(--u)); }
+.stage.is-final.v-conservatory .place-3 .lb-plinth { height: calc(30 * var(--u)); }
 .stage:not(.stage-light).v-conservatory .lb-rays { top: calc(-6 * var(--u)); width: calc(230 * var(--u)); height: calc(230 * var(--u)); margin-left: calc(-115 * var(--u)); opacity: .7;
   background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, .14) 8%, transparent 16%, transparent 50%, rgba(255, 255, 255, .1) 58%, transparent 66%), radial-gradient(circle, transparent 0 18%, #151515 18.5% 69%, transparent 69.5%), repeating-radial-gradient(circle, #1b1b1b 0 calc(2 * var(--u)), #262626 calc(2 * var(--u)) calc(4 * var(--u)));
   -webkit-mask: radial-gradient(circle, #000 69%, transparent 70%); mask: radial-gradient(circle, #000 69%, transparent 70%); animation-duration: 8s; }
