@@ -195,7 +195,7 @@ Trading and audience dashboards show the latest published set only, with the ful
 - **Slow connections:** price history is stored packed (about 45% smaller), a poll that changes nothing is answered from a 0.7-second server cache instead of a full database read, and the clocks count down locally between updates. Regression: `node scripts/store-format-check.cjs`.
 - Live batches default to **5 minutes** (changeable in host Settings, 4–15 minutes) and open with a **5-second countdown** on the audience stage; practice rounds keep 6 minutes and a 3-second countdown.
 - Bots were retuned so news explains most of a stock's move: trend-following, random noise and the bots' amplification of news are all smaller. Without news, a stock now drifts at most about 6% in 5 minutes (previously about 10%).
-- When a hosted batch ends, each terminal shows its report for **30 seconds** (with a countdown under the button), then returns to the ready state by itself; **Return to ready state** still works at once. Practice rounds are unchanged.
+- When a hosted batch ends, each terminal shows its report for **30 seconds** (with a countdown under the button), then returns to the ready state by itself; **Return to ready state** still works at once. The chart switches back to **Line** at every new batch and every return to the ready state. Practice rounds are unchanged.
 - When the clock shows one minute left, players who still hold shares or shorts see a warning that these will be sold or covered automatically at the closing price; the Portfolio tab says so too. Automatic close-outs still count as trades in the report, and **Toughest closed trade** only ever shows a losing trade.
 
 ### Bells and countdown sound
