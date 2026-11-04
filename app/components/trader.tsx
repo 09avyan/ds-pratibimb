@@ -260,7 +260,8 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   }, [audienceOnly, world?.mode, world?.status, player?.ended]);
 
   function returnToReady() {
-    setChartType("Line");
+    // The next player starts from a clean view: every sector, no search, a line chart.
+    setChartType("Line"); setSector("All sectors"); setQuery("");
     const next = crypto.randomUUID(); localStorage.setItem(sessionStorageKey(mode, terminal, preview), next);
     setSessionId(next); setView("markets"); setToast(isTest ? "You’re ready to rejoin this practice round." : "You’re ready for the next batch.");
   }
