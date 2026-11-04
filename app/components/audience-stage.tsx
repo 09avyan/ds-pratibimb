@@ -765,7 +765,7 @@ export function CountdownScene({ seconds, variant, light }: { seconds: number; v
     {seconds === 0 && <i className="cd-flash" aria-hidden="true"/>}
     <div className="cd-dial">
       <svg className="cd-ring" viewBox="0 0 100 100" key={`r${seconds}`} aria-hidden="true"><circle className="cd-ring-track" cx="50" cy="50" r="46"/><circle className="cd-ring-sweep" cx="50" cy="50" r="46" pathLength={1}/></svg>
-      <strong key={seconds}>{seconds > 0 ? seconds : "Go"}</strong>
+      {seconds > 0 && <strong key={seconds}>{seconds}</strong>}
     </div>
   </div>;
 }

@@ -1239,7 +1239,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-tile.is-news { animation: none !important; box-shadow: inset 0 0 0 calc(3 * var(--u)) var(--accent) !important; }
 .stage-tile.is-news::after { display: none !important; }
 .stage.is-last-ten::after { box-shadow: inset 0 0 0 calc(10 * var(--u)) var(--down) !important; }
-.cd-particles, .cd-flash, .cd-pulse, .cd-motif, .cd-scene::before { display: none !important; }
+.cd-flash, .cd-pulse, .cd-motif, .cd-scene::before { display: none !important; }
 .cd-dial strong, .stage-light .cd-dial strong, .stage-countdown.is-go .cd-dial strong, .v-conservatory .cd-dial strong { text-shadow: none !important; }
 .v-default .stage-tile, .stage-light.v-default .stage-tile, .v-orbit .stage-tile { background: var(--surface) !important; }
 .v-orbit .stage-tile[data-tick] .stage-tile-price strong { animation: none !important; }
@@ -1280,7 +1280,5 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
   .ed-figure { font-size: 14vw; }
   .stage-index { padding-right: 16px; }
 }
-/* The countdown numbers are set as type (the particle field that used to draw them is gone). */
-.stage-countdown:not(.is-plain) .cd-dial strong { position: relative; width: auto; height: auto; overflow: visible; clip: auto; white-space: nowrap; }
-.stage-countdown:not(.is-plain) .cd-dial strong, .stage-countdown.is-go .cd-dial strong { animation: ed-count .45s cubic-bezier(.2, .8, .2, 1) both !important; }
+.stage-countdown.is-plain .cd-dial strong { animation: ed-count .45s cubic-bezier(.2, .8, .2, 1) both !important; }
 @keyframes ed-count { from { opacity: 0; transform: scale(1.12); } to { opacity: 1; transform: none; } }
