@@ -32,6 +32,12 @@ export async function submitFeedback(mode: Mode, entry: { batch: number; termina
   return rpc<boolean>("submit_trader_feedback", { p_secret: secret(), p_mode: mode, p_batch: entry.batch, p_terminal: entry.terminal, p_rating: entry.rating, p_learned: entry.learned, p_comment: entry.comment.slice(0, 500) });
 }
 
+export type FeedbackRow = { id: number; at: number; batch: number; terminal: number | null; rating: number; learned: number | null; comment: string | null };
+/** Host only, on demand: the newest 1,000 answers from the feedback table (not the game state). */
+export async function listFeedback(mode: Mode) {
+  return rpc<FeedbackRow[]>("get_trader_feedback", { p_secret: secret(), p_mode: mode });
+}
+
 /*
   Storage format. Price history is most of the state (25 companies × hundreds of candles), and every
   update reads and writes the whole row, so candles are stored as compact number rows with times

@@ -693,3 +693,20 @@ html:has(.auto-launch-page),body:has(.auto-launch-page){min-height:100%;backgrou
   .terminal .order-card > * + * { margin-top: 6px !important; }
   .terminal .focus-card { padding-top: 10px !important; padding-bottom: 10px !important; }
 }
+
+/* Host: player feedback tab. */
+.host-feedback-actions { display: flex; gap: 8px; }
+.host-feedback-filters { display: flex; align-items: end; gap: 20px; margin: 12px 0; }
+.host-feedback-filters .host-field { min-width: 180px; }
+.host-feedback-check { display: flex; align-items: center; gap: 8px; padding-bottom: 10px; font-size: 14px; }
+.host-feedback-spread { display: grid; gap: 6px; margin: 16px 0; }
+.host-feedback-spread div { display: grid; grid-template-columns: 18px 1fr 36px; align-items: center; gap: 10px; font-size: 13px; }
+.host-feedback-spread i { display: block; height: 10px; min-width: 2px; background: var(--accent, #1f6f4a); }
+.host-feedback-spread b { text-align: right; }
+.host-feedback-list { display: grid; gap: 10px; max-height: 60vh; overflow-y: auto; }
+.host-feedback-list article { padding: 12px 14px; border: 1px solid var(--line, #ddd); }
+.host-feedback-list header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.host-feedback-list header span { margin-left: auto; font-weight: 700; font-size: 13px; }
+.host-feedback-list header small { opacity: .7; }
+.host-feedback-list p { margin: 6px 0 0; line-height: 1.45; }
+.host-feedback-list p.is-empty { opacity: .55; font-style: italic; }

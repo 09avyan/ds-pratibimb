@@ -80,7 +80,7 @@
 @media (prefers-reduced-motion: reduce) and (scripting: none) { .wrap, .wrap * { animation: none !important; } }
 
 /* Feedback: a full-width editorial strip under the badges and tip. */
-.wrap-feedback { grid-column: 1 / -1; display: grid; grid-template-columns: auto repeat(2, minmax(0, 1fr)) minmax(0, 1.4fr) auto; align-items: end; gap: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+.wrap-feedback { grid-column: 1 / -1; display: grid; grid-template-columns: auto repeat(2, minmax(0, 1fr)) minmax(0, 1.4fr) auto; align-items: end; gap: 28px; padding: 18px 0; margin-bottom: 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .wrap-feedback h3 { margin: 0; align-self: center; }
 .wrap-feedback.is-sent { display: flex; align-items: baseline; gap: 16px; }
 .wrap-feedback.is-sent p { margin: 0; color: var(--muted); }
