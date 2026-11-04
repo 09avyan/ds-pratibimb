@@ -67,9 +67,11 @@ function FeedbackCard({ batch, onSend, onStart }: { batch: number; onSend: (entr
   const [learned, setLearned] = useState(0);
   const [comment, setComment] = useState("");
   const [name, setName] = useState("");
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">(() => { try { return localStorage.getItem(key) ? "sent" : "idle"; } catch { return "idle"; } });
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "done" | "error">(() => { try { return localStorage.getItem(key) ? "done" : "idle"; } catch { return "idle"; } });
   const [error, setError] = useState("");
   const touch = () => { if (state === "idle") onStart(); };
+  // Already answered before this page load (a refresh): nothing to show.
+  if (state === "done") return null;
   if (state === "sent") return <div className="wrap-card wrap-feedback is-sent" role="status"><h3>Thank you!</h3><p>Your feedback for this round is in.</p></div>;
   const scale = (label: string, value: number, set: (n: number) => void, low: string, high: string) => <fieldset className="fb-scale">
     <legend>{label}</legend>
@@ -91,7 +93,7 @@ function FeedbackCard({ batch, onSend, onStart }: { batch: number; onSend: (entr
     {scale("How much fun was it?", rating, setRating, "Meh", "Loved it")}
     {scale("How much did you learn?", learned, setLearned, "Nothing new", "A lot")}
     <label className="fb-comment fb-name"><span>Your name <small>(optional)</small></span><input maxLength={40} value={name} onChange={e => { touch(); setName(e.target.value); }} placeholder="First name"/></label>
-    <label className="fb-comment"><span>Anything to tell us? <small>(optional)</small></span><textarea maxLength={500} rows={2} value={comment} onChange={e => { touch(); setComment(e.target.value); }} placeholder="What you liked, what confused you…"/></label>
+    <label className="fb-comment"><span>Anything to tell us? <small>(optional)</small></span><textarea maxLength={500} rows={1} value={comment} onChange={e => { touch(); setComment(e.target.value); }} placeholder="Anything to tell us? What you liked, what confused you… (optional)"/></label>
     <button type="submit" className="outline-button fb-send" disabled={!rating || state === "sending"}>{state === "sending" ? "Sending…" : "Send feedback"}</button>
     {state === "error" && <small className="fb-error" role="alert">{error} Try again.</small>}
   </form>;
