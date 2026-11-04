@@ -150,6 +150,13 @@ export async function mutate<T>(mode: Mode, update: (world: World) => T | Promis
     const result = await update(world);
     // Unchanged reads need one database round trip at most, and none when the cache is fresh.
     if (stored && world.version === initialRevision) return { world, result };
+    // A poll that only moves prices first asks for the ~100-byte version: if another screen already
+    // saved this tick, it answers with that instead of sending the whole game for the database to parse
+    // and reject. Without this, every screen shipped a full copy each second and starved the database.
+    if (before) {
+      const current = await rpc<number | null>("get_game_version", { p_secret: secret(), p_mode: mode }).catch(() => null);
+      if (current !== null && current !== version) { readCache.delete(mode); return { world: before, result }; }
+    }
     let saved = false;
     const saveStarted = Date.now();
     try { saved = await rpc<boolean>("save_game_state", { p_secret: secret(), p_mode: mode, p_expected_version: version, p_state: packWorld(world) }); }
