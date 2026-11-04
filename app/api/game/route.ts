@@ -33,7 +33,9 @@ function touchSession(state: World, sessionId: string, terminalNumber?: number) 
     }
     if (terminalNumber && player.terminalNumber !== terminalNumber) { player.terminalNumber = terminalNumber; state.version++; }
     if (now - (player.lastSeenAt ?? player.joinedAt) >= TERMINAL_ACTIVE_WINDOW_MS) recordGameLog(state, { at: now, kind: "terminal", terminalNumber: player.terminalNumber, message: "Terminal reconnected after being offline." });
-    if (now - (player.lastSeenAt ?? 0) >= 10_000) { player.lastSeenAt = now; state.version++; }
+    // While a batch is live the price ticks save the row anyway, so a check-in rides along with the next
+    // tick instead of forcing a full write of its own (ten terminals were adding a write a second).
+    if (now - (player.lastSeenAt ?? 0) >= 10_000) { player.lastSeenAt = now; if (state.status !== "live") state.version++; }
   }
   return player;
 }
