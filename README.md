@@ -256,3 +256,8 @@ Press Space (or the button) to return to the ready state. Motion plays once in a
 - **Host controls (News brain tab, Alt + B):** intensity Auto / Calm / Balanced / Lively; **Sooner 15s / Later 15s**; **Keep** or **Swap** a story; **Skip and reselect** avoids the skipped stories and keeps the release time.
 - **Clearer tab:** a round timeline, a countdown bar, the expected direct move of each upcoming story, how players responded to the last set, and each factor (in seconds) behind the chosen gap.
 - Regression: `node scripts/brain-pacing-check.cjs` and `node scripts/audience-leaderboard-check.cjs`.
+
+### Endurance (20 batches)
+- `scripts/endurance-check.cjs` plays 20 live batches back to back with ten terminals trading. The saved game must stay under 200 KB and must not grow from batch to batch; it holds at about 130 KB.
+- To keep the free database healthy for a full event, price history is kept to the last 150 candles per stock. Terminal check-ins during a live batch are saved with the next price tick rather than on their own. A screen whose poll is due to save a tick first checks the 100-byte version number, and sends the full game only if no other screen has already saved that tick.
+- For long sessions, keep host Settings → price speed at 2 seconds (the default). One second doubles the database work.
