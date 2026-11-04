@@ -1,6 +1,6 @@
 import type { GameLog, World } from "./types";
 // Kept small: the whole game is saved on every change, so logs must not grow without bound.
-export const MAX_GAME_LOGS = 100;
+export const MAX_GAME_LOGS = 60;
 export function recordGameLog(world: World, event: Omit<GameLog, "id" | "batch" | "elapsedSeconds"> & { batch?: number }) {
   const entry: GameLog = { ...event, id: crypto.randomUUID(), batch: event.batch ?? world.batch, elapsedSeconds: Math.max(0, Math.round(world.duration - world.remaining)), message: event.message.slice(0, 1200) };
   world.logs = [entry, ...(world.logs ?? [])].slice(0, MAX_GAME_LOGS);

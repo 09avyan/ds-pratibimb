@@ -336,7 +336,7 @@ function applyMove(world: World, stock: World["stocks"][number], move: number, v
     bar.high = Math.max(bar.high, close); bar.low = Math.min(bar.low, close); bar.close = close; bar.volume += volume;
   } else {
     stock.candles.push({ time: at, open: old, high: Math.max(old, close), low: Math.min(old, close), close, volume });
-    if (stock.candles.length > 600) stock.candles.splice(0, stock.candles.length - 600);
+    if (stock.candles.length > 300) stock.candles.splice(0, stock.candles.length - 300);
   }
   stock.price = close;
   stock.flow = stock.flow * .74 + move * 10000;
@@ -1004,7 +1004,7 @@ export function toPublic(world: World, sessionId?: string | null, selectedStock 
   const standing = eligible ? { rank: rankOf(equity(world, entrant)), total: entrants.length } : null;
   return { ...rest, standing, leaderboard, controls: publicControls, headlines: world.headlines.map(({ direction: _direction, severity: _severity, ...news }) => news), revision: world.version, terminalSummaries, participants: terminalSummaries.length, news: [], scheduledInterventions: [], scheduledNews: [], stocks: world.stocks.map(stock => {
     const { newsBias: _newsBias, newsReferencePrice: _newsReferencePrice, newsBiasClock: _newsBiasClock, newsMoves: _newsMoves, exact: _exact, ...publicStock } = stock;
-    const fullCandles = stock.candles.slice(-600);
+    const fullCandles = stock.candles.slice(-300);
     const since = options.candlesSince;
     const canSendDelta = typeof since === "number" && Number.isFinite(since) && fullCandles.length > 0 && since >= fullCandles[0].time && since <= fullCandles.at(-1)!.time;
     const candles = options.includeCandles === false ? [] : canSendDelta ? fullCandles.filter(bar => bar.time >= since) : fullCandles;
