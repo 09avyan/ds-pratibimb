@@ -78,9 +78,9 @@
     "semantic_hash": ""
   },
   "app/components/host-console.tsx": {
-    "mtime": 1793769158.5372827,
-    "seen": 1793769271.8579147,
-    "ast_hash": "f80d86734ed1c6728c21db3b27459128",
+    "mtime": 1793773054.305343,
+    "seen": 1793773337.130858,
+    "ast_hash": "16b41fce886fdfaab55f27ab1edb6ef4",
     "semantic_hash": ""
   },
   "app/components/host-logs.tsx": {
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/game/store.ts": {
-    "mtime": 1793772346.18064,
-    "seen": 1793772834.4464052,
-    "ast_hash": "037fbdf1341632d4006db7e1b213d78d",
+    "mtime": 1793773054.279995,
+    "seen": 1793773337.1318524,
+    "ast_hash": "af323e93b9d8e8830ac2617865bbe9a4",
     "semantic_hash": ""
   },
   "src/game/terminals.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793772831.2592475,
-    "seen": 1793772834.4465427,
-    "ast_hash": "7d7cb4579975916c5636493771298bcf",
+    "mtime": 1793773333.7632775,
+    "seen": 1793773337.1319783,
+    "ast_hash": "857cc80076f7b79a28123ba1b3ec04a6",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -450,9 +450,9 @@
     "semantic_hash": ""
   },
   "app/components/wrap-screen.tsx": {
-    "mtime": 1793772372.9850821,
-    "seen": 1793772834.445611,
-    "ast_hash": "93d98d974b61cd657cc8b628a7d1a5b2",
+    "mtime": 1793773211.4612818,
+    "seen": 1793773337.130999,
+    "ast_hash": "442a298cd4c8e09d29c3becb66fdc398",
     "semantic_hash": ""
   },
   "scripts/hall-of-fame-check.cjs": {
@@ -471,6 +471,18 @@
     "mtime": 1793769176.9303482,
     "seen": 1793769271.8586712,
     "ast_hash": "f8d448b5a6d851138aed11daf14218e4",
+    "semantic_hash": ""
+  },
+  "app/api/host/feedback/route.ts": {
+    "mtime": 1793773054.287261,
+    "seen": 1793773337.1306782,
+    "ast_hash": "ed8ad8062e6e605613a3aa69c30b2166",
+    "semantic_hash": ""
+  },
+  "app/components/host-feedback.tsx": {
+    "mtime": 1793773054.29004,
+    "seen": 1793773337.13086,
+    "ast_hash": "9f462f4178efbed608ffaacb3d5e932c",
     "semantic_hash": ""
   },
   "pnpm-lock.yaml": {

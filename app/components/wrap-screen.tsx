@@ -124,6 +124,8 @@ export function WrapScreen({ report, world, motion, cta, onCta, autoReady, onFee
       </div>
     </header>
 
+    {onFeedback && <FeedbackCard key={world?.batch ?? 0} batch={world?.batch ?? 0} onSend={onFeedback} onStart={onFeedbackStart ?? (() => {})}/>}
+
     <div className="wrap-cards">
       <article className="wrap-card wrap-vs">
         <h3>You and the market</h3>
@@ -167,7 +169,6 @@ export function WrapScreen({ report, world, motion, cta, onCta, autoReady, onFee
         {autoReady !== null && <small className="wrap-auto"><i style={{ "--left": autoReady } as React.CSSProperties}/>Back to the ready screen in {autoReady}s</small>}
         <small className="wrap-note">A fictional learning simulation, not investment advice.</small>
       </div>
-      {onFeedback && <FeedbackCard key={world?.batch ?? 0} batch={world?.batch ?? 0} onSend={onFeedback} onStart={onFeedbackStart ?? (() => {})}/>}
     </div>
   </section>;
 }
