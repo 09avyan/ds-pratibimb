@@ -1316,3 +1316,31 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .lb-row .lb-bar, .v-default .lb-row .lb-bar { height: calc(4 * var(--u)) !important; border-radius: 0 !important; background: var(--tone) !important; filter: none !important; box-shadow: none !important; }
 .v-gallery .lb-row .lb-bar { height: auto !important; background: color-mix(in srgb, var(--tone) 22%, transparent) !important; }
 .scene-cover .ed-head { font-size: calc(112 * var(--u)); }
+
+/* ======================================================================
+   Intro, live pieces: each spread carries one thing that moves with meaning.
+   ====================================================================== */
+.ed-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* How a round works: the chart tells the story under the three steps. */
+.ed-how-wrap { grid-column: 1 / -1; display: grid; gap: calc(14 * var(--u)); }
+.ed-story { width: 100%; height: calc(150 * var(--u)); margin-top: calc(18 * var(--u)); overflow: visible; color: var(--up); }
+.ed-story.down { color: var(--down); }
+.ed-story-line { fill: none; stroke: var(--ink); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; stroke-dasharray: 1; stroke-dashoffset: 1; animation: stage-draw 2.6s cubic-bezier(.45, 0, .2, 1) .4s forwards; }
+.ed-story-gain { fill: currentColor; opacity: 0; animation: ed-gain .8s ease-out 2.8s forwards; }
+@keyframes ed-gain { to { opacity: .2; } }
+.ed-story-mark { stroke: var(--accent); stroke-width: 3; vector-effect: non-scaling-stroke; opacity: 0; animation: ed-gain-mark .4s ease-out 1.3s forwards; }
+@keyframes ed-gain-mark { to { opacity: 1; } }
+.ed-story-label { display: grid; grid-template-columns: 35% 30% 35%; margin: 0; color: var(--muted); font: 600 calc(24 * var(--u)) / 1.2 var(--head); }
+.ed-story-label span:nth-child(2) { color: var(--accent); }
+.ed-story-label span:nth-child(3) { text-align: right; }
+/* Record and last round: the figure is made of particles. */
+.ed-figure { position: relative; }
+.ed-particles.is-figure { display: block; width: calc(900 * var(--u)); max-width: 100%; height: calc(230 * var(--u)); color: var(--up); }
+.ed-particles.is-last { grid-column: 1 / -1; width: 100%; height: calc(220 * var(--u)); color: var(--up); }
+/* Take a seat: the ten terminals light up in a wave. */
+.ed-seats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: calc(14 * var(--u)); margin: 0; padding: 0; list-style: none; }
+.ed-seats li { display: grid; gap: calc(4 * var(--u)); padding: calc(18 * var(--u)) calc(16 * var(--u)); color: var(--on-accent, #fff); background: color-mix(in srgb, var(--on-accent, #000) 10%, transparent); animation: ed-seat 3s ease-in-out infinite; animation-delay: calc(var(--n, 0) * 140ms); }
+.ed-seats span { font: 600 calc(20 * var(--u)) / 1 var(--head); opacity: .8; }
+.ed-seats b { font: 900 calc(64 * var(--u)) / 1 var(--num); font-variant-numeric: tabular-nums; }
+@keyframes ed-seat { 0%, 70%, 100% { background: color-mix(in srgb, var(--on-accent, #000) 10%, transparent); } 15%, 30% { color: var(--accent); background: var(--on-accent, #000); } }
+.stage.no-motion .ed-seats li, .stage.no-motion .ed-story-line { animation: none; stroke-dashoffset: 0; }
