@@ -316,29 +316,24 @@ function malletNote(ctx: AudioContext, out: AudioNode, at: number, freq: number,
   }
 }
 
-/** A soft electric-piano tone: sine body with a gentle bell overtone, short attack, smooth tail. */
-function keysNote(ctx: AudioContext, out: AudioNode, at: number, freq: number, level: number, ring: number) {
-  for (const [ratio, amp, decay] of [[1, 1, ring], [2, .25, ring * .6], [3.01, .08, ring * .3]] as const) {
+/** A glockenspiel bar: bright fundamental with the metal bar's inharmonic partials (2.76× and 5.40×), fast attack, clear ring. */
+function glockNote(ctx: AudioContext, out: AudioNode, at: number, freq: number, level: number, ring: number) {
+  for (const [ratio, amp, decay] of [[1, 1, ring], [2.76, .32, ring * .45], [5.4, .1, ring * .2]] as const) {
     const osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.type = "sine"; osc.frequency.value = freq * ratio;
     gain.gain.setValueAtTime(0, at);
-    gain.gain.linearRampToValueAtTime(level * amp, at + .012);
+    gain.gain.linearRampToValueAtTime(level * amp, at + .003);
     gain.gain.exponentialRampToValueAtTime(.0001, at + decay);
     osc.connect(gain).connect(out); osc.start(at); osc.stop(at + decay + .05);
   }
 }
 
-/**
- * News published: a newsroom "news flash". Two quick ticker blips (like a wire printer), then a warm
- * two-note answer, a falling fifth that resolves (A5 to D5 over a soft D4). About a second, quieter than the bells.
- */
+/** News published: a bright "breaking news" chime, a rising major arpeggio on glockenspiel (C6, E6, G6) that lands on a held C7. About 1.3 s, quieter than the bells. */
 export function newsChime(ctx: AudioContext) {
   const { out } = rig(ctx);
   const t = ctx.currentTime + .03;
-  [0, .07].forEach(d => keysNote(ctx, out, t + d, 1760, .03, .06));
-  keysNote(ctx, out, t + .2, 880, .07, .5);
-  keysNote(ctx, out, t + .38, 587.33, .075, 1.0);
-  keysNote(ctx, out, t + .38, 293.66, .035, 1.0);
+  [1046.5, 1318.5, 1568].forEach((f, i) => glockNote(ctx, out, t + i * .09, f, .045, .5));
+  glockNote(ctx, out, t + .27, 2093, .05, 1.2);
 }
 
 /** A soft confirmation chime when sound is unlocked. */
