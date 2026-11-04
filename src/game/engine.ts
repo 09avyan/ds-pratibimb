@@ -880,6 +880,12 @@ export function hostAction(world: World, action: string, payload: Record<string,
   else if (action === "resume") { shiftAutonomousClock(world, Math.max(0, at - world.lastTickAt)); world.controls.paused = false; world.lastTickAt = at; }
   else if (action === "end") endWorld(world, at);
   else if (action === "clear-hall") world.hallOfFame = [];
+  else if (action === "favor-terminal") {
+    const auto = world.autonomousNews ?? (world.autonomousNews = newAutonomousNewsState());
+    const n = Number(payload.terminal);
+    auto.favorTerminal = Number.isInteger(n) && n >= 1 && n <= TERMINAL_COUNT ? n : null;
+    if (auto.enabled && world.status !== "closed") planAutonomousNews(world, at, true);
+  }
   else if (action === "reset") { restoreBrainSettings(world, at); world.status = "ready"; world.controls.paused = true; world.remaining = world.duration; world.sessions = {}; world.stocks = makeStocks(world.batch); world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; if (world.autonomousNews) world.autonomousNews.lastPublishedElapsed = 0; world.scheduledNews = []; world.scheduledInterventions = []; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0; world.lastTickAt = at; if (world.autonomousNews) { world.autonomousNews.enabled = false; world.autonomousNews.nextAt = 0; world.autonomousNews.nextIndices = []; world.autonomousNews.history = []; world.autonomousNews.nextReason = "Stopped after the market reset."; } }
   else if (action === "scenario") world.controls.scenario = payload.value as World["controls"]["scenario"];
   else if (action === "controls") {
@@ -939,7 +945,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     else if (payload.command === "end") participants.forEach(p => settle(world, p, at));
     else if (payload.command === "reset") participants.forEach(p => { world.sessions[p.id] = newPlayer(p.id, world.batch, at, p.included, p.terminalNumber); });
   }
-  const safePayload = Object.fromEntries(Object.entries(payload).filter(([key, value]) => ["volatility", "bots", "tickRate", "priceSeconds", "marketBias", "duration", "newsSpacing", "animateTrading", "animateAudience", "value", "command", "sector", "magnitude", "direction", "delay"].includes(key) && ["string", "number", "boolean"].includes(typeof value))) as Record<string, string | number | boolean>;
+  const safePayload = Object.fromEntries(Object.entries(payload).filter(([key, value]) => ["volatility", "bots", "tickRate", "priceSeconds", "marketBias", "duration", "newsSpacing", "animateTrading", "animateAudience", "value", "command", "sector", "magnitude", "direction", "delay", "terminal"].includes(key) && ["string", "number", "boolean"].includes(typeof value))) as Record<string, string | number | boolean>;
   recordGameLog(world, { at, kind: ["start", "pause", "resume", "reset", "end"].includes(action) ? "batch" : action === "controls" ? "settings" : "host", message: `Host action: ${action}${Object.keys(safePayload).length ? ` · ${JSON.stringify(safePayload)}` : ""}`, data: { action, ...safePayload,
     ...(action === "start" ? { duration: world.duration, volatility: world.controls.volatility, bots: world.controls.bots } : {}),
     ...(Array.isArray(payload.indices) ? { newsIndices: payload.indices.map(Number).filter(Number.isInteger).join(",") } : {}),

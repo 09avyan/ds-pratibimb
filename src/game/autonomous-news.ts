@@ -235,9 +235,24 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   // mix of stories) runs before any repeats. A strong fit for the room can still outweigh one repeat.
   const usage = world.newsUsage ?? {};
   const leastUsed = Math.min(...world.news.map((_, index) => usage[index] ?? 0));
+  // Host bias: a chosen terminal's net exposure per company (long value minus short value).
+  const favored = world.autonomousNews?.favorTerminal ? Object.values(world.sessions).filter(p => p.batch === world.batch && p.terminalNumber === world.autonomousNews!.favorTerminal && !p.ended).sort((a, b) => (b.lastSeenAt ?? 0) - (a.lastSeenAt ?? 0))[0] : undefined;
+  const exposure = new Map<string, number>();
+  if (favored) {
+    for (const [symbol, pos] of Object.entries(favored.holdings)) exposure.set(symbol, (exposure.get(symbol) ?? 0) + pos.qty * (world.stocks.find(s => s.symbol === symbol)?.price ?? 0));
+    for (const [symbol, pos] of Object.entries(favored.shorts)) exposure.set(symbol, (exposure.get(symbol) ?? 0) - pos.qty * (world.stocks.find(s => s.symbol === symbol)?.price ?? 0));
+  }
+  const favourFor = (news: News) => {
+    if (!exposure.size) return 0;
+    const scope = scopeOf(news);
+    let net = 0;
+    for (const stock of world.stocks) if (scope === "economy" || (scope === "sector" ? stock.sector === news.sector : news.symbols?.includes(stock.symbol))) net += exposure.get(stock.symbol) ?? 0;
+    // Helping (good news on longs, bad news on shorts) ranks well above any other reason; hurting ranks far below.
+    return Math.sign(net * news.direction) * Math.min(6, 2 + Math.abs(net) / 50_000);
+  };
   const scoreStory = (item: { news: News; index: number }) => {
     const scope = scopeOf(item.news);
-    let score = -4 * ((usage[item.index] ?? 0) - leastUsed);
+    let score = -4 * ((usage[item.index] ?? 0) - leastUsed) + favourFor(item.news);
     const recentStories = world.headlines.filter(story => at - story.createdAt < 100_000);
     const sameCompany = scope === "stock" && recentStories.some(story => story.symbols?.some(symbol => item.news.symbols?.includes(symbol)));
     const sameSector = scope === "sector" && recentStories.some(story => story.sector === item.news.sector && scopeOf(story) !== "economy");

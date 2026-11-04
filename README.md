@@ -261,3 +261,6 @@ Press Space (or the button) to return to the ready state. Motion plays once in a
 - `scripts/endurance-check.cjs` plays 20 live batches back to back with ten terminals trading. The saved game must stay under 200 KB and must not grow from batch to batch; it holds at about 130 KB.
 - To keep the free database healthy for a full event, price history is kept to the last 150 candles per stock. Terminal check-ins during a live batch are saved with the next price tick rather than on their own. A screen whose poll is due to save a tick first checks the 100-byte version number, and sends the full game only if no other screen has already saved that tick.
 - For long sessions, keep host Settings → price speed at 2 seconds (the default). One second doubles the database work.
+
+### Favour a terminal (News brain)
+Host → News brain → *Favour a terminal* makes the brain prefer stories that help one terminal's positions: good news on companies it holds, bad news on companies it has shorted. Stories that would hurt it rank last. Timing and spacing are unchanged. It is useful for helping a struggling first-timer; note that it tilts the competition, including the hall of fame. Players never see it. The choice is recorded in the game log, and choosing *Off* restores fair news. Covered by `scripts/favor-terminal-check.cjs`.
