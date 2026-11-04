@@ -873,10 +873,12 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
     const timer = window.setTimeout(() => setGlowKey(""), 9000);
     return () => window.clearTimeout(timer);
   }, [newsSetKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Companies named by a company or sector story are marked; an economy story touches all 25, so marking
+  // every tile would say nothing.
   const newsGlow = new Set<string>();
   if (glowKey === newsSetKey) for (const item of visibleNews) {
     const scope = item.scope ?? (item.symbols?.length ? "stock" : item.sector === "ALL" ? "economy" : "sector");
-    for (const stock of world?.stocks ?? []) if (scope === "economy" || (scope === "sector" ? stock.sector === item.sector : item.symbols?.includes(stock.symbol))) newsGlow.add(stock.symbol);
+    for (const stock of world?.stocks ?? []) if (scope !== "economy" && (scope === "sector" ? stock.sector === item.sector : item.symbols?.includes(stock.symbol))) newsGlow.add(stock.symbol);
   }
   const stocks = world?.stocks ?? [];
   // The record-shop version (V6) files its companies by sector, like the racks in a shop.
