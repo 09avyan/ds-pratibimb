@@ -85,8 +85,9 @@ export async function POST(request: NextRequest) {
       if (learned !== null && (!Number.isInteger(learned) || learned < 1 || learned > 5)) return errorResponse(new Error("Pick a rating from 1 to 5."));
       if (!Number.isInteger(batch) || batch < 0 || batch > 100000) return errorResponse(new Error("Unknown batch."));
       const comment = typeof body.comment === "string" ? body.comment.slice(0, 500) : "";
+      const name = typeof body.name === "string" ? body.name.slice(0, 40) : "";
       if (mode === "test") return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
-      await submitFeedback(mode, { batch, terminal: terminalNumber, rating, learned, comment });
+      await submitFeedback(mode, { batch, terminal: terminalNumber, rating, learned, comment, name });
       return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
     }
     if (action === "trade" && !["Buy", "Sell", "Short"].includes(body.side)) return errorResponse(new Error("Choose Buy, Sell or Short."));

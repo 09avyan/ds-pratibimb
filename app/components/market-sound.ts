@@ -304,12 +304,24 @@ export function chimes(ctx: AudioContext, delay: number, count: number, gap: num
   for (let i = 0; i < count; i++) gongStrike(ctx, out, ctx.currentTime + delay + i * gap, 880 * 2 ** (i * 4 / 12), .12);
 }
 
-/** News published: a light two-note "ding-dong" (up a fourth), short and quiet so it never covers the bells. */
+/** One mallet note, like a marimba bar: a warm fundamental, its fourth partial (the wooden "tock") fading fast, and a soft felt attack. */
+function malletNote(ctx: AudioContext, out: AudioNode, at: number, freq: number, level: number, ring = .9) {
+  for (const [ratio, amp, decay] of [[1, 1, ring], [4, .22, .12], [10, .05, .04]] as const) {
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = "sine"; osc.frequency.value = freq * ratio;
+    gain.gain.setValueAtTime(0, at);
+    gain.gain.linearRampToValueAtTime(level * amp, at + .006);
+    gain.gain.exponentialRampToValueAtTime(.0001, at + decay);
+    osc.connect(gain).connect(out); osc.start(at); osc.stop(at + decay + .05);
+  }
+}
+
+/** News published: a short newsroom sting, three rising mallet notes (E5, A5, C#6) over a soft low A. Under a second, quiet, never covers the bells. */
 export function newsChime(ctx: AudioContext) {
   const { out } = rig(ctx);
   const t = ctx.currentTime + .03;
-  gongStrike(ctx, out, t, 1318.5, .07);
-  gongStrike(ctx, out, t + .14, 1760, .06);
+  malletNote(ctx, out, t, 220, .05, .7);
+  [659.26, 880, 1108.73].forEach((f, i) => malletNote(ctx, out, t + i * .085, f, i === 2 ? .085 : .065, i === 2 ? 1.1 : .45));
 }
 
 /** A soft confirmation chime when sound is unlocked. */

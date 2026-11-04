@@ -696,7 +696,7 @@ html:has(.auto-launch-page),body:has(.auto-launch-page){min-height:100%;backgrou
 
 /* Host: player feedback tab. */
 .host-feedback-actions { display: flex; gap: 8px; }
-.host-feedback-filters { display: flex; align-items: end; gap: 20px; margin: 12px 0; }
+.host-feedback-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px 20px; margin: 12px 0; }
 .host-feedback-filters .host-field { min-width: 180px; }
 .host-feedback-check { display: flex; align-items: center; gap: 8px; padding-bottom: 10px; font-size: 14px; }
 .host-feedback-spread { display: grid; gap: 6px; margin: 16px 0; }

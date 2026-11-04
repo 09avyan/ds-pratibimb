@@ -58,7 +58,7 @@ const NEXT_STEP: Record<string, string> = {
 const signed = (value: number, digits = 2) => `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(digits)}%`;
 const PLACE = ["1st", "2nd", "3rd"];
 
-type FeedbackEntry = { rating: number; learned: number | null; comment: string };
+type FeedbackEntry = { rating: number; learned: number | null; comment: string; name: string };
 
 /** A three-question card: fun (1–5), learned (1–5), optional comment. One send per terminal per batch. */
 function FeedbackCard({ batch, onSend, onStart }: { batch: number; onSend: (entry: FeedbackEntry) => Promise<void>; onStart: () => void }) {
@@ -66,6 +66,7 @@ function FeedbackCard({ batch, onSend, onStart }: { batch: number; onSend: (entr
   const [rating, setRating] = useState(0);
   const [learned, setLearned] = useState(0);
   const [comment, setComment] = useState("");
+  const [name, setName] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">(() => { try { return localStorage.getItem(key) ? "sent" : "idle"; } catch { return "idle"; } });
   const [error, setError] = useState("");
   const touch = () => { if (state === "idle") onStart(); };
@@ -80,7 +81,7 @@ function FeedbackCard({ batch, onSend, onStart }: { batch: number; onSend: (entr
     if (!rating || state === "sending") return;
     setState("sending"); setError("");
     try {
-      await onSend({ rating, learned: learned || null, comment: comment.trim() });
+      await onSend({ rating, learned: learned || null, comment: comment.trim(), name: name.trim() });
       try { localStorage.setItem(key, "1"); } catch {}
       setState("sent");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not send."); setState("error"); }
@@ -89,6 +90,7 @@ function FeedbackCard({ batch, onSend, onStart }: { batch: number; onSend: (entr
     <h3>How was the game?</h3>
     {scale("How much fun was it?", rating, setRating, "Meh", "Loved it")}
     {scale("How much did you learn?", learned, setLearned, "Nothing new", "A lot")}
+    <label className="fb-comment fb-name"><span>Your name <small>(optional)</small></span><input maxLength={40} value={name} onChange={e => { touch(); setName(e.target.value); }} placeholder="First name"/></label>
     <label className="fb-comment"><span>Anything to tell us? <small>(optional)</small></span><textarea maxLength={500} rows={2} value={comment} onChange={e => { touch(); setComment(e.target.value); }} placeholder="What you liked, what confused you…"/></label>
     <button type="submit" className="outline-button fb-send" disabled={!rating || state === "sending"}>{state === "sending" ? "Sending…" : "Send feedback"}</button>
     {state === "error" && <small className="fb-error" role="alert">{error} Try again.</small>}

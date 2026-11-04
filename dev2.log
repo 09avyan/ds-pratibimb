@@ -1,0 +1,44 @@
+
+> dalaal-street@1.0.0 dev /home/user/ds-pratibimb
+> next dev --hostname 0.0.0.0
+
+▲ Next.js 16.4.5 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+✓ Ready in 707ms
+✓ Running next.config.ts took 3.1s
+- Experiments (use with caution):
+  ⨯ useTypeScriptCli
+
+○ Compiling /test/[terminal] ...
+ GET /test/01 200 in 2.4s (next.js: 1888ms, application-code: 516ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1 200 in 249ms (next.js: 215ms, application-code: 34ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=3&candlesSince=1793774932809 304 in 7ms (next.js: 1.6ms, application-code: 5ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=3&candlesSince=1793774932809 304 in 6ms (next.js: 1.4ms, application-code: 5ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=3&candlesSince=1793774932809 304 in 5ms (next.js: 1.4ms, application-code: 3ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=3&candlesSince=1793774932809 200 in 6ms (next.js: 1.1ms, application-code: 5ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=5&candlesSince=1793774932809 304 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=5&candlesSince=1793774932809 200 in 9ms (next.js: 1.0ms, application-code: 8ms)
+ POST /api/game 200 in 7ms (next.js: 1.5ms, application-code: 6ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=8&chart=0 304 in 7ms (next.js: 1.4ms, application-code: 5ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=8&chart=0 200 in 8ms (next.js: 1.0ms, application-code: 7ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=9&chart=0 304 in 4ms (next.js: 0.9ms, application-code: 3ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=9&chart=0 200 in 10ms (next.js: 1.7ms, application-code: 8ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=10&chart=0 304 in 4ms (next.js: 0.8ms, application-code: 3ms)
+ GET /test/01 200 in 81ms (next.js: 12ms, application-code: 68ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=10&chart=0 200 in 7ms (next.js: 0.9ms, application-code: 6ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=bf4239c7-4ff3-453f-ae1c-8ae7a2575865&terminal=1 200 in 5ms (next.js: 0.8ms, application-code: 4ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=11&chart=0 200 in 5ms (next.js: 0.8ms, application-code: 4ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=bf4239c7-4ff3-453f-ae1c-8ae7a2575865&terminal=1 200 in 4ms (next.js: 0.9ms, application-code: 3ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=bf4239c7-4ff3-453f-ae1c-8ae7a2575865&terminal=1&revision=13&candlesSince=1793774943808 304 in 4ms (next.js: 0.8ms, application-code: 3ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=13&chart=0 200 in 7ms (next.js: 1.1ms, application-code: 6ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=bf4239c7-4ff3-453f-ae1c-8ae7a2575865&terminal=1&revision=13&candlesSince=1793774943808 200 in 4ms (next.js: 0.9ms, application-code: 3ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=14&chart=0 304 in 5ms (next.js: 1.3ms, application-code: 4ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=bf4239c7-4ff3-453f-ae1c-8ae7a2575865&terminal=1&revision=14&candlesSince=1793774945808 304 in 5ms (next.js: 1.0ms, application-code: 4ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=14&chart=0 200 in 7ms (next.js: 0.9ms, application-code: 6ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=bf4239c7-4ff3-453f-ae1c-8ae7a2575865&terminal=1&revision=14&candlesSince=1793774945808 200 in 5ms (next.js: 1.2ms, application-code: 4ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=15&chart=0 304 in 4ms (next.js: 0.9ms, application-code: 3ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=bf4239c7-4ff3-453f-ae1c-8ae7a2575865&terminal=1&revision=15&candlesSince=1793774947808 304 in 4ms (next.js: 1.0ms, application-code: 3ms)
+ GET /api/game?mode=test&selected=RELIANCE&session=3cad3fb6-68b8-40df-9bca-9fb57edf88d0&terminal=1&revision=15&chart=0 200 in 8ms (next.js: 1.2ms, application-code: 6ms)
+ ELIFECYCLE  Command failed.
+[?25h

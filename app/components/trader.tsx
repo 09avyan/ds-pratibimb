@@ -303,20 +303,20 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [view]);
-  // After a hosted batch ends, the report stays up for 30 seconds, then the terminal returns to the ready state by itself.
+  // After a hosted batch ends, the report stays up for 60 seconds (also after a refresh), then the terminal returns to the ready state by itself.
   const [autoReady, setAutoReady] = useState<number | null>(null);
   // Filling in feedback holds the report on screen (the auto-return would cut the player off mid-sentence).
   const [holdReport, setHoldReport] = useState(false);
   useEffect(() => { if (view !== "report") setHoldReport(false); }, [view]);
   const autoReadyOn = view === "report" && mode !== "test" && world?.status === "closed" && !holdReport;
-  const sendFeedback = async (entry: { rating: number; learned: number | null; comment: string }) => {
+  const sendFeedback = async (entry: { rating: number; learned: number | null; comment: string; name: string }) => {
     const res = await fetch("/api/game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, sessionId, terminal, localPreview: preview, action: "feedback", batch: world?.batch ?? 0, ...entry }), signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Feedback could not be sent.");
   };
   useEffect(() => {
     if (!autoReadyOn) { setAutoReady(null); return; }
-    const end = Date.now() + 30_000;
-    setAutoReady(30);
+    const end = Date.now() + 60_000;
+    setAutoReady(60);
     const timer = window.setInterval(() => {
       const left = Math.ceil((end - Date.now()) / 1000);
       if (left > 0) { setAutoReady(left); return; }
@@ -391,7 +391,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
     <main className={`workspace ${view === "markets" ? "workspace-markets" : "workspace-wide"}`}>
       {isTest && <div className="autonomous-band"><span className="live-dot"/> TEST MARKET · ISOLATED PRACTICE <span>Six minute rounds use the same rules as a live session.</span></div>}
-      {world && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - clockNow) / 1000))} seconds` : world.status === "closed" ? isTest ? "Practice round complete" : "The batch has ended" : isTest ? "Practice round ready" : "The market is ready"}<span>{world.status === "countdown" ? "The market is starting on every device." : world.status === "closed" ? isTest ? "Start another isolated practice round when you’re ready." : "The report returns to the ready state on its own after 30 seconds." : isTest ? "Your isolated practice market is ready." : "The host will start the shared batch shortly."}</span>{isTest && (world.status === "closed" || world.status === "ready") && <button type="button" className="outline-button" disabled={busy} onClick={() => void send("sandbox-start")}>Start practice round</button>}</div>}
+      {world && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - clockNow) / 1000))} seconds` : world.status === "closed" ? isTest ? "Practice round complete" : "The batch has ended" : isTest ? "Practice round ready" : "The market is ready"}<span>{world.status === "countdown" ? "The market is starting on every device." : world.status === "closed" ? isTest ? "Start another isolated practice round when you’re ready." : "The report returns to the ready state on its own after 60 seconds." : isTest ? "Your isolated practice market is ready." : "The host will start the shared batch shortly."}</span>{isTest && (world.status === "closed" || world.status === "ready") && <button type="button" className="outline-button" disabled={busy} onClick={() => void send("sandbox-start")}>Start practice round</button>}</div>}
       {view === "markets" && stock && <>
         <StockPriceTicker stocks={world?.stocks ?? []}/>
         {latestNews.length > 0 && (dismissedNews === newsKey ? <button type="button" className="news-reopen" onClick={() => setDismissedNews("")}>News <span>{latestNews.length}</span></button> : <section className="market-news-feed" aria-label="Latest news set">

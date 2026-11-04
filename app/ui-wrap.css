@@ -80,7 +80,7 @@
 @media (prefers-reduced-motion: reduce) and (scripting: none) { .wrap, .wrap * { animation: none !important; } }
 
 /* Feedback: a full-width editorial strip under the badges and tip. */
-.wrap-feedback { grid-column: 1 / -1; display: grid; grid-template-columns: auto repeat(2, minmax(0, 1fr)) minmax(0, 1.4fr) auto; align-items: end; gap: 28px; padding: 18px 0; margin-bottom: 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.wrap-feedback { grid-column: 1 / -1; display: grid; grid-template-columns: auto repeat(2, minmax(0, 1fr)) minmax(0, .7fr) minmax(0, 1.2fr) auto; align-items: end; gap: 28px; padding: 18px 0; margin-bottom: 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .wrap-feedback h3 { margin: 0; align-self: center; }
 .wrap-feedback.is-sent { display: flex; align-items: baseline; gap: 16px; }
 .wrap-feedback.is-sent p { margin: 0; color: var(--muted); }
@@ -93,6 +93,7 @@
 .fb-scale small { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
 .fb-comment { display: grid; gap: 8px; min-width: 0; color: var(--ink); font: 700 14px var(--body); }
 .fb-comment small { color: var(--muted); font-weight: 500; }
+.fb-name input { width: 100%; min-height: 40px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 0; background: var(--card); color: var(--ink); font: 500 15px var(--body); }
 .fb-comment textarea { width: 100%; resize: none; padding: 9px 11px; border: 1px solid var(--line); border-radius: 0; background: var(--card); color: var(--ink); font: 500 15px / 1.35 var(--body); }
 .fb-send { min-height: 44px; border-radius: 0; white-space: nowrap; }
 .fb-error { grid-column: 1 / -1; color: var(--down); font-size: 13px; }
