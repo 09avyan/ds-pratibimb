@@ -316,12 +316,29 @@ function malletNote(ctx: AudioContext, out: AudioNode, at: number, freq: number,
   }
 }
 
-/** News published: a short newsroom sting, three rising mallet notes (E5, A5, C#6) over a soft low A. Under a second, quiet, never covers the bells. */
+/** A soft electric-piano tone: sine body with a gentle bell overtone, short attack, smooth tail. */
+function keysNote(ctx: AudioContext, out: AudioNode, at: number, freq: number, level: number, ring: number) {
+  for (const [ratio, amp, decay] of [[1, 1, ring], [2, .25, ring * .6], [3.01, .08, ring * .3]] as const) {
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = "sine"; osc.frequency.value = freq * ratio;
+    gain.gain.setValueAtTime(0, at);
+    gain.gain.linearRampToValueAtTime(level * amp, at + .012);
+    gain.gain.exponentialRampToValueAtTime(.0001, at + decay);
+    osc.connect(gain).connect(out); osc.start(at); osc.stop(at + decay + .05);
+  }
+}
+
+/**
+ * News published: a newsroom "news flash". Two quick ticker blips (like a wire printer), then a warm
+ * two-note answer, a falling fifth that resolves (A5 to D5 over a soft D4). About a second, quieter than the bells.
+ */
 export function newsChime(ctx: AudioContext) {
   const { out } = rig(ctx);
   const t = ctx.currentTime + .03;
-  malletNote(ctx, out, t, 220, .05, .7);
-  [659.26, 880, 1108.73].forEach((f, i) => malletNote(ctx, out, t + i * .085, f, i === 2 ? .085 : .065, i === 2 ? 1.1 : .45));
+  [0, .07].forEach(d => keysNote(ctx, out, t + d, 1760, .03, .06));
+  keysNote(ctx, out, t + .2, 880, .07, .5);
+  keysNote(ctx, out, t + .38, 587.33, .075, 1.0);
+  keysNote(ctx, out, t + .38, 293.66, .035, 1.0);
 }
 
 /** A soft confirmation chime when sound is unlocked. */

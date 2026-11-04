@@ -278,4 +278,4 @@ Host → News brain → *Favour a terminal* makes the brain prefer stories that 
 - **Next.js 16.4.5.** This is a patch upgrade from 16.4.0 that clears the known security advisory. `pnpm audit --prod` reports no known vulnerabilities, and the production build, `tsc` and all 19 checks pass.
 - **Feedback name and 60 s report.** The feedback form has an optional name of up to 40 characters, which shows in the host list and the CSV. After a live batch the report stays up for 60 s before returning to ready, and a refresh starts a fresh 60 s.
 - **Host feedback filters.** You can filter by Fun and Learned score: any, 4 and above, 2 and below, an exact score, or not answered. These combine with the batch and comments filters.
-- **Better news sting.** The audience-wall news sound is a short newsroom sting: three rising mallet notes over a soft low note. It lasts under a second and is quieter than the bells.
+- **Better news sting.** The audience-wall news sound is a "news flash": two quick ticker blips, then a warm falling two-note answer. It lasts about a second and is quieter than the bells.
