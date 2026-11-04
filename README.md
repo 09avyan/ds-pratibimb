@@ -214,7 +214,7 @@ Trading and audience dashboards show the latest published set only, with the ful
   3. "And the winner is…" holds for a drumroll.
   4. The winner lands, the board shakes once, the crown drops, then confetti.
 
-  With the bells on, the reveal has a snare roll and a cymbal-and-brass "ta-da", played once per batch. Host → Animations → *Final standings reveal* and *Confetti* turn the motion off.
+  With the bells on, the reveal has a snare roll, a cymbal-and-brass "ta-da", a crowd breaking into applause as the winner lands, and a chime for each award, once per batch. All of it is made in the browser, with no downloads or database calls. Host → Animations → *Final standings reveal* and *Confetti* turn the motion off.
 - **A real tape:** heavyweight companies trade on almost every update; smaller ones sometimes sit still for a moment and then catch up, and a trade lands on the buyer's or seller's side of the price (one ₹0.05 tick), so the last price wobbles like a real tape. The underlying price moves exactly as before, so volatility is unchanged (measured: 30-second volatility 0.01570 printed and underlying). During a news reaction every affected company trades on every update, and a company never sits more than two ticks away from its true price.
 - **Price speed:** Host → Settings chooses how often prices move: every 1, 2 (default) or 3 seconds. If the database falls behind, the game moves prices at most every 4 s for 90 s and then returns to the chosen speed.
 - **Synced countdowns:** every screen counts down on the server's clock (estimated from each answer), so a terminal with a wrong clock still shows the countdown and the "Market open" moment.

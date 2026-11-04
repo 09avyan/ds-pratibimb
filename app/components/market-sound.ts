@@ -276,6 +276,26 @@ export function fanfare(ctx: AudioContext, delay: number, roll = 1.6) {
   });
 }
 
+/** The winner's moment on the final standings: a crowd breaks into applause and cheers, swells, and dies
+ *  away over about six seconds. Made in the browser like the bells, so it needs no download. */
+let applauseBuffer: AudioBuffer | null = null;
+export function applause(ctx: AudioContext, delay: number) {
+  const { out } = rig(ctx);
+  if (!applauseBuffer || applauseBuffer.sampleRate !== ctx.sampleRate) {
+    const [l, r] = renderApplause(ctx.sampleRate, 4.5, 0, 9);
+    applauseBuffer = ctx.createBuffer(2, l.length, ctx.sampleRate);
+    let peak = 0;
+    for (let n = 0; n < l.length; n++) peak = Math.max(peak, Math.abs(l[n]), Math.abs(r[n]));
+    const scale = peak > 0 ? .7 / peak : 1;
+    applauseBuffer.getChannelData(0).set(l.map(v => v * scale));
+    applauseBuffer.getChannelData(1).set(r.map(v => v * scale));
+  }
+  const source = ctx.createBufferSource();
+  source.buffer = applauseBuffer;
+  source.connect(out);
+  source.start(ctx.currentTime + delay);
+}
+
 /** The awards landing: one bright chime per award, each a step higher, starting `delay` seconds from now. */
 export function chimes(ctx: AudioContext, delay: number, count: number, gap: number) {
   const { out } = rig(ctx);
@@ -358,7 +378,7 @@ export function useMarketSound(world: SoundWorld, enabled: boolean, countdown = 
     const timer = window.setInterval(check, 100);
     return () => window.clearInterval(timer);
   }, [world?.status, world?.startedAt, world?.batch, enabled, countdown]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { needsTap, test: (kind: BellKind) => play(ctx => ringBell(ctx, kind)), fanfare: (delay: number) => { if (enabled) play(ctx => fanfare(ctx, delay)); }, chimes: (delay: number, count: number, gap: number) => { if (enabled) play(ctx => chimes(ctx, delay, count, gap)); } };
+  return { needsTap, test: (kind: BellKind) => play(ctx => ringBell(ctx, kind)), fanfare: (delay: number) => { if (enabled) play(ctx => fanfare(ctx, delay)); }, chimes: (delay: number, count: number, gap: number) => { if (enabled) play(ctx => chimes(ctx, delay, count, gap)); }, applause: (delay: number) => { if (enabled) play(ctx => applause(ctx, delay)); } };
 }
 
 /**
