@@ -905,7 +905,7 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   useEffect(() => {
     if (!final || !world || fanfareFor.current === world.batch || !on("finalReveal")) return;
     fanfareFor.current = world.batch;
-    if (sound && world.leaderboard.length) { bells.fanfare(3.4); bells.chimes(6.3, 4, .55); }
+    if (sound && world.leaderboard.length) { bells.fanfare(3.4); bells.applause(5.05); bells.chimes(6.3, 4, .55); }
   }, [final, world?.batch]); // eslint-disable-line react-hooks/exhaustive-deps
   const countdownSeconds = counting && world ? Math.max(0, Math.ceil((world.startedAt - clock) / 1000)) : 0;
   const remaining = useSmoothRemaining(world);
