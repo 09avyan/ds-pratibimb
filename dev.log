@@ -72,3 +72,5 @@ Reference: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk
  GET /v7/audience 200 in 66ms (next.js: 13ms, application-code: 53ms)
  GET /v1/audience 200 in 64ms (next.js: 13ms, application-code: 52ms)
  GET /v1/audience 200 in 56ms (next.js: 14ms, application-code: 42ms)
+ GET /v1/audience 200 in 65ms (next.js: 13ms, application-code: 52ms)
+ GET /v1/audience 200 in 74ms (next.js: 13ms, application-code: 61ms)

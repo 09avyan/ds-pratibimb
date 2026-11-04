@@ -197,7 +197,7 @@ const SCENE_MS: Record<SceneId, number> = { cover: 8000, how: 9000, record: 8500
  * A word made of particles for the intro: they gather into the text from a scattered cloud, hold, drift
  * apart, and gather again, every few seconds. Drawn in the version's accent colour on a small canvas.
  */
-function ParticleWord({ text }: { text: string }) {
+function ParticleWord({ text, className = "" }: { text: string; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = ref.current;
@@ -223,24 +223,24 @@ function ParticleWord({ text }: { text: string }) {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let raf = 0; const start = performance.now();
     const frame = (now: number) => {
-      const t = ((now - start) / 1000) % 7;
-      // 0-2.2 s gather, 2.2-5.2 s hold with a slight shimmer, 5.2-7 s drift apart.
-      const k = reduce ? 1 : t < 2.2 ? 1 - (1 - t / 2.2) ** 3 : t < 5.2 ? 1 : 1 - ((t - 5.2) / 1.8) ** 2;
+      const t = ((now - start) / 1000) % 8;
+      // 0-1.6 s gather, 1.6-7.1 s hold with a slight shimmer, 7.1-8 s drift apart, then gather again.
+      const k = reduce ? 1 : t < 1.6 ? 1 - (1 - t / 1.6) ** 3 : t < 7.1 ? 1 : 1 - ((t - 7.1) / .9) ** 2;
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = colour;
       for (const p of parts) {
-        const jx = t >= 2.2 && t < 5.2 && !reduce ? Math.sin(now / 400 + p.tx) * .6 : 0;
+        const jx = t >= 1.6 && t < 7.1 && !reduce ? Math.sin(now / 400 + p.tx) * .6 : 0;
         p.x = p.sx + (p.tx - p.sx) * k + jx; p.y = p.sy + (p.ty - p.sy) * k;
         ctx.globalAlpha = .35 + .65 * k;
         ctx.fillRect(p.x, p.y, p.r * 2, p.r * 2);
       }
-      if (t > 6.95) for (const p of parts) { p.sx = Math.random() * w; p.sy = Math.random() * h; }
+      if (t > 7.95) for (const p of parts) { p.sx = Math.random() * w; p.sy = Math.random() * h; }
       if (!reduce) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
   }, [text]);
-  return <canvas className="ed-particles" ref={ref} aria-hidden="true"/>;
+  return <canvas className={`ed-particles ${className}`} ref={ref} aria-hidden="true"/>;
 }
 
 /** How a round works, told with one example: the story, the price's answer, the money a trade made. */
@@ -252,7 +252,15 @@ function HowItWorks({ stocks, visit, still }: { stocks: Stock[]; visit: number; 
   const name = shortName(stock.symbol);
   const up = example.move >= 0;
   const move = example.move * shown;
-  return <div className="ed-how">
+  // The chart tells the same story: calm trading, the story breaks (the marker), the price answers.
+  const pts = Array.from({ length: 41 }, (_, i) => {
+    const calm = Math.sin(i * 1.7) * 3 + Math.sin(i * .6) * 2;
+    const after = i > 14 ? (up ? -1 : 1) * Math.min(1, (i - 14) / 9) * 42 : 0;
+    return { x: i * 25, y: 70 + calm + after };
+  });
+  const line = smoothPath(pts);
+  const tail = smoothPath(pts.slice(14));
+  return <div className="ed-how-wrap"><div className="ed-how">
     <div className="ed-how-col" style={{ "--n": 0 } as React.CSSProperties}>
       <h3>A story breaks.</h3>
       <p className="ed-how-story">{example.headline(name)}</p>
@@ -266,6 +274,13 @@ function HowItWorks({ stocks, visit, still }: { stocks: Stock[]; visit: number; 
       <h3>You keep the difference.</h3>
       <p className="ed-how-figure"><b className="up">+{money(50 * stock.price * Math.abs(move) / 100, 0)}</b><span>on 50 shares, {up ? "bought" : "sold short"} when the story broke.</span></p>
     </div>
+  </div>
+  <svg className={`ed-story ${up ? "up" : "down"}`} viewBox="0 0 1000 140" preserveAspectRatio="none" aria-hidden="true">
+    <path className="ed-story-gain" d={`${tail} L 1000 ${pts[14].y} L 350 ${pts[14].y} Z`}/>
+    <path className="ed-story-line" d={line} pathLength={1}/>
+    <line className="ed-story-mark" x1="350" x2="350" y1="0" y2="140"/>
+  </svg>
+  <p className="ed-story-label" aria-hidden="true"><span>Trading as usual</span><span>The story breaks</span><span>The price answers</span></p>
   </div>;
 }
 
@@ -316,7 +331,7 @@ function InviteScene({ world, still }: { world: PublicWorld | null; still: boole
         <div className="ed-record-main">
           <h2 className="ed-head is-short">{record ? "Today's record" : "No record yet today"}</h2>
           {record ? <>
-            <p className="ed-figure up">{signedMoney(record.pnl)}</p>
+            <p className="ed-figure up"><span className="ed-sr">{signedMoney(record.pnl)}</span><ParticleWord text={signedMoney(record.pnl)} className="is-figure"/></p>
             <p className="ed-lede">Set by Terminal {pad2(record.terminalNumber)} in batch {record.batch}, a return of {signedPct(record.returnPct)} on ₹10,00,000.</p>
           </> : <p className="ed-lede">The first winner of the day sets the number everyone else has to beat.</p>}
         </div>
@@ -326,6 +341,7 @@ function InviteScene({ world, still }: { world: PublicWorld | null; still: boole
       </div>}
       {scene === "last" && leader && <>
         <h2 className="ed-head">Terminal {pad2(leader.terminalNumber)} won the last round.</h2>
+        <ParticleWord text={signedMoney(leader.pnl)} className="is-last"/>
         <div className="ed-facts">
           <p style={{ "--n": 0 } as React.CSSProperties}><b className={leader.pnl >= 0 ? "up" : "down"}>{signedMoney(leader.pnl)}</b><span>made in {minuteWords} minutes</span></p>
           {best && <p style={{ "--n": 1 } as React.CSSProperties}><b>{shortName(best.symbol)}</b><span>stock of the round, {signedPct(changePct(best))}</span></p>}
@@ -334,6 +350,7 @@ function InviteScene({ world, still }: { world: PublicWorld | null; still: boole
       </>}
       {scene === "seat" && <>
         <h2 className="ed-head">Take a seat.</h2>
+        <ol className="ed-seats" aria-label="Ten terminals">{Array.from({ length: 10 }, (_, i) => <li key={i} style={{ "--n": i } as React.CSSProperties}><span>Terminal</span><b>{pad2(i + 1)}</b></li>)}</ol>
         <p className="ed-lede">Ten terminals, ₹10,00,000 each. {world?.status === "closed" ? "The next round starts soon." : "Trading opens at the bell."}</p>
       </>}
     </div>
