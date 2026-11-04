@@ -44,7 +44,9 @@ const rand = (n: number) => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453
 const textSeed = (text: string) => [...text].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 7) % 1_000_003;
 const id = () => crypto.randomUUID();
 const newsScope = (news: Pick<News, "scope" | "symbols" | "sector">): NonNullable<News["scope"]> => news.scope ?? (news.symbols?.length ? "stock" : news.sector === "ALL" ? "economy" : "sector");
-const NEWS_IMPACT_SCALE: Record<News["type"], number> = { major: 3.8, minor: 3.5 };
+// Expected move = severity × scale: about 4% for a major story, 1.5% for a minor one (was 6.5% and 2.1%,
+// which let three same-way economy stories swing a batch by 18–20%).
+const NEWS_IMPACT_SCALE: Record<News["type"], number> = { major: 2.4, minor: 2.6 };
 const NEWS_IMPACT_VARIATION = .1;
 const NEWS_SETTINGS_VERSION = 3;
 export function newsImpactRange(news: Pick<News, "type" | "severity">) {
