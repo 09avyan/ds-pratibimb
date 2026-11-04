@@ -193,6 +193,56 @@ let inviteProgress = 0;
 type SceneId = "cover" | "how" | "record" | "last" | "seat";
 const SCENE_MS: Record<SceneId, number> = { cover: 8000, how: 9000, record: 8500, last: 7500, seat: 6500 };
 
+/**
+ * A word made of particles for the intro: they gather into the text from a scattered cloud, hold, drift
+ * apart, and gather again, every few seconds. Drawn in the version's accent colour on a small canvas.
+ */
+function ParticleWord({ text }: { text: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    const dpr = Math.min(1.5, window.devicePixelRatio || 1);
+    const rect = canvas.getBoundingClientRect();
+    const w = canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    const h = canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    const colour = getComputedStyle(canvas).color || "#fff";
+    // Sample the text's pixels into target points.
+    const off = document.createElement("canvas"); off.width = w; off.height = h;
+    const o = off.getContext("2d")!;
+    o.fillStyle = "#000"; o.textAlign = "center"; o.textBaseline = "middle";
+    let size = h * .9; o.font = `900 ${size}px ${getComputedStyle(canvas).fontFamily}`;
+    while (o.measureText(text).width > w * .94 && size > 10) { size *= .92; o.font = `900 ${size}px ${getComputedStyle(canvas).fontFamily}`; }
+    o.fillText(text, w / 2, h / 2);
+    const data = o.getImageData(0, 0, w, h).data;
+    const step = Math.max(3, Math.round(Math.sqrt((w * h) / 9000)));
+    const targets: [number, number][] = [];
+    for (let y = 0; y < h; y += step) for (let x = 0; x < w; x += step) if (data[(y * w + x) * 4 + 3] > 128) targets.push([x, y]);
+    const parts = targets.map(([tx, ty]) => ({ tx, ty, x: Math.random() * w, y: Math.random() * h, sx: Math.random() * w, sy: Math.random() * h, r: step * (.32 + Math.random() * .22) }));
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0; const start = performance.now();
+    const frame = (now: number) => {
+      const t = ((now - start) / 1000) % 7;
+      // 0-2.2 s gather, 2.2-5.2 s hold with a slight shimmer, 5.2-7 s drift apart.
+      const k = reduce ? 1 : t < 2.2 ? 1 - (1 - t / 2.2) ** 3 : t < 5.2 ? 1 : 1 - ((t - 5.2) / 1.8) ** 2;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = colour;
+      for (const p of parts) {
+        const jx = t >= 2.2 && t < 5.2 && !reduce ? Math.sin(now / 400 + p.tx) * .6 : 0;
+        p.x = p.sx + (p.tx - p.sx) * k + jx; p.y = p.sy + (p.ty - p.sy) * k;
+        ctx.globalAlpha = .35 + .65 * k;
+        ctx.fillRect(p.x, p.y, p.r * 2, p.r * 2);
+      }
+      if (t > 6.95) for (const p of parts) { p.sx = Math.random() * w; p.sy = Math.random() * h; }
+      if (!reduce) raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [text]);
+  return <canvas className="ed-particles" ref={ref} aria-hidden="true"/>;
+}
+
 /** How a round works, told with one example: the story, the price's answer, the money a trade made. */
 function HowItWorks({ stocks, visit, still }: { stocks: Stock[]; visit: number; still: boolean }) {
   const example = DEMO[visit % DEMO.length];
@@ -251,6 +301,7 @@ function InviteScene({ world, still }: { world: PublicWorld | null; still: boole
     <div className="ed-scene" key={turn}>
       {scene === "cover" && <>
         <h2 className="ed-head">Grow ₹10,00,000 in {minuteWords} minutes.</h2>
+        <ParticleWord text="₹10L"/>
         <p className="ed-lede">Dalaal Street is the trading game at Pratibimb. Read the news as it breaks, trade 25 companies, and finish with the most money. Free to play, no experience needed.</p>
         <div className="ed-movers" aria-label="Biggest moves right now">
           <h3>Moving right now</h3>

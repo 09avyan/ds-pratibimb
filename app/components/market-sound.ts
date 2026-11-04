@@ -21,10 +21,12 @@ function rig(ctx: AudioContext): Rig {
   const existing = rigs.get(ctx);
   if (existing) return existing;
   const master = ctx.createGain();
-  master.gain.value = .95;
+  // A hall-friendly level, and the hiss taken off the top so nothing sounds harsh on big speakers.
+  master.gain.value = .62;
+  const soften = ctx.createBiquadFilter(); soften.type = "lowpass"; soften.frequency.value = 7000; soften.Q.value = .5;
   const limiter = ctx.createDynamicsCompressor();
-  limiter.threshold.value = -10; limiter.knee.value = 8; limiter.ratio.value = 8; limiter.attack.value = .003; limiter.release.value = .25;
-  master.connect(limiter).connect(ctx.destination);
+  limiter.threshold.value = -14; limiter.knee.value = 10; limiter.ratio.value = 6; limiter.attack.value = .004; limiter.release.value = .3;
+  master.connect(soften).connect(limiter).connect(ctx.destination);
   const seconds = 2.6, rate = ctx.sampleRate, length = Math.floor(seconds * rate);
   const impulse = ctx.createBuffer(2, length, rate);
   for (let channel = 0; channel < 2; channel++) {
@@ -184,7 +186,7 @@ function bellBuffer(ctx: BaseAudioContext, kind: BellKind) {
   const outL = buffer.getChannelData(0), outR = buffer.getChannelData(1);
   let peak = 0;
   for (let n = 0; n < length; n++) {
-    outL[n] = (bl[n] ?? 0) + (al[n] ?? 0) * .9; outR[n] = (br[n] ?? 0) + (ar[n] ?? 0) * .9;
+    outL[n] = (bl[n] ?? 0) + (al[n] ?? 0) * .4; outR[n] = (br[n] ?? 0) + (ar[n] ?? 0) * .4;
     peak = Math.max(peak, Math.abs(outL[n]), Math.abs(outR[n]));
   }
   const scale = peak > 0 ? .62 / peak : 1;
@@ -249,19 +251,19 @@ export function fanfare(ctx: AudioContext, delay: number, roll = 1.6) {
   const start = ctx.currentTime + delay;
   for (let t = 0; t < roll; t += 1 / 22) {
     const swell = .25 + .75 * (t / roll) ** 1.6;
-    knock(ctx, out, start + t + (Math.sin(t * 91) * .004), 2400, .7, .9 * swell, .05);
+    knock(ctx, out, start + t + (Math.sin(t * 91) * .004), 1900, .9, .45 * swell, .045);
   }
   const hit = start + roll;
   // Cymbal: bright noise with a long tail.
   const crash = ctx.createBufferSource(); crash.buffer = noise(ctx); crash.loop = true;
-  const high = ctx.createBiquadFilter(); high.type = "highpass"; high.frequency.value = 5200;
+  const high = ctx.createBiquadFilter(); high.type = "highpass"; high.frequency.value = 6500;
   const crashGain = ctx.createGain();
-  crashGain.gain.setValueAtTime(0, hit); crashGain.gain.linearRampToValueAtTime(.55, hit + .01); crashGain.gain.exponentialRampToValueAtTime(.0001, hit + 2.4);
+  crashGain.gain.setValueAtTime(0, hit); crashGain.gain.linearRampToValueAtTime(.16, hit + .01); crashGain.gain.exponentialRampToValueAtTime(.0001, hit + 1.8);
   crash.connect(high).connect(crashGain).connect(out); crash.start(hit); crash.stop(hit + 2.5);
   // Bass drum.
   const kick = ctx.createOscillator(); const kickGain = ctx.createGain();
   kick.type = "sine"; kick.frequency.setValueAtTime(120, hit); kick.frequency.exponentialRampToValueAtTime(45, hit + .3);
-  kickGain.gain.setValueAtTime(1, hit); kickGain.gain.exponentialRampToValueAtTime(.0001, hit + .45);
+  kickGain.gain.setValueAtTime(.6, hit); kickGain.gain.exponentialRampToValueAtTime(.0001, hit + .45);
   kick.connect(kickGain).connect(out); kick.start(hit); kick.stop(hit + .5);
   // Brass chord: C major, a short pickup then the held chord.
   const brass = ctx.createBiquadFilter(); brass.type = "lowpass"; brass.frequency.setValueAtTime(900, hit); brass.frequency.linearRampToValueAtTime(2600, hit + .15);
@@ -270,7 +272,7 @@ export function fanfare(ctx: AudioContext, delay: number, roll = 1.6) {
     for (const detune of [-6, 6]) {
       const osc = ctx.createOscillator(); const gain = ctx.createGain();
       osc.type = "sawtooth"; osc.frequency.value = frequency; osc.detune.value = detune;
-      gain.gain.setValueAtTime(0, hit); gain.gain.linearRampToValueAtTime(.05 - i * .006, hit + .04); gain.gain.setValueAtTime(.05 - i * .006, hit + .9); gain.gain.exponentialRampToValueAtTime(.0001, hit + 1.9);
+      gain.gain.setValueAtTime(0, hit); gain.gain.linearRampToValueAtTime(.032 - i * .004, hit + .06); gain.gain.setValueAtTime(.032 - i * .004, hit + .9); gain.gain.exponentialRampToValueAtTime(.0001, hit + 1.9);
       osc.connect(gain).connect(brass); osc.start(hit); osc.stop(hit + 2);
     }
   });
@@ -282,11 +284,11 @@ let applauseBuffer: AudioBuffer | null = null;
 export function applause(ctx: AudioContext, delay: number) {
   const { out } = rig(ctx);
   if (!applauseBuffer || applauseBuffer.sampleRate !== ctx.sampleRate) {
-    const [l, r] = renderApplause(ctx.sampleRate, 4.5, 0, 9);
+    const [l, r] = renderApplause(ctx.sampleRate, 3.2, 0, 9);
     applauseBuffer = ctx.createBuffer(2, l.length, ctx.sampleRate);
     let peak = 0;
     for (let n = 0; n < l.length; n++) peak = Math.max(peak, Math.abs(l[n]), Math.abs(r[n]));
-    const scale = peak > 0 ? .7 / peak : 1;
+    const scale = peak > 0 ? .3 / peak : 1;
     applauseBuffer.getChannelData(0).set(l.map(v => v * scale));
     applauseBuffer.getChannelData(1).set(r.map(v => v * scale));
   }
@@ -299,7 +301,7 @@ export function applause(ctx: AudioContext, delay: number) {
 /** The awards landing: one bright chime per award, each a step higher, starting `delay` seconds from now. */
 export function chimes(ctx: AudioContext, delay: number, count: number, gap: number) {
   const { out } = rig(ctx);
-  for (let i = 0; i < count; i++) gongStrike(ctx, out, ctx.currentTime + delay + i * gap, 880 * 2 ** (i * 4 / 12), .22);
+  for (let i = 0; i < count; i++) gongStrike(ctx, out, ctx.currentTime + delay + i * gap, 880 * 2 ** (i * 4 / 12), .12);
 }
 
 /** A soft confirmation chime when sound is unlocked. */
