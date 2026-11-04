@@ -30,9 +30,9 @@
     "semantic_hash": ""
   },
   "app/api/game/route.ts": {
-    "mtime": 1793760930.2732906,
-    "seen": 1793761036.9893384,
-    "ast_hash": "af973ef1a151c36c297de07103173d3f",
+    "mtime": 1793772602.3722763,
+    "seen": 1793772834.4453325,
+    "ast_hash": "63b7405c8040591eab8bcfd0aaa7d386",
     "semantic_hash": ""
   },
   "app/api/host/login/route.ts": {
@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793770274.2399237,
-    "seen": 1793770390.926007,
-    "ast_hash": "6986f83c3c339f9fd14a7f3d6f9e07ba",
+    "mtime": 1793772728.5190463,
+    "seen": 1793772834.4454405,
+    "ast_hash": "2ef8950e636810c9251e2ac287ad8fc6",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/components/trader.tsx": {
-    "mtime": 1793771570.3218632,
-    "seen": 1793771671.8052595,
-    "ast_hash": "c662db3e22de818682f29653bee5d15d",
+    "mtime": 1793772372.9845665,
+    "seen": 1793772834.445608,
+    "ast_hash": "b761b0bdf34eac5aaa7ce854dfe14941",
     "semantic_hash": ""
   },
   "app/host/page.tsx": {
@@ -168,8 +168,8 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793770387.5792706,
-    "seen": 1793770390.9264054,
+    "mtime": 1793772831.2667267,
+    "seen": 1793772834.4458241,
     "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
     "semantic_hash": ""
   },
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/game/store.ts": {
-    "mtime": 1793762366.637645,
-    "seen": 1793766176.2718754,
-    "ast_hash": "b9fd8561cfe16654ffabc4053ff3ea6b",
+    "mtime": 1793772346.18064,
+    "seen": 1793772834.4464052,
+    "ast_hash": "037fbdf1341632d4006db7e1b213d78d",
     "semantic_hash": ""
   },
   "src/game/terminals.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793771575.96162,
-    "seen": 1793771671.8063354,
-    "ast_hash": "7c9dd73910729eedf0b3c04a10c515cc",
+    "mtime": 1793772831.2592475,
+    "seen": 1793772834.4465427,
+    "ast_hash": "7d7cb4579975916c5636493771298bcf",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -396,9 +396,9 @@
     "semantic_hash": ""
   },
   "app/components/trading-motion.tsx": {
-    "mtime": 1793707967.70638,
-    "seen": 1793708335.743432,
-    "ast_hash": "7f9cab782481695d05265e536d2349d5",
+    "mtime": 1793772728.521806,
+    "seen": 1793772834.4456098,
+    "ast_hash": "f8d115cbf00752677f935cd56ac7437f",
     "semantic_hash": ""
   },
   "scripts/brain-window-check.cjs": {
@@ -450,9 +450,9 @@
     "semantic_hash": ""
   },
   "app/components/wrap-screen.tsx": {
-    "mtime": 1793727420.376645,
-    "seen": 1793761036.9897106,
-    "ast_hash": "a23d294b2acee9124df88b70474253bc",
+    "mtime": 1793772372.9850821,
+    "seen": 1793772834.445611,
+    "ast_hash": "93d98d974b61cd657cc8b628a7d1a5b2",
     "semantic_hash": ""
   },
   "scripts/hall-of-fame-check.cjs": {

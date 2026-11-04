@@ -58,7 +58,44 @@ const NEXT_STEP: Record<string, string> = {
 const signed = (value: number, digits = 2) => `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(digits)}%`;
 const PLACE = ["1st", "2nd", "3rd"];
 
-export function WrapScreen({ report, world, motion, cta, onCta, autoReady }: { report: Report; world: PublicWorld | null; motion: boolean; cta: string; onCta: () => void; autoReady: number | null }) {
+type FeedbackEntry = { rating: number; learned: number | null; comment: string };
+
+/** A three-question card: fun (1–5), learned (1–5), optional comment. One send per terminal per batch. */
+function FeedbackCard({ batch, onSend, onStart }: { batch: number; onSend: (entry: FeedbackEntry) => Promise<void>; onStart: () => void }) {
+  const key = `ds-feedback-${batch}`;
+  const [rating, setRating] = useState(0);
+  const [learned, setLearned] = useState(0);
+  const [comment, setComment] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">(() => { try { return localStorage.getItem(key) ? "sent" : "idle"; } catch { return "idle"; } });
+  const [error, setError] = useState("");
+  const touch = () => { if (state === "idle") onStart(); };
+  if (state === "sent") return <div className="wrap-card wrap-feedback is-sent" role="status"><h3>Thank you!</h3><p>Your feedback for this round is in.</p></div>;
+  const scale = (label: string, value: number, set: (n: number) => void, low: string, high: string) => <fieldset className="fb-scale">
+    <legend>{label}</legend>
+    <div role="radiogroup" aria-label={label}>{[1, 2, 3, 4, 5].map(n => <button type="button" key={n} role="radio" aria-checked={value === n} className={value >= n ? "is-on" : ""} onClick={() => { touch(); set(n); }}>{n}</button>)}</div>
+    <small><span>{low}</span><span>{high}</span></small>
+  </fieldset>;
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!rating || state === "sending") return;
+    setState("sending"); setError("");
+    try {
+      await onSend({ rating, learned: learned || null, comment: comment.trim() });
+      try { localStorage.setItem(key, "1"); } catch {}
+      setState("sent");
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not send."); setState("error"); }
+  };
+  return <form className="wrap-card wrap-feedback" onSubmit={submit} onFocus={touch}>
+    <h3>How was the game?</h3>
+    {scale("How much fun was it?", rating, setRating, "Meh", "Loved it")}
+    {scale("How much did you learn?", learned, setLearned, "Nothing new", "A lot")}
+    <label className="fb-comment"><span>Anything to tell us? <small>(optional)</small></span><textarea maxLength={500} rows={2} value={comment} onChange={e => { touch(); setComment(e.target.value); }} placeholder="What you liked, what confused you…"/></label>
+    <button type="submit" className="outline-button fb-send" disabled={!rating || state === "sending"}>{state === "sending" ? "Sending…" : "Send feedback"}</button>
+    {state === "error" && <small className="fb-error" role="alert">{error} Try again.</small>}
+  </form>;
+}
+
+export function WrapScreen({ report, world, motion, cta, onCta, autoReady, onFeedback, onFeedbackStart }: { report: Report; world: PublicWorld | null; motion: boolean; cta: string; onCta: () => void; autoReady: number | null; onFeedback?: (entry: FeedbackEntry) => Promise<void>; onFeedbackStart?: () => void }) {
   const who = persona(report);
   const value = useCount(report.value, 1_000_000, !motion);
   const up = report.pnl >= 0;
@@ -130,6 +167,7 @@ export function WrapScreen({ report, world, motion, cta, onCta, autoReady }: { r
         {autoReady !== null && <small className="wrap-auto"><i style={{ "--left": autoReady } as React.CSSProperties}/>Back to the ready screen in {autoReady}s</small>}
         <small className="wrap-note">A fictional learning simulation, not investment advice.</small>
       </div>
+      {onFeedback && <FeedbackCard key={world?.batch ?? 0} batch={world?.batch ?? 0} onSend={onFeedback} onStart={onFeedbackStart ?? (() => {})}/>}
     </div>
   </section>;
 }

@@ -91,7 +91,7 @@
 :root[data-theme="dark"] .terminal.ui-broadcast .latest-brief {border-color:#536a6d;background:#293e43;color:#f1eee4;}
 @media(max-width:1000px) {.terminal.ui-broadcast .trading-grid {grid-template-columns:minmax(0,1fr)!important}.terminal.ui-broadcast .watch-area,.terminal.ui-broadcast .trade-column {overflow:visible!important}.terminal.ui-broadcast .watch-area {padding:9px}}
 @media(max-width:600px) {.terminal.ui-broadcast .workspace {padding-inline:11px}.terminal.ui-broadcast .stock-grid {grid-template-columns:repeat(auto-fit,minmax(min(100%,153px),1fr))}.terminal.ui-broadcast .focus-card {padding:10px}.terminal.ui-broadcast .focus-trade-button {display:none}}
-@media(prefers-reduced-motion:reduce) {.terminal.ui-broadcast *,.audience-wall.ui-broadcast * {transition-duration:.01ms!important;animation-duration:.01ms!important}}
+@media(prefers-reduced-motion: reduce) and (scripting: none) {.terminal.ui-broadcast *,.audience-wall.ui-broadcast * {transition-duration:.01ms!important;animation-duration:.01ms!important}}
 
 /* Local preview tile: signal board is intentionally unlike V4's flowing forms. */
 .preview-choice.choice-broadcast {--preview-a:#d89a40;--preview-b:#326b70;border-color:#9daead;border-radius:6px;background:#f5f6f1;box-shadow:0 8px 20px #19333c15;}

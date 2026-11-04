@@ -80,7 +80,7 @@
 :root[data-theme="dark"] .terminal.ui-gallery .latest-brief b {color:#eee8f7;}
 @media(max-width:1000px) {.terminal.ui-gallery .trading-grid {grid-template-columns:minmax(0,1fr)!important}.terminal.ui-gallery .watch-area,.terminal.ui-gallery .trade-column {overflow:visible!important}}
 @media(max-width:600px) {.terminal.ui-gallery .workspace {padding-inline:12px}.terminal.ui-gallery .stock-grid {grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:8px}.terminal.ui-gallery .stock-card {min-height:115px;padding:9px}.terminal.ui-gallery .focus-card {padding:12px;border-radius:21px}.terminal.ui-gallery .inline-order-ticket {padding-top:12px}}
-@media(prefers-reduced-motion:reduce) {.terminal.ui-gallery *,.audience-wall.ui-gallery * {transition-duration:.01ms!important;animation-duration:.01ms!important}}
+@media(prefers-reduced-motion: reduce) and (scripting: none) {.terminal.ui-gallery *,.audience-wall.ui-gallery * {transition-duration:.01ms!important;animation-duration:.01ms!important}}
 .preview-choice.choice-gallery {--preview-a:#765bad;--preview-b:#6eacc0;border:1px solid #d9d3e5;border-radius:24px 16px 25px 17px;background:#fbf8fd;box-shadow:0 13px 30px #51406b18;}
 .preview-choice.choice-gallery .choice-art {color:#f7f3fb;background:radial-gradient(ellipse at 8% 90%,#aecbda,transparent 45%),radial-gradient(ellipse at 95% 0,#b59aca,transparent 46%),linear-gradient(135deg,#645582,#85709b);}
 .preview-choice.choice-gallery .choice-art-header {color:#f8f4fc;background:#53456e;border-radius:14px 23px 14px 23px;}

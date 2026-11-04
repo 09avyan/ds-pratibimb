@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { advance, advanceForPoll, executeTrade, hostAction, newPlayer, settle, toPublic } from "@/game/engine";
 import { recordGameLog } from "@/game/logs";
 import { TERMINAL_ACTIVE_WINDOW_MS, TERMINAL_COUNT } from "@/game/terminals";
-import { mutate, databaseSlow } from "@/game/store";
+import { mutate, databaseSlow, submitFeedback } from "@/game/store";
 import type { Mode, World } from "@/game/types";
 
 export const runtime = "nodejs";
@@ -78,6 +78,17 @@ export async function POST(request: NextRequest) {
     if (!terminalNumber) return errorResponse(new Error(mode === "test" ? "A terminal code is required. Open /test/01 through /test/10." : "A terminal code is required. Open /play/01 through /play/10."));
     if (!validSession(sessionId)) return errorResponse(new Error("Refresh to create a device session."));
     const requestId = typeof body.requestId === "string" && /^[\w-]{8,80}$/.test(body.requestId) ? body.requestId : undefined;
+    if (action === "feedback") {
+      // Kept out of the game state: no read, no lock, no save of the shared row.
+      const rating = Number(body.rating), learned = body.learned == null ? null : Number(body.learned), batch = Number(body.batch);
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return errorResponse(new Error("Pick a rating from 1 to 5."));
+      if (learned !== null && (!Number.isInteger(learned) || learned < 1 || learned > 5)) return errorResponse(new Error("Pick a rating from 1 to 5."));
+      if (!Number.isInteger(batch) || batch < 0 || batch > 100000) return errorResponse(new Error("Unknown batch."));
+      const comment = typeof body.comment === "string" ? body.comment.slice(0, 500) : "";
+      if (mode === "test") return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+      await submitFeedback(mode, { batch, terminal: terminalNumber, rating, learned, comment });
+      return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+    }
     if (action === "trade" && !["Buy", "Sell", "Short"].includes(body.side)) return errorResponse(new Error("Choose Buy, Sell or Short."));
     const { world, result } = await mutate(mode, state => {
       advance(state);
