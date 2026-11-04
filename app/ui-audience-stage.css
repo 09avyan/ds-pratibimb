@@ -1282,3 +1282,23 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 }
 .stage-countdown.is-plain .cd-dial strong { animation: ed-count .45s cubic-bezier(.2, .8, .2, 1) both !important; }
 @keyframes ed-count { from { opacity: 0; transform: scale(1.12); } to { opacity: 1; transform: none; } }
+
+/* ======================================================================
+   Complete and readable from across the hall.
+   ====================================================================== */
+/* Headlines are shown whole: up to four lines, at one size in every version. */
+.stage-news-cards p { -webkit-line-clamp: 4; }
+.v-orbit .stage-news-cards.count-3 p, .v-broadcast .stage-news-cards.count-3 p { font-size: calc(25 * var(--u)); }
+.v-orbit .stage-news-cards.count-2 p, .v-broadcast .stage-news-cards.count-2 p { font-size: calc(28 * var(--u)); }
+/* A company in the news carries a slim accent bar along its top, not an outline. */
+.stage-tile.is-news { box-shadow: none !important; }
+.stage .stage-tile.is-news::before { position: absolute; top: 0; right: 0; left: 0; z-index: 3; display: block !important; width: auto; height: calc(6 * var(--u)); border-radius: 0; background: var(--accent); content: ""; opacity: 1; transform: none; animation: none; }
+/* V6: the records were too small to read as records at this size and looked like stray dots. */
+.v-conservatory .stage-tile:not(.is-news)::before { display: none !important; }
+/* Standings text set larger. */
+.lb-who small { font-size: max(12px, calc(18 * var(--u))); }
+.lb-label { font-size: max(12px, calc(17 * var(--u))); letter-spacing: .04em; }
+/* The bells prompt waits in the header's top-right corner, where it covers no prices. */
+.stage .stage-sound-prompt { top: calc(118 * var(--u)); right: calc(24 * var(--u)); bottom: auto; left: auto; transform: none; padding: calc(10 * var(--u)) calc(18 * var(--u)); box-shadow: none; }
+.stage .stage-sound-prompt b { font-size: calc(22 * var(--u)); }
+.stage .stage-sound-prompt small { display: none; }
