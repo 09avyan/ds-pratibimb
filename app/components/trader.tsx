@@ -5,14 +5,14 @@ import { noteServerTime, serverNow } from "./server-clock";
 import type { Mode, Player, PublicWorld, Stock, Trade } from "@/game/types";
 import { AudienceStage, Odometer } from "./audience-stage";
 
-/** Default order size: about ₹50,000 (5% of ₹10L), rounded to a clean lot, never below 1 or above what the cash can buy. */
+/** Default order size: about ₹1,00,000 (10% of the ₹10L stake), rounded to a clean lot, never below 1 and never more than the free cash can buy. */
 export function defaultQuantity(price: number, cash = Infinity): number {
-  if (!(price > 0)) return 1;
-  const raw = 50_000 / price;
-  const step = raw >= 100 ? 50 : raw >= 20 ? 10 : raw >= 10 ? 5 : 1;
+  if (!(price > 0) || !Number.isFinite(price)) return 1;
+  const raw = 100_000 / price;
+  const step = raw >= 200 ? 50 : raw >= 50 ? 10 : raw >= 20 ? 5 : 1;
   let q = Math.max(1, Math.round(raw / step) * step);
-  const affordable = Math.floor(cash / price);
-  if (Number.isFinite(affordable) && affordable >= 1 && q > affordable) q = affordable;
+  const affordable = Number.isFinite(cash) ? Math.floor(Math.max(0, cash) / price) : Infinity;
+  if (affordable >= 1 && q > affordable) q = affordable;
   return q;
 }
 import { animationOffClasses, animationOn } from "@/game/animations";
