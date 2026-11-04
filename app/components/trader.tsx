@@ -4,6 +4,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { noteServerTime, serverNow } from "./server-clock";
 import type { Mode, Player, PublicWorld, Stock, Trade } from "@/game/types";
 import { AudienceStage, Odometer } from "./audience-stage";
+
+/** Default order size: about ₹50,000 (5% of ₹10L), rounded to a clean lot, never below 1 or above what the cash can buy. */
+export function defaultQuantity(price: number, cash = Infinity): number {
+  if (!(price > 0)) return 1;
+  const raw = 50_000 / price;
+  const step = raw >= 100 ? 50 : raw >= 20 ? 10 : raw >= 10 ? 5 : 1;
+  let q = Math.max(1, Math.round(raw / step) * step);
+  const affordable = Math.floor(cash / price);
+  if (Number.isFinite(affordable) && affordable >= 1 && q > affordable) q = affordable;
+  return q;
+}
 import { animationOffClasses, animationOn } from "@/game/animations";
 import { useSteadyBeat } from "./market-sound";
 import { announceTrade, TerminalMoments, TickPrice, TradeCelebration } from "./trading-motion";
@@ -141,7 +152,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const [selected, setSelected] = useState("RELIANCE");
   const [side, setSide] = useState<TradeSide>("Buy");
   const [chartType, setChartType] = useState<"Line" | "Candles">("Line");
-  const [quantity, setQuantity] = useState("50");
+  const [quantity, setQuantity] = useState("");
   const [amount, setAmount] = useState("");
   const [sector, setSector] = useState("All sectors");
   const [query, setQuery] = useState("");
@@ -240,6 +251,11 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   const shorts = useMemo(() => Object.entries(player?.shorts ?? {}).filter(([, p]) => p.qty > 0), [player?.shorts]);
   const totalLong = world && player ? invested.reduce((sum, [symbol, p]) => sum + p.qty * (world.stocks.find(s => s.symbol === symbol)?.price ?? 0), 0) : 0;
   const totalShort = world && player ? shortValue(world as never, player.shorts) : 0;
+  const stockPrice = stock?.price ?? 0;
+  const freeCash = player?.cash;
+  // Reset to a price-aware default whenever the chosen company changes (not on every tick).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (stockPrice > 0) setQuantity(String(defaultQuantity(stockPrice, freeCash))); }, [stock?.symbol, stockPrice > 0]);
   const qty = Math.max(0, Math.floor(Number(quantity) || 0));
   const calculatedAmount = qty * (stock?.price ?? 0);
   const ownedQty = player?.holdings[selected]?.qty ?? 0;
@@ -382,7 +398,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
               const longQty = player?.holdings[s.symbol]?.qty ?? 0;
               const shortQty = player?.shorts[s.symbol]?.qty ?? 0;
               const position = longQty > 0 ? `${longQty} shares` : shortQty > 0 ? `${shortQty} short` : "No position";
-              const onSelect = () => { setSelected(s.symbol); setQuantity("50"); setAmount(""); };
+              const onSelect = () => { setSelected(s.symbol); setAmount(""); };
               return <button key={s.symbol} type="button" className={`stock-card ${selected === s.symbol ? "selected" : ""}`} onClick={onSelect} aria-pressed={selected === s.symbol} aria-label={`Select ${s.name} to view its chart and trade controls`}>
                   <div className="stock-card-top"><Logo stock={s}/><div className="stock-id"><strong>{s.symbol}</strong><span>{s.name}</span></div></div>
                   <div className="stock-card-bottom"><TickPrice value={s.price}>{money(s.price)}</TickPrice><span className={`stock-change ${changePct(s) >= 0 ? "positive" : "negative"}`}>{changePct(s) >= 0 ? "+" : ""}{changePct(s).toFixed(2)}%</span></div>

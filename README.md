@@ -264,3 +264,9 @@ Press Space (or the button) to return to the ready state. Motion plays once in a
 
 ### Favour a terminal (News brain)
 Host → News brain → *Favour a terminal* makes the brain prefer stories that help one terminal's positions: good news on companies it holds, bad news on companies it has shorted. Stories that would hurt it rank last. Timing and spacing are unchanged. It is useful for helping a struggling first-timer; note that it tilts the competition, including the hall of fame. Players never see it. The choice is recorded in the game log, and choosing *Off* restores fair news. Covered by `scripts/favor-terminal-check.cjs`.
+
+## Order ticket, default quantity and best of the day
+
+- **Buy/Sell always in view.** On short screens (FHD at 125% scaling, ~730 px tall) the order ticket pins to the bottom of the trade column, and the chart and ticket shrink below 820 px of height, so the execute button never needs a scroll. This applies to all seven versions.
+- **Price-aware default quantity.** Picking a company pre-fills about ₹50,000 of shares (5% of ₹10L), rounded to a clean lot and capped to what the free cash can buy. Examples: ₹500 → 100, ₹1,200 → 40, ₹3,600 → 15, ₹11,000 → 4, never below 1. The default is set when the company changes, not on every price tick, so it never overwrites a number the player is typing.
+- **Best of the day podium.** About 12 s after a batch closes, the final standings on the audience wall turn into "Best of the day": the top 3 traders across all batches (from the hall of fame), each with batch, terminal, gain and return. Nothing extra is read from Supabase.
