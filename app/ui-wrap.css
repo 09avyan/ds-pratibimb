@@ -79,22 +79,30 @@
 .terminal.no-motion .wrap *, .terminal.no-motion .wrap { animation: none !important; }
 @media (prefers-reduced-motion: reduce) and (scripting: none) { .wrap, .wrap * { animation: none !important; } }
 
-/* Feedback: a full-width editorial strip under the badges and tip. */
-.wrap-feedback { grid-column: 1 / -1; display: grid; grid-template-columns: auto repeat(2, minmax(0, 1fr)) minmax(0, .7fr) minmax(0, 1.2fr) auto; align-items: end; gap: 28px; padding: 18px 0; margin-bottom: 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.wrap-feedback h3 { margin: 0; align-self: center; }
+/* Feedback: heading on top, then fun | learned | name, then comment | send. Every label and control shares one rhythm. */
+.wrap-feedback { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, .8fr); grid-template-areas: "head head head" "fun learn name" "note note send"; column-gap: 32px; row-gap: 12px; align-items: start; padding: 14px 0 16px; margin-bottom: 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.wrap-feedback h3 { grid-area: head; margin: 0; color: var(--ink); font: 800 18px / 1.2 var(--body); letter-spacing: -.01em; }
+.wrap-feedback .fb-scale:nth-of-type(1) { grid-area: fun; }
+.wrap-feedback .fb-scale:nth-of-type(2) { grid-area: learn; }
+.wrap-feedback .fb-name { grid-area: name; }
+.wrap-feedback .fb-comment:not(.fb-name) { grid-area: note; }
+.wrap-feedback .fb-send { grid-area: send; align-self: end; }
 .wrap-feedback.is-sent { display: flex; align-items: baseline; gap: 16px; }
 .wrap-feedback.is-sent p { margin: 0; color: var(--muted); }
-.fb-scale { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
-.fb-scale legend { padding: 0; margin-bottom: 8px; color: var(--ink); font: 700 14px var(--body); }
+.fb-scale { display: block; min-width: 0; margin: 0; padding: 0; border: 0; }
+.fb-scale legend { padding: 0; margin: 0 0 8px; color: var(--ink); font: 700 14px / 18px var(--body); }
 .fb-scale div { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.fb-scale button { min-height: 40px; border: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--ink); font: 700 15px var(--body); cursor: pointer; }
+.fb-scale button { height: 44px; border: 1px solid var(--line); border-radius: 0; background: var(--card); color: var(--ink); font: 700 15px var(--body); cursor: pointer; transition: background .15s, border-color .15s; }
+.fb-scale button:hover { border-color: var(--accent); }
 .fb-scale button.is-on { border-color: var(--accent); background: var(--accent); color: var(--card); }
-.fb-scale button:focus-visible, .fb-comment textarea:focus-visible, .fb-send:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.fb-scale small { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
-.fb-comment { display: grid; gap: 8px; min-width: 0; color: var(--ink); font: 700 14px var(--body); }
+.fb-scale button:focus-visible, .fb-comment input:focus-visible, .fb-comment textarea:focus-visible, .fb-send:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fb-scale small { margin-top: 4px; display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; line-height: 16px; }
+.fb-comment { display: grid; gap: 8px; min-width: 0; color: var(--ink); font: 700 14px / 18px var(--body); }
+.fb-comment > span { display: block; }
+.wrap-feedback .fb-comment:not(.fb-name) > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .fb-comment small { color: var(--muted); font-weight: 500; }
-.fb-name input { width: 100%; min-height: 40px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 0; background: var(--card); color: var(--ink); font: 500 15px var(--body); }
-.fb-comment textarea { width: 100%; resize: none; padding: 9px 11px; border: 1px solid var(--line); border-radius: 0; background: var(--card); color: var(--ink); font: 500 15px / 1.35 var(--body); }
-.fb-send { min-height: 44px; border-radius: 0; white-space: nowrap; }
+.fb-comment input, .fb-comment textarea { box-sizing: border-box; width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 0; background: var(--card); color: var(--ink); font: 500 15px var(--body); }
+.fb-comment textarea { padding: 11px 12px; resize: none; line-height: 1.35; }
+.fb-send { box-sizing: border-box; width: 100%; height: 44px; border-radius: 0; font-size: 15px !important; font-weight: 700; white-space: nowrap; }
 .fb-error { grid-column: 1 / -1; color: var(--down); font-size: 13px; }
-@media (max-width: 1100px) { .wrap-feedback { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .wrap-feedback h3, .fb-comment, .fb-send { grid-column: 1 / -1; } }
+@media (max-width: 1100px) { .wrap-feedback { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "head head" "fun learn" "name name" "note note" "send send"; } }

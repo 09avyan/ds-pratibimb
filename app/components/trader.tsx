@@ -303,12 +303,22 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [view]);
-  // After a hosted batch ends, the report stays up for 60 seconds (also after a refresh), then the terminal returns to the ready state by itself.
+  // After a hosted batch ends, the report stays up for 60 seconds when the batch closes on the player, then the terminal returns to the ready state by itself.
   const [autoReady, setAutoReady] = useState<number | null>(null);
   // Filling in feedback holds the report on screen (the auto-return would cut the player off mid-sentence).
   const [holdReport, setHoldReport] = useState(false);
   useEffect(() => { if (view !== "report") setHoldReport(false); }, [view]);
-  const autoReadyOn = view === "report" && mode !== "test" && world?.status === "closed" && !holdReport;
+  // The auto-return runs only when this page watched the batch close on a player still trading. After
+  // "Finish session" or a refresh the report stays until the button or Space is pressed.
+  const watched = useRef<{ status?: string; ended?: boolean; batch?: number }>({});
+  const [closedLive, setClosedLive] = useState(false);
+  useEffect(() => {
+    const before = watched.current;
+    if (world?.status === "closed" && before.status === "live" && before.ended === false && before.batch === world.batch) setClosedLive(true);
+    if (world?.status === "live" || world?.status === "countdown" || world?.status === "ready") setClosedLive(false);
+    watched.current = { status: world?.status, ended: player?.ended, batch: world?.batch };
+  }, [world?.status, world?.batch, player?.ended]);
+  const autoReadyOn = view === "report" && mode !== "test" && world?.status === "closed" && closedLive && !holdReport;
   const sendFeedback = async (entry: { rating: number; learned: number | null; comment: string; name: string }) => {
     const res = await fetch("/api/game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, sessionId, terminal, localPreview: preview, action: "feedback", batch: world?.batch ?? 0, ...entry }), signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Feedback could not be sent.");
@@ -391,7 +401,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
     <main className={`workspace ${view === "markets" ? "workspace-markets" : "workspace-wide"}`}>
       {isTest && <div className="autonomous-band"><span className="live-dot"/> TEST MARKET · ISOLATED PRACTICE <span>Six minute rounds use the same rules as a live session.</span></div>}
-      {world && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - clockNow) / 1000))} seconds` : world.status === "closed" ? isTest ? "Practice round complete" : "The batch has ended" : isTest ? "Practice round ready" : "The market is ready"}<span>{world.status === "countdown" ? "The market is starting on every device." : world.status === "closed" ? isTest ? "Start another isolated practice round when you’re ready." : "The report returns to the ready state on its own after 60 seconds." : isTest ? "Your isolated practice market is ready." : "The host will start the shared batch shortly."}</span>{isTest && (world.status === "closed" || world.status === "ready") && <button type="button" className="outline-button" disabled={busy} onClick={() => void send("sandbox-start")}>Start practice round</button>}</div>}
+      {world && world.status !== "live" && view === "markets" && <div className="market-state-banner"><span className="state-orb"/>{world.status === "countdown" ? `The market opens in ${Math.max(0, Math.ceil((world.startedAt - clockNow) / 1000))} seconds` : world.status === "closed" ? isTest ? "Practice round complete" : "The batch has ended" : isTest ? "Practice round ready" : "The market is ready"}<span>{world.status === "countdown" ? "The market is starting on every device." : world.status === "closed" ? isTest ? "Start another isolated practice round when you’re ready." : "Press Return to ready state on the report when you’re done." : isTest ? "Your isolated practice market is ready." : "The host will start the shared batch shortly."}</span>{isTest && (world.status === "closed" || world.status === "ready") && <button type="button" className="outline-button" disabled={busy} onClick={() => void send("sandbox-start")}>Start practice round</button>}</div>}
       {view === "markets" && stock && <>
         <StockPriceTicker stocks={world?.stocks ?? []}/>
         {latestNews.length > 0 && (dismissedNews === newsKey ? <button type="button" className="news-reopen" onClick={() => setDismissedNews("")}>News <span>{latestNews.length}</span></button> : <section className="market-news-feed" aria-label="Latest news set">
