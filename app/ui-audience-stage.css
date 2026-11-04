@@ -1261,12 +1261,15 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .v-default .place-1 .lb-terminal, .v-default:not(.stage-light) .place-1 .lb-terminal { text-shadow: none !important; }
 .stage-confetti i.tone-2 { background: var(--silver); }
 @media (prefers-reduced-motion: reduce) { .stage-curtains, .stage-breaking, .ed-open { animation: none !important; } .stage-curtains { display: none; } }
-/* The record spread fills the stage: the heading at the top, the figure and the ranking on the foot. */
-.scene-record .ed-scene { align-content: stretch; grid-template-rows: minmax(0, 1fr); }
-.ed-record { height: 100%; }
-.ed-record-main { grid-template-rows: auto 1fr auto; }
-.ed-record-main .ed-figure { align-self: end; }
-.ed-ranks { align-self: end; }
+/* The record spread: the heading, the record and its sentence as one block on the left, the next five
+   beside it, both centred on the stage. */
+.scene-record .ed-scene { align-content: center; }
+.ed-record { align-items: center; }
+.ed-record-main { grid-template-rows: none; align-content: center; gap: calc(18 * var(--u)); height: auto; }
+.ed-record-main .ed-head { margin-bottom: calc(8 * var(--u)); }
+.ed-record-main .ed-figure { font-size: calc(220 * var(--u)); }
+.ed-ranks { align-self: center; }
+.ed-ranks li { font-size: calc(42 * var(--u)); padding: calc(16 * var(--u)) 0; }
 /* Report labels in sentence case at a readable size; award names set larger. */
 .stage-report h3, .report-market-head small { color: var(--muted); font: 600 calc(22 * var(--u)) / 1.2 var(--head); letter-spacing: 0; text-transform: none; }
 .award strong { font-size: calc(40 * var(--u)); }
@@ -1302,3 +1305,14 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage .stage-sound-prompt { top: calc(118 * var(--u)); right: calc(24 * var(--u)); bottom: auto; left: auto; transform: none; padding: calc(10 * var(--u)) calc(18 * var(--u)); box-shadow: none; }
 .stage .stage-sound-prompt b { font-size: calc(22 * var(--u)); }
 .stage .stage-sound-prompt small { display: none; }
+/* The cover's particle word sits in the spread's empty top-right, in the accent colour. */
+.ed-particles { grid-column: 8 / -1; grid-row: 1; align-self: stretch; width: 100%; height: calc(260 * var(--u)); color: var(--accent); font-family: var(--num); }
+.scene-cover .ed-head { grid-column: 1 / span 7; }
+/* V7: a price tick no longer twists and snaps the whole panel; only the price colour changes. */
+.v-tangram .stage-tile[data-tick] { animation: none !important; }
+
+/* Standings: plain solid tracks, no dotted lines or glowing end dots. */
+.lb-bar::after { display: none !important; }
+.lb-row .lb-bar, .v-default .lb-row .lb-bar { height: calc(4 * var(--u)) !important; border-radius: 0 !important; background: var(--tone) !important; filter: none !important; box-shadow: none !important; }
+.v-gallery .lb-row .lb-bar { height: auto !important; background: color-mix(in srgb, var(--tone) 22%, transparent) !important; }
+.scene-cover .ed-head { font-size: calc(112 * var(--u)); }

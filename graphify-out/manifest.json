@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793761085.9307106,
-    "seen": 1793761330.8283782,
-    "ast_hash": "656799d56ec16b6934457191481a5c24",
+    "mtime": 1793765980.1899707,
+    "seen": 1793766176.2707396,
+    "ast_hash": "7d43c68651d1d7c5c7b046ce905ec435",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -78,9 +78,9 @@
     "semantic_hash": ""
   },
   "app/components/host-console.tsx": {
-    "mtime": 1793725861.6542668,
-    "seen": 1793727414.3034341,
-    "ast_hash": "793b44eaef04eceb3536b1d5ab8ac16d",
+    "mtime": 1793765127.4528167,
+    "seen": 1793766176.270794,
+    "ast_hash": "ec5bb9d13b52fe55e06c02540d3cda89",
     "semantic_hash": ""
   },
   "app/components/host-logs.tsx": {
@@ -168,8 +168,8 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793761327.7733142,
-    "seen": 1793761330.8291428,
+    "mtime": 1793765239.8131056,
+    "seen": 1793766176.2711883,
     "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
     "semantic_hash": ""
   },
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/game/store.ts": {
-    "mtime": 1793761430.6005185,
-    "seen": 1793761525.235541,
-    "ast_hash": "527d7280ed297d9590c26b90ccea4c97",
+    "mtime": 1793762366.637645,
+    "seen": 1793766176.2718754,
+    "ast_hash": "b9fd8561cfe16654ffabc4053ff3ea6b",
     "semantic_hash": ""
   },
   "src/game/terminals.ts": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793761522.377326,
-    "seen": 1793761525.235693,
-    "ast_hash": "4ec2de75c1b68948ba8eb324fbf3db08",
+    "mtime": 1793764556.282544,
+    "seen": 1793766176.2720184,
+    "ast_hash": "dd369ce38887c734b5d5024e3584530c",
     "semantic_hash": ""
   },
   "app/icon.png": {
@@ -432,9 +432,9 @@
     "semantic_hash": ""
   },
   "app/components/market-sound.ts": {
-    "mtime": 1793721995.8943825,
-    "seen": 1793722786.6420777,
-    "ast_hash": "c5a177736a28f51c1d1fbc7cacfd1024",
+    "mtime": 1793766017.8084748,
+    "seen": 1793766176.2708461,
+    "ast_hash": "4eb50e2e756d89d99ed8ddfafb1ef655",
     "semantic_hash": ""
   },
   "app/components/server-clock.ts": {
