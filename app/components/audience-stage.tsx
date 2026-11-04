@@ -220,7 +220,7 @@ function ParticleWord({ text, className = "" }: { text: string; className?: stri
     const targets: [number, number][] = [];
     for (let y = 0; y < h; y += step) for (let x = 0; x < w; x += step) if (data[(y * w + x) * 4 + 3] > 128) targets.push([x, y]);
     const parts = targets.map(([tx, ty]) => ({ tx, ty, x: Math.random() * w, y: Math.random() * h, sx: Math.random() * w, sy: Math.random() * h, r: step * (.32 + Math.random() * .22) }));
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce) and (scripting: none)").matches;
     let raf = 0; const start = performance.now();
     const frame = (now: number) => {
       const t = ((now - start) / 1000) % 8;
@@ -479,7 +479,7 @@ function Leaderboard({ world, final, onShowMarket, still = false }: { world: Pub
   const orderKey = entries.map(entry => entry.terminalNumber).join(",");
   // When ranks change, the moving entries break into pixels and reassemble at their new place.
   useLayoutEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce) and (scripting: none)").matches;
     const next = new Map<number, { top: number; left: number }>();
     const moved: { row: HTMLElement; from: number; fromLeft: number }[] = [];
     rows.current.forEach((row, terminal) => {
@@ -838,7 +838,7 @@ export function CountdownScene({ seconds, variant, light }: { seconds: number; v
   const scene = useRef<HTMLDivElement>(null);
   // Every second lands like a beat: the whole scene punches in and settles.
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce) and (scripting: none)").matches) return;
     scene.current?.animate([{ transform: "scale(1.06)", opacity: .7 }, { transform: "none", opacity: 1 }], { duration: 520, easing: "cubic-bezier(.2,.8,.2,1)" });
   }, [seconds]);
   return <div className={`stage-countdown${seconds === 0 ? " is-go" : ""}`} role="status" aria-live="assertive">

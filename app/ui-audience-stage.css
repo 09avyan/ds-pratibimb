@@ -4,7 +4,7 @@
   The market is the main thing on screen: every company panel sizes its own type from its own width and
   height, so prices stay large and never clip, whatever the screen and whether or not news is showing.
   Each version (V1–V7) places the market, news and standings its own way and has its own motion.
-  All motion is transform and opacity, and stops under prefers-reduced-motion or the host's switch.
+  All motion is transform and opacity, and stops only on the host's switch. The OS "reduce motion" setting is deliberately ignored (queries carry "and (scripting: none)", which never matches in the running app) so one terminal with Windows animation effects off still animates like the rest.
 */
 
 /* ---------- Faces (each file downloads only on the version that uses it) ---------- */
@@ -122,7 +122,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 @keyframes stage-count { from { opacity: 0; transform: scale(1.4); filter: blur(10px); } to { opacity: 1; transform: none; filter: none; } }
 @keyframes stage-go { 0% { opacity: 0; transform: scale(.3); } 100% { opacity: 1; transform: none; } }
 @keyframes stage-spin { to { transform: rotate(1turn); } }
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) and (scripting: none) {
   .stage *, .stage *::before, .stage *::after { animation: none !important; transition: none !important; }
   .stage-confetti { display: none; }
   .cd-line { stroke-dashoffset: 0; }
@@ -224,7 +224,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 @keyframes cd-materialise { 0% { opacity: 0; transform: scale(1.35); filter: blur(14px); } 30% { opacity: 0; } 65% { opacity: 1; transform: scale(.98); filter: blur(0); } 100% { opacity: 1; transform: none; filter: none; } }
 .cd-ring { z-index: 1; }
 .cd-pulse { width: calc(640 * var(--u)); height: calc(640 * var(--u)); margin: calc(-320 * var(--u)) 0 0 calc(-320 * var(--u)); }
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) and (scripting: none) {
   .cd-particles { display: none; }
 }
 
@@ -234,7 +234,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 /* GO: a white flash and a shockwave. */
 .cd-flash { position: absolute; inset: 0; z-index: 4; background: radial-gradient(circle at 50% 50%, #fff, color-mix(in srgb, var(--up) 60%, transparent) 30%, transparent 70%); pointer-events: none; animation: cd-flash .9s ease-out both; }
 @keyframes cd-flash { 0% { opacity: 0; transform: scale(.4); } 15% { opacity: 1; } 100% { opacity: 0; transform: scale(2.4); } }
-@media (prefers-reduced-motion: reduce) { .cd-flash { display: none; } }
+@media (prefers-reduced-motion: reduce) and (scripting: none) { .cd-flash { display: none; } }
 
 /* Market open: a burst of light and the words, for under three seconds. */
 .stage-open { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; overflow: hidden; pointer-events: none; }
@@ -246,7 +246,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 
 
 .v-orbit .stage-title .dalaal-wordmark, .v-conservatory .stage-title .dalaal-wordmark { font-size: calc(44 * var(--u)); }
-@media (prefers-reduced-motion: reduce) { .stage::before, .stage-open { display: none; } }
+@media (prefers-reduced-motion: reduce) and (scripting: none) { .stage::before, .stage-open { display: none; } }
 
 
 /* ======================================================================
@@ -589,7 +589,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-countdown:not(.is-plain) .cd-dial strong { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .stage-last-ten { -webkit-text-stroke: 0; }
 .stage-last-ten .pixel-text { width: min(80vw, calc(900 * var(--u))); height: min(80vh, calc(900 * var(--u))); image-rendering: pixelated; filter: drop-shadow(0 0 calc(24 * var(--u)) color-mix(in srgb, var(--down) 70%, transparent)); }
-@media (prefers-reduced-motion: reduce) { .stage-countdown .cd-dial strong { position: static; width: auto; height: auto; clip: auto; } }
+@media (prefers-reduced-motion: reduce) and (scripting: none) { .stage-countdown .cd-dial strong { position: static; width: auto; height: auto; clip: auto; } }
 
 /* Market open in each version's own colour. */
 .stage-open-burst { background: radial-gradient(circle, color-mix(in srgb, var(--accent) 55%, transparent), transparent 62%); }
@@ -652,7 +652,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 
 /* Readable from 15 feet: names and prices never go below these sizes on a 1080p board. */
 .stage-tile-top b { min-height: 1em; }
-@media (prefers-reduced-motion: reduce) { .stage-body::before, .stage-tile::before { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) and (scripting: none) { .stage-body::before, .stage-tile::before { animation: none !important; } }
 
 /* Sound prompt: browsers block audio until the page is touched once; this makes that impossible to miss. */
 .stage-sound-prompt { position: fixed; left: 50%; bottom: calc(28 * var(--u)); z-index: 95; display: flex; align-items: center; gap: calc(18 * var(--u)); padding: calc(18 * var(--u)) calc(30 * var(--u)); border: 0; border-radius: 999px; color: var(--on-accent); background: var(--accent); box-shadow: 0 calc(16 * var(--u)) calc(50 * var(--u)) rgba(0, 0, 0, .45); font-family: var(--head); text-align: left; cursor: pointer; transform: translateX(-50%); animation: stage-prompt 2.4s ease-in-out infinite; }
@@ -863,7 +863,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 @keyframes lb-shake { 0%, 100% { translate: 0 0; } 15% { translate: calc(-10 * var(--u)) calc(4 * var(--u)); } 30% { translate: calc(9 * var(--u)) calc(-5 * var(--u)); } 45% { translate: calc(-7 * var(--u)) calc(3 * var(--u)); } 60% { translate: calc(5 * var(--u)) calc(-2 * var(--u)); } 80% { translate: calc(-2 * var(--u)) 0; } }
 .stage.off-finalReveal .lb-drumroll, .stage.no-motion .lb-drumroll { display: none; }
 .stage.off-finalReveal.is-final .lb-step *, .stage.off-finalReveal.is-final .lb-plinth, .stage.off-finalReveal.is-final .stage-board.lb { animation: none !important; }
-@media (prefers-reduced-motion: reduce) { .lb-drumroll { display: none; } .stage.is-final .lb-step *, .stage.is-final .lb-row { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) and (scripting: none) { .lb-drumroll { display: none; } .stage.is-final .lb-step *, .stage.is-final .lb-row { animation: none !important; } }
 @keyframes lb-rise { from { opacity: 0; transform: translateY(calc(60 * var(--u))); } to { opacity: 1; transform: none; } }
 @keyframes lb-crown-rise { 0% { opacity: 0; transform: translateY(calc(90 * var(--u))) scale(.9); filter: brightness(1.6); } 60% { opacity: 1; transform: translateY(calc(-14 * var(--u))) scale(1.04); } 100% { transform: none; filter: none; } }
 .stage.off-finalReveal.is-final .lb-step, .stage.off-finalReveal.is-final .lb-row { animation: none !important; }
@@ -968,7 +968,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 @keyframes invite-bob { 50% { transform: translateY(calc(-6 * var(--u))) rotate(-4deg); } }
 @keyframes invite-rise { from { opacity: 0; transform: translateY(calc(44 * var(--u))); } to { opacity: 1; transform: none; } }
 .stage.no-motion .invite *, .stage.off-ambient .invite-tape > div { animation: none !important; }
-@media (prefers-reduced-motion: reduce) { .invite * { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) and (scripting: none) { .invite * { animation: none !important; } }
 .v-broadcast .ed-head, .v-broadcast .ed-scene h3 { text-transform: uppercase; }
 .v-broadcast .ed-head { font-stretch: 80%; }
 .v-broadcast .invite-tape { color: #fff4d6; background: #000; }
@@ -1037,7 +1037,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage.no-motion .stage-report *, .stage.off-finalReveal .stage-report *, .stage.no-motion .stage-report, .stage.off-finalReveal .stage-report { animation: none !important; }
 .stage.no-motion .report-line, .stage.off-finalReveal .report-line { stroke-dashoffset: 0; }
 .stage.no-motion .report-area, .stage.off-finalReveal .report-area { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .stage-report, .stage-report * { animation: none !important; } .report-line { stroke-dashoffset: 0; } .report-area { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) and (scripting: none) { .stage-report, .stage-report * { animation: none !important; } .report-line { stroke-dashoffset: 0; } .report-area { opacity: 1; } }
 @media (max-aspect-ratio: 7 / 5), (max-width: 760px) {
   .stage.is-final .stage-body:has(.stage-report) { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: minmax(0, 1fr) auto !important; grid-template-areas: "board" "report" !important; }
 }
@@ -1057,7 +1057,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage-movebar i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; transition: width 1s cubic-bezier(.2, .9, .2, 1); }
 .stage-movebar.up i { background: var(--up); } .stage-movebar.down i { background: var(--down); }
 .v-gallery .stage-tile-price { padding-bottom: calc(14 * var(--u)); }
-@media (prefers-reduced-motion: reduce) { .stage-movebar i { animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) and (scripting: none) { .stage-movebar i { animation: none !important; transition: none !important; } }
 
 /* ======================================================================
    Round 9: steady tiles, a rebuilt V5, one entrance per version and a closing finale.
@@ -1151,7 +1151,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .stage.is-closing .stage-tile { animation: stage-lights-out .8s ease-in both !important; animation-delay: calc(var(--i, 0) * 34ms) !important; }
 @keyframes stage-lights-out { to { opacity: .28; filter: grayscale(1); transform: scale(.97); } }
 .stage.is-closing .stage-news, .stage.is-closing .stage-board { transition: opacity 1s ease-in, filter 1s; opacity: .35; filter: grayscale(.8); }
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) and (scripting: none) {
   .stage.is-closing .stage-tile, .stage-curtains, .stage-curtains *, .stage.is-entering .stage-tile { animation-duration: .01ms !important; animation-delay: 0s !important; }
 }
 
@@ -1260,7 +1260,7 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 .v-default .lb-row .lb-bar { filter: none !important; }
 .v-default .place-1 .lb-terminal, .v-default:not(.stage-light) .place-1 .lb-terminal { text-shadow: none !important; }
 .stage-confetti i.tone-2 { background: var(--silver); }
-@media (prefers-reduced-motion: reduce) { .stage-curtains, .stage-breaking, .ed-open { animation: none !important; } .stage-curtains { display: none; } }
+@media (prefers-reduced-motion: reduce) and (scripting: none) { .stage-curtains, .stage-breaking, .ed-open { animation: none !important; } .stage-curtains { display: none; } }
 /* The record spread: the heading, the record and its sentence as one block on the left, the next five
    beside it, both centred on the stage. */
 .scene-record .ed-scene { align-content: center; }

@@ -46,7 +46,7 @@ html:has(.stage-embed .stage-countdown), body:has(.stage-embed .stage-countdown)
 
 /* The host's switch, and reduced motion. */
 .terminal.no-motion *, .terminal.no-motion *::before, .terminal.no-motion *::after { animation: none !important; transition: none !important; }
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) and (scripting: none) {
   .terminal *, .terminal *::before, .terminal *::after, .trade-burst * { animation: none !important; transition: none !important; }
   .trade-burst { display: none; }
 }

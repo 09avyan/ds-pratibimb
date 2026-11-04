@@ -66,7 +66,7 @@ export function TradeCelebration({ enabled }: { enabled: boolean }) {
   useEffect(() => {
     if (!enabled) return;
     const onTrade = (event: Event) => {
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce) and (scripting: none)").matches) return;
       const { side, quantity, symbol } = (event as CustomEvent<{ side: string; quantity: number; symbol: string }>).detail;
       const button = document.querySelector(".execute-button") ?? document.querySelector(".sell-stock-all");
       const target = document.querySelector(".topbar-metrics > div:nth-child(4) b") ?? document.querySelector(".topbar-metrics");

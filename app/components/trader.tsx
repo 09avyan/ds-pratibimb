@@ -305,7 +305,14 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
   }, [view]);
   // After a hosted batch ends, the report stays up for 30 seconds, then the terminal returns to the ready state by itself.
   const [autoReady, setAutoReady] = useState<number | null>(null);
-  const autoReadyOn = view === "report" && mode !== "test" && world?.status === "closed";
+  // Filling in feedback holds the report on screen (the auto-return would cut the player off mid-sentence).
+  const [holdReport, setHoldReport] = useState(false);
+  useEffect(() => { if (view !== "report") setHoldReport(false); }, [view]);
+  const autoReadyOn = view === "report" && mode !== "test" && world?.status === "closed" && !holdReport;
+  const sendFeedback = async (entry: { rating: number; learned: number | null; comment: string }) => {
+    const res = await fetch("/api/game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, sessionId, terminal, localPreview: preview, action: "feedback", batch: world?.batch ?? 0, ...entry }), signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Feedback could not be sent.");
+  };
   useEffect(() => {
     if (!autoReadyOn) { setAutoReady(null); return; }
     const end = Date.now() + 30_000;
@@ -438,7 +445,7 @@ export function Trader({ mode = "live", audienceOnly = false, terminal, uiVarian
 
       {view === "news" && <section className="wide-page"><div className="section-heading"><div><div className="eyebrow">DALAA<span>L</span> STREET / NEWS</div><h1>Market news<span className="heading-period">.</span></h1><p>Company and sector bulletins shape the fictional market through the same price model as trading.</p></div></div><div className="news-list">{marketNews.map((n, i) => <article className={`news-item ${i === 0 ? "newest" : ""}`} key={n.id}><div className="news-meta"><b className="market-news-number">News {i + 1}</b><span className={`news-tag ${n.type}`}>{n.type}</span><span>{newsScope(n)}</span><time>{new Date(n.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time></div><h2>{n.headline}</h2></article>)}{!marketNews.length && <div className="empty-state">No bulletins yet. Headlines triggered during this batch will appear here.</div>}</div></section>}
 
-      {view === "report" && report && <WrapScreen report={report} world={world} motion={motion} autoReady={autoReady} cta={isTest && world?.status === "closed" ? "Start another practice round" : isTest ? "Return to practice market" : "Return to ready state"} onCta={() => { if (isTest && world?.status === "closed") { void send("sandbox-start"); return; } returnToReady(); }}/>}
+      {view === "report" && report && <WrapScreen report={report} world={world} motion={motion} autoReady={autoReady} onFeedback={sendFeedback} onFeedbackStart={() => setHoldReport(true)} cta={isTest && world?.status === "closed" ? "Start another practice round" : isTest ? "Return to practice market" : "Return to ready state"} onCta={() => { if (isTest && world?.status === "closed") { void send("sandbox-start"); return; } returnToReady(); }}/>}
       <footer className="workspace-footer"><span>SIMULATED MARKET · FICTIONAL PRICES · NO REAL TRADES</span><span>© PULSE / DALAA<span>L</span> STREET</span></footer>
     </main>
     {!audienceOnly && world?.status === "live" && !world.controls.paused && world.remaining <= Math.min(60, world.duration / 4) && player && !player.ended && [...Object.values(player.holdings), ...Object.values(player.shorts)].some(position => position.qty > 0) && <div className="closing-warning" role="status"><b>{fmtTime(world.remaining)}</b><span>The market closes soon. Shares you still hold will be sold, and shorts covered, automatically at the closing price.</span></div>}

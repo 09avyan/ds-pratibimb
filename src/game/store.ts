@@ -27,6 +27,11 @@ async function rpc<T>(name: string, body: Record<string, unknown>): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/** One small insert into its own table (private.trader_feedback). It never reads or writes the game state row. */
+export async function submitFeedback(mode: Mode, entry: { batch: number; terminal: number; rating: number; learned: number | null; comment: string }) {
+  return rpc<boolean>("submit_trader_feedback", { p_secret: secret(), p_mode: mode, p_batch: entry.batch, p_terminal: entry.terminal, p_rating: entry.rating, p_learned: entry.learned, p_comment: entry.comment.slice(0, 500) });
+}
+
 /*
   Storage format. Price history is most of the state (25 companies × hundreds of candles), and every
   update reads and writes the whole row, so candles are stored as compact number rows with times
