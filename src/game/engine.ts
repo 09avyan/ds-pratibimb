@@ -749,6 +749,8 @@ export function hostAction(world: World, action: string, payload: Record<string,
   if (action === "start") {
     if (world.status === "live" || world.status === "countdown") throw new Error("The batch is already starting or running.");
     if (payload.autonomous === true && world.autonomousNews) world.autonomousNews.enabled = true;
+    // The length picked in the console travels with the start, so a pick that was never saved still applies.
+    if (typeof payload.duration === "number" && Number.isFinite(payload.duration)) world.duration = clamp(Math.round(payload.duration), 60, 2700);
     world.batch++;
     world.stocks = makeStocks(world.batch);
     world.news = makeNews(world.batch); world.newsCatalogVersion = NEWS_CATALOG_VERSION; world.headlines = []; if (world.autonomousNews) world.autonomousNews.lastPublishedElapsed = 0; world.latestNewsId = null; world.latestNewsIds = []; world.controls.activeNews = 0;
@@ -795,7 +797,7 @@ export function hostAction(world: World, action: string, payload: Record<string,
     auto.enabled = true;
     world.controls.newsEnabled = false;
     const startingBatch = world.status === "ready" || world.status === "closed";
-    if (startingBatch) hostAction(world, "start", { autonomous: true }, at);
+    if (startingBatch) hostAction(world, "start", { autonomous: true, ...(typeof payload.duration === "number" ? { duration: payload.duration } : {}) }, at);
     else planAutonomousNews(world, world.status === "countdown" ? world.startedAt : at, true);
     keepAutonomousHistory(world, { at, kind: "started", indices: [...auto.nextIndices], intervalSeconds: auto.nextIntervalSeconds, reason: startingBatch ? "Starting the brain also started a fresh batch with the normal opening countdown." : "The host started the autonomous news brain in the current batch." });
   } else if (action === "autonomous-stop") {
