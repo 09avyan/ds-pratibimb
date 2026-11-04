@@ -512,13 +512,37 @@ function Leaderboard({ world, final, onShowMarket, still = false }: { world: Pub
   const fill = (value: number) => hi > lo ? 18 + 82 * (value - lo) / (hi - lo) : 100;
   const tone = (entry: PublicLeaderboardEntry) => entry.pnl > .5 ? "up" : entry.pnl < -.5 ? "down" : "flat";
   const podium = [entries[1], entries[0], entries[2]]; // second, first, third: the winner stands in the middle
+  // About 12 s after the close, the podium turns to the best three traders of the whole day (all batches).
+  const best = [...(world?.hallOfFame ?? [])].sort((a, b) => b.pnl - a.pnl).slice(0, 3);
+  const [allTime, setAllTime] = useState(false);
+  useEffect(() => {
+    setAllTime(false);
+    if (!final) return;
+    const timer = window.setTimeout(() => setAllTime(true), 12000);
+    return () => window.clearTimeout(timer);
+  }, [final, world?.batch]);
+  const showBest = final && allTime && best.length > 0;
   return <section ref={board} className={`stage-board lb${final ? " is-final" : ""}${leadBanner ? " has-new-leader" : ""}`} aria-label={final ? "Final standings" : "Standings"} style={{ "--count": entries.length } as React.CSSProperties}>
     {leadBanner && <div className="stage-lead" key={leadBanner.key} role="status"><strong>Terminal {pad2(leadBanner.terminal)} takes the lead.</strong></div>}
     <header className="stage-board-head">
-      <h2>{final ? "Final standings" : "Standings"}</h2>
-      <span className="stage-board-meta">{final ? `Batch ${pad2(world?.batch ?? 1)} · closed` : entries.length ? `${entries.length} ${entries.length === 1 ? "terminal" : "terminals"} trading` : "No trades yet"}</span>
+      <h2>{showBest ? "Best of the day" : final ? "Final standings" : "Standings"}</h2>
+      <span className="stage-board-meta">{showBest ? `Top 3 across all batches` : final ? `Batch ${pad2(world?.batch ?? 1)} · closed` : entries.length ? `${entries.length} ${entries.length === 1 ? "terminal" : "terminals"} trading` : "No trades yet"}</span>
     </header>
-    <div className={`lb-podium${entries.length ? "" : " is-waiting"}`}>
+    {showBest ? <div className="lb-podium is-all-time" aria-label="Best traders across all batches">
+      {[best[1], best[0], best[2]].map((entry, slot) => {
+        const place = slot === 1 ? 1 : slot === 0 ? 2 : 3;
+        if (!entry) return <div className={`lb-step place-${place} is-empty`} key={`best-empty-${place}`} aria-hidden="true"><b className="lb-medal">{place}</b><strong className="lb-terminal">?</strong><i className="lb-plinth"><span>{PLACE[place - 1]}</span></i></div>;
+        return <div className={`lb-step place-${place}`} key={`best-${entry.batch}-${entry.terminalNumber}`} aria-label={`${PLACE[place - 1]} of the day: terminal ${pad2(entry.terminalNumber)}, batch ${pad2(entry.batch)}, ${signedMoney(entry.pnl)}`}>
+          {place === 1 && <svg className="stage-crown" viewBox="0 0 34 24" aria-hidden="true"><path d="M2 22 0 6l9 7 8-12 8 12 9-7-2 16z"/></svg>}
+          <b className="lb-medal">{place}</b>
+          <small className="lb-label">Batch {pad2(entry.batch)} · Terminal</small>
+          <strong className="lb-terminal">{pad2(entry.terminalNumber)}</strong>
+          <span className="lb-value">{signedMoney(entry.pnl)}</span>
+          <span className={`lb-return ${entry.pnl >= 0 ? "up" : "down"}`}>{signedPct(entry.returnPct)}</span>
+          <i className="lb-plinth"><span>{PLACE[place - 1]}</span></i>
+        </div>;
+      })}
+    </div> : <div className={`lb-podium${entries.length ? "" : " is-waiting"}`}>
       {podium.map((entry, slot) => {
         const place = slot === 1 ? 1 : slot === 0 ? 2 : 3;
         if (!entry) return <div className={`lb-step place-${place} is-empty`} key={`empty-${place}`} aria-hidden="true"><b className="lb-medal">{place}</b><strong className="lb-terminal">?</strong><i className="lb-plinth"><span>{PLACE[place - 1]}</span></i></div>;
@@ -532,8 +556,8 @@ function Leaderboard({ world, final, onShowMarket, still = false }: { world: Pub
           <i className="lb-plinth"><span>{PLACE[place - 1]}</span></i>
         </div>;
       })}
-    </div>
-    {final && leader && <p className="lb-drumroll" aria-hidden="true">And the winner is…</p>}
+    </div>}
+    {final && leader && !showBest && <p className="lb-drumroll" aria-hidden="true">And the winner is…</p>}
     {entries.length === 0 && <p className="lb-wait"><strong>Waiting for the first trade</strong><span>A terminal joins the board with its first buy or short.</span></p>}
     {entries.length > 3 && <ol className="lb-race" start={4}>
       {entries.slice(3).map((entry, i) => <li key={entry.terminalNumber} ref={keep(entry.terminalNumber)} className={`lb-row ${tone(entry)} status-${entry.status}`} style={{ "--fill": `${fill(entry.totalValue)}%`, "--r": entries.length - 4 - i } as React.CSSProperties}>

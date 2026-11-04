@@ -681,3 +681,15 @@ html:has(.auto-launch-page),body:has(.auto-launch-page){min-height:100%;backgrou
 /* Keep the combined chart/order surface in normal flow when its column scrolls. */
 .terminal .trade-column { grid-auto-rows:max-content; }
 .terminal .trade-column > .focus-card { height:auto!important;min-height:max-content; }
+
+/* The order button is always on screen: it sticks to the foot of the visible area when the order
+   section is taller than the space left (a 125%-scaled 1080p screen leaves about 730px). */
+.terminal .inline-order-ticket { position: sticky; bottom: 0; z-index: 5; background: var(--card); backdrop-filter: blur(18px) saturate(1.1); box-shadow: 0 -12px 24px -14px rgba(0,0,0,.35); }
+.terminal .trading-grid > .trade-column { min-height: 0; max-height: 100%; }
+/* Short screens: a smaller chart and a tighter order section, so most of it fits without scrolling. */
+@media (max-height: 820px) {
+  .terminal .price-chart, .terminal.ui-floor .price-chart, .terminal.ui-arcade .price-chart, .terminal.ui-studio .price-chart { height: clamp(96px, 15vh, 140px) !important; }
+  .terminal .order-card { padding-top: 10px !important; padding-bottom: 10px !important; }
+  .terminal .order-card > * + * { margin-top: 6px !important; }
+  .terminal .focus-card { padding-top: 10px !important; padding-bottom: 10px !important; }
+}
