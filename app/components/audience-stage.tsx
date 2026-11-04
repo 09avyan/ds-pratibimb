@@ -189,6 +189,7 @@ function useCountUp(target: number, still: boolean, ms = 1600, from = 0, delay =
   return value;
 }
 
+let inviteProgress = 0;
 type SceneId = "cover" | "how" | "record" | "last" | "seat";
 const SCENE_MS: Record<SceneId, number> = { cover: 8000, how: 9000, record: 8500, last: 7500, seat: 6500 };
 
@@ -233,9 +234,12 @@ function InviteScene({ world, still }: { world: PublicWorld | null; still: boole
   const closed = world?.status === "closed" && (world?.leaderboard.length ?? 0) > 0;
   const leader = closed ? world!.leaderboard[0] : undefined;
   const scenes: SceneId[] = ["cover", "how", "record", ...(closed ? ["last" as const] : []), "seat"];
-  const [turn, setTurn] = useState(0);
+  // The loop carries on where it left off when the wall comes back to it between rounds, so every
+  // spread gets its turn instead of the first two over and over.
+  const [turn, setTurn] = useState(() => inviteProgress);
   const scene = scenes[turn % scenes.length];
   useEffect(() => {
+    inviteProgress = turn;
     const timer = window.setTimeout(() => setTurn(n => n + 1), SCENE_MS[scene]);
     return () => window.clearTimeout(timer);
   }, [turn, scene]);
@@ -882,12 +886,12 @@ export function AudienceStage({ world, preview, theme, onTheme, variant = "galle
   const indexText = world?.index.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "10,000.00";
   // At the closing bell the leaderboard takes the whole stage until the next batch or a tap on "Show the market".
   const standingsAfterClose = status === "closed" && (world?.leaderboard.length ?? 0) > 0 && marketAfterClose !== world?.batch;
-  // Between rounds the wall takes turns: 25 s of final standings, then 15 s inviting the room to play.
+  // Between rounds the wall takes turns: 25 s of final standings, then 40 s inviting the room to play (one full loop of the spreads).
   const [inviteTurn, setInviteTurn] = useState(false);
   useEffect(() => {
     if (status !== "closed") { setInviteTurn(false); return; }
     let showing = false;
-    const flip = () => { showing = !showing; setInviteTurn(showing); timer = window.setTimeout(flip, showing ? 15_000 : 25_000); };
+    const flip = () => { showing = !showing; setInviteTurn(showing); timer = window.setTimeout(flip, showing ? 40_000 : 25_000); };
     let timer = window.setTimeout(flip, 25_000);
     return () => window.clearTimeout(timer);
   }, [status, world?.batch]);
