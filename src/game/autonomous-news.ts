@@ -229,6 +229,13 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
   for (const story of world.headlines) if (scopeOf(story) !== "economy") sectorCounts.set(story.sector, (sectorCounts.get(story.sector) ?? 0) + 1);
   const economySets = new Set(world.headlines.filter(story => scopeOf(story) === "economy").map(story => story.createdAt)).size;
   const roundDirection = world.headlines.reduce((sum, story) => sum + Math.sign(story.direction), 0);
+  // Whole-market balance: economy stories move all 25 companies, so they must not pile up one way.
+  const economyNet = world.headlines.filter(story => scopeOf(story) === "economy").reduce((sum, story) => sum + Math.sign(story.direction), 0);
+  // The same balance per scope and size: the catalogue has more bad than good company majors, so without
+  // this the round would tilt bearish.
+  const netOf = (scope: string, type: string) => world.headlines.filter(story => scopeOf(story) === scope && story.type === type).reduce((sum, story) => sum + Math.sign(story.direction), 0);
+  // How far the market as a whole has drifted from the open (average move of all companies).
+  const marketDrift = world.stocks.length ? world.stocks.reduce((sum, stock) => sum + stock.price / (stock.previousClose || stock.price) - 1, 0) / world.stocks.length : 0;
   const marketDirection = Math.sign(reading.indexChange);
   const recentDirectionCount = world.headlines.slice(0, 5).reduce((sum, news) => sum + Math.sign(news.direction), 0);
   // Across batches: stories told fewer times than the rest come first, so every story (and with it every
@@ -289,6 +296,16 @@ export function chooseAutonomousNewsPlan(world: World, at: number, baseIntervalS
       score += covered === 0 ? .35 : -.22 * (covered - 1);
     }
     if (scope === "economy" && economySets >= Math.max(1, Math.ceil(publishedSetCount / 2))) score -= .15;
+    // Keep the round near neutral: the economy never runs two ahead one way, and once the whole
+    // market is more than 2.5% from the open, stories that push it further are pushed down hard.
+    if (scope === "economy" && Math.sign(economyNet) === item.news.direction) score -= Math.abs(economyNet) >= 1 ? 1.4 : 0;
+    { const net = netOf(scope, item.news.type); if (net !== 0) score += Math.sign(net) === item.news.direction ? -.6 * Math.min(2, Math.abs(net)) : .35; }
+    if (scope === "economy" && economyNet !== 0 && Math.sign(economyNet) !== item.news.direction) score += .5;
+    if (Math.abs(marketDrift) > .025) {
+      const further = Math.sign(marketDrift) === item.news.direction;
+      const weight = scope === "economy" ? 1.6 : scope === "sector" ? .9 : .25;
+      score += (further ? -1 : .7) * weight * Math.min(3, Math.abs(marketDrift) / .025);
+    }
     if (roundDirection >= 3 && item.news.direction < 0 || roundDirection <= -3 && item.news.direction > 0) score += .3;
     if (finalSet) score += scope === "stock" ? .4 : scope === "economy" ? -.5 : 0;
     if (ignored) score += scope === "stock" ? .35 + (item.news.type === "major" ? .15 : 0) : scope === "economy" ? -.3 : 0;
