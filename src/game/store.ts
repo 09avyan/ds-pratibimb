@@ -28,11 +28,11 @@ async function rpc<T>(name: string, body: Record<string, unknown>): Promise<T> {
 }
 
 /** One small insert into its own table (private.trader_feedback). It never reads or writes the game state row. */
-export async function submitFeedback(mode: Mode, entry: { batch: number; terminal: number; rating: number; learned: number | null; comment: string }) {
-  return rpc<boolean>("submit_trader_feedback", { p_secret: secret(), p_mode: mode, p_batch: entry.batch, p_terminal: entry.terminal, p_rating: entry.rating, p_learned: entry.learned, p_comment: entry.comment.slice(0, 500) });
+export async function submitFeedback(mode: Mode, entry: { batch: number; terminal: number; rating: number; learned: number | null; comment: string; name: string }) {
+  return rpc<boolean>("submit_trader_feedback", { p_secret: secret(), p_mode: mode, p_batch: entry.batch, p_terminal: entry.terminal, p_rating: entry.rating, p_learned: entry.learned, p_comment: entry.comment.slice(0, 500), p_name: entry.name.slice(0, 40) });
 }
 
-export type FeedbackRow = { id: number; at: number; batch: number; terminal: number | null; rating: number; learned: number | null; comment: string | null };
+export type FeedbackRow = { id: number; at: number; batch: number; terminal: number | null; rating: number; learned: number | null; comment: string | null; name?: string | null };
 /** Host only, on demand: the newest 1,000 answers from the feedback table (not the game state). */
 export async function listFeedback(mode: Mode) {
   return rpc<FeedbackRow[]>("get_trader_feedback", { p_secret: secret(), p_mode: mode });
