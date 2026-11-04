@@ -1282,3 +1282,5 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
 }
 /* The countdown numbers are set as type (the particle field that used to draw them is gone). */
 .stage-countdown:not(.is-plain) .cd-dial strong { position: relative; width: auto; height: auto; overflow: visible; clip: auto; white-space: nowrap; }
+.stage-countdown:not(.is-plain) .cd-dial strong, .stage-countdown.is-go .cd-dial strong { animation: ed-count .45s cubic-bezier(.2, .8, .2, 1) both !important; }
+@keyframes ed-count { from { opacity: 0; transform: scale(1.12); } to { opacity: 1; transform: none; } }
