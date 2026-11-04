@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "app/components/audience-stage.tsx": {
-    "mtime": 1793727420.376645,
-    "seen": 1793761036.989462,
-    "ast_hash": "23de8d919d71912379b56e12cf86f95b",
+    "mtime": 1793761085.9307106,
+    "seen": 1793761330.8283782,
+    "ast_hash": "656799d56ec16b6934457191481a5c24",
     "semantic_hash": ""
   },
   "app/components/auto-launcher.tsx": {
@@ -168,8 +168,8 @@
     "semantic_hash": ""
   },
   "next-env.d.ts": {
-    "mtime": 1793727408.347651,
-    "seen": 1793727414.3037953,
+    "mtime": 1793761327.7733142,
+    "seen": 1793761330.8291428,
     "ast_hash": "8195d2c60ce847a459ae9d308d6a5724",
     "semantic_hash": ""
   },
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793727420.376645,
-    "seen": 1793761036.9907558,
-    "ast_hash": "b5e712fef2743163bb86194352fc1ab3",
+    "mtime": 1793761085.9330802,
+    "seen": 1793761330.8303056,
+    "ast_hash": "0dc72a9b16b6794fb6425009ae8095c5",
     "semantic_hash": ""
   },
   "app/icon.png": {
