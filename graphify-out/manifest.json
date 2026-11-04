@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "app/components/trader.tsx": {
-    "mtime": 1793770251.5010726,
-    "seen": 1793770390.9261403,
-    "ast_hash": "170c882083227ecf0a438c1ab5a0bd5b",
+    "mtime": 1793771342.4872665,
+    "seen": 1793771441.0020766,
+    "ast_hash": "c0945391388142bc76c5c41849c89e64",
     "semantic_hash": ""
   },
   "app/host/page.tsx": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793771284.8040931,
-    "seen": 1793771288.0985177,
-    "ast_hash": "de63fc36c7830a04a883b37b41b4d8de",
+    "mtime": 1793771351.6901581,
+    "seen": 1793771441.003747,
+    "ast_hash": "ed85d7950358f44769bb4b902b64593a",
     "semantic_hash": ""
   },
   "app/icon.png": {
