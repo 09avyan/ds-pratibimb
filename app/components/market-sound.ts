@@ -304,13 +304,21 @@ export function chimes(ctx: AudioContext, delay: number, count: number, gap: num
   for (let i = 0; i < count; i++) gongStrike(ctx, out, ctx.currentTime + delay + i * gap, 880 * 2 ** (i * 4 / 12), .12);
 }
 
+/** News published: a light two-note "ding-dong" (up a fourth), short and quiet so it never covers the bells. */
+export function newsChime(ctx: AudioContext) {
+  const { out } = rig(ctx);
+  const t = ctx.currentTime + .03;
+  gongStrike(ctx, out, t, 1318.5, .07);
+  gongStrike(ctx, out, t + .14, 1760, .06);
+}
+
 /** A soft confirmation chime when sound is unlocked. */
 function chime(ctx: AudioContext) {
   const { out } = rig(ctx);
   gongStrike(ctx, out, ctx.currentTime + .05, 1180, .12);
 }
 
-type SoundWorld = { batch: number; status: "ready" | "countdown" | "live" | "closed"; startedAt: number } | null;
+type SoundWorld = { batch: number; status: "ready" | "countdown" | "live" | "closed"; startedAt: number; latestNewsId?: string | null } | null;
 
 /**
  * Bells at the open and the close, and a tick each countdown second. Works in a background tab: the
@@ -365,6 +373,15 @@ export function useMarketSound(world: SoundWorld, enabled: boolean, countdown = 
     const closed = world.status === "closed" && before.status === "live" && before.batch === world.batch;
     if (opened || closed) play(ctx => ringBell(ctx, opened ? "open" : "close"));
   }, [world?.status, world?.batch, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  // News chime: only when a new headline arrives while the market is live (never on first load).
+  const lastNews = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const id = world?.latestNewsId ?? null;
+    const before = lastNews.current;
+    lastNews.current = id;
+    if (before === undefined || !id || id === before || !enabled || world?.status !== "live") return;
+    play(newsChime);
+  }, [world?.latestNewsId, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
   // Countdown ticks, from a timer of its own so a background tab still hears each second.
   useEffect(() => {
     if (!enabled || !countdown || world?.status !== "countdown") return;
