@@ -134,9 +134,10 @@ export async function mutate<T>(mode: Mode, update: (world: World) => T | Promis
   for (let attempt = 0; attempt < 14 && (attempt === 0 || Date.now() < deadline); attempt++) {
     const cached = attempt === 0 && readCacheMs > 0 ? readCache.get(mode) : undefined;
     let fromCache = Boolean(cached && Date.now() - cached.at < readCacheMs);
-    // Egress: a cached copy up to 20 s old is reused when a ~100-byte version check says nothing changed,
-    // instead of downloading the whole game again.
-    if (!fromCache && cached && readCacheMs > 0 && Date.now() - cached.at < 20_000) {
+    // A cached copy is reused for as long as a ~100-byte version check says nothing changed, instead of
+    // downloading the whole game again: the full read is the database's most expensive call, and idle
+    // screens were making it several times a second.
+    if (!fromCache && cached && readCacheMs > 0) {
       const current = await rpc<number | null>("get_game_version", { p_secret: secret(), p_mode: mode }).catch(() => null);
       if (current === cached.version) { cached.at = Date.now(); fromCache = true; }
     }
