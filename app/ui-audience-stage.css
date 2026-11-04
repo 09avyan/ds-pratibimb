@@ -1280,3 +1280,5 @@ html:has(.stage), body:has(.stage) { height: 100%; margin: 0; overflow: hidden; 
   .ed-figure { font-size: 14vw; }
   .stage-index { padding-right: 16px; }
 }
+/* The countdown numbers are set as type (the particle field that used to draw them is gone). */
+.stage-countdown:not(.is-plain) .cd-dial strong { position: relative; width: auto; height: auto; overflow: visible; clip: auto; white-space: nowrap; }

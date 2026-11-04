@@ -276,6 +276,12 @@ export function fanfare(ctx: AudioContext, delay: number, roll = 1.6) {
   });
 }
 
+/** The awards landing: one bright chime per award, each a step higher, starting `delay` seconds from now. */
+export function chimes(ctx: AudioContext, delay: number, count: number, gap: number) {
+  const { out } = rig(ctx);
+  for (let i = 0; i < count; i++) gongStrike(ctx, out, ctx.currentTime + delay + i * gap, 880 * 2 ** (i * 4 / 12), .22);
+}
+
 /** A soft confirmation chime when sound is unlocked. */
 function chime(ctx: AudioContext) {
   const { out } = rig(ctx);
@@ -352,7 +358,7 @@ export function useMarketSound(world: SoundWorld, enabled: boolean, countdown = 
     const timer = window.setInterval(check, 100);
     return () => window.clearInterval(timer);
   }, [world?.status, world?.startedAt, world?.batch, enabled, countdown]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { needsTap, test: (kind: BellKind) => play(ctx => ringBell(ctx, kind)), fanfare: (delay: number) => { if (enabled) play(ctx => fanfare(ctx, delay)); } };
+  return { needsTap, test: (kind: BellKind) => play(ctx => ringBell(ctx, kind)), fanfare: (delay: number) => { if (enabled) play(ctx => fanfare(ctx, delay)); }, chimes: (delay: number, count: number, gap: number) => { if (enabled) play(ctx => chimes(ctx, delay, count, gap)); } };
 }
 
 /**
